@@ -1,0 +1,140 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/stores/auth';
+import { 
+  LogOut, 
+  Sun, 
+  Moon, 
+  ChevronRight,
+  Clock,
+  User
+} from 'lucide-react';
+
+interface TopBarProps {
+  onLogout: () => void;
+}
+
+const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  // Generate breadcrumbs from pathname
+  const generateBreadcrumbs = () => {
+    const segments = pathname.split('/').filter(Boolean);
+    const breadcrumbs = [{ name: 'Dashboard', href: '/dashboard' }];
+    
+    let currentPath = '';
+    segments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      const name = segment
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      if (index > 0) { // Skip the first segment (dashboard)
+        breadcrumbs.push({ name, href: currentPath });
+      }
+    });
+    
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // You can implement actual dark mode logic here
+    document.documentElement.classList.toggle('dark');
+  };
+
+  return (
+    <div className="bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between">
+      {/* Left side - Breadcrumbs */}
+      <div className="flex items-center space-x-2">
+        {breadcrumbs.map((breadcrumb, index) => (
+          <React.Fragment key={breadcrumb.href}>
+            {index > 0 && (
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            )}
+            <span className={`text-sm font-medium ${
+              index === breadcrumbs.length - 1 
+                ? 'text-gray-900' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}>
+              {breadcrumb.name}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Right side - Greeting, Time, Theme Toggle, Logout */}
+      <div className="flex items-center space-x-6">
+        {/* Greeting */}
+        <div className="flex items-center space-x-2">
+          <User className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-600">
+            {getGreeting()}, <span className="font-semibold text-gray-900">{user?.name || 'Admin'}</span>
+          </span>
+        </div>
+
+        {/* Time */}
+        <div className="flex items-center space-x-2">
+          <Clock className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-mono text-gray-600">
+            {currentTime.toLocaleTimeString('en-US', { 
+              hour12: true, 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: '2-digit'
+            })}
+          </span>
+        </div>
+
+        {/* Dark/Light Theme Toggle */}
+        <button
+          onClick={toggleDarkMode}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDarkMode ? (
+            <Sun className="w-5 h-5 text-yellow-500" />
+          ) : (
+            <Moon className="w-5 h-5 text-gray-600" />
+          )}
+        </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={onLogout}
+          className="flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default TopBar;
