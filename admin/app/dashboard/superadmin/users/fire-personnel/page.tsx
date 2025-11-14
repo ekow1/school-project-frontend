@@ -618,18 +618,18 @@ const FirePersonnelPage: React.FC = () => {
                 </h3>
                 <div className="space-y-3">
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
+                        <div className="flex items-center justify-between">
+                          <div>
                         <p className="font-semibold text-gray-900">Service Number: {selectedUser.serviceNumber || 'N/A'}</p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
+                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
                             Joined: {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
-                          </span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

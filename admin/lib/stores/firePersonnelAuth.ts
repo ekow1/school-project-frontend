@@ -417,8 +417,8 @@ export const useFirePersonnelAuthStore = create<FirePersonnelAuthStore>()(
   )
 );
 
-// Selectors
-export const selectFirePersonnelUser = (state: AuthStore) => state.user;
-export const selectFirePersonnelIsLoading = (state: AuthStore) => state.isLoading;
-export const selectFirePersonnelError = (state: AuthStore) => state.error;
+// Selectors - using Pick to ensure type compatibility
+export const selectFirePersonnelUser = (state: Pick<FirePersonnelAuthStore, 'user'>) => state.user;
+export const selectFirePersonnelIsLoading = (state: Pick<FirePersonnelAuthStore, 'isLoading'>) => state.isLoading;
+export const selectFirePersonnelError = (state: Pick<FirePersonnelAuthStore, 'error'>) => state.error;
 

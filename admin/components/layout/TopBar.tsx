@@ -104,7 +104,7 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
         <div className="flex items-center space-x-2">
           <User className="w-4 h-4 text-gray-500" />
           <span className="text-sm text-gray-600">
-            {getGreeting()}, <span className="font-semibold text-gray-900">{user?.name || 'Admin'}</span>
+            {getGreeting()}, <span className="font-semibold text-gray-900">{user?.role || 'Admin'}</span>
             {user?.role === 'Operations' && user?.departmentId && (
               <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
                 {(() => {

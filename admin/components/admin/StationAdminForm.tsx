@@ -78,7 +78,7 @@ const StationAdminForm: React.FC<StationAdminFormProps> = ({
   } = useForm<StationAdminFormData>({
     resolver: zodResolver(
       isEditMode ? editStationAdminSchema : createStationAdminSchema
-    ),
+    ) as any,
     defaultValues: {
       username: initialData?.username || '',
       password: '',

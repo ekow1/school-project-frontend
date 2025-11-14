@@ -11,6 +11,7 @@ import {
   getFilteredRowModel,
   ColumnFiltersState,
   Table as TanStackTable,
+  OnChangeFn,
 } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
 
@@ -22,9 +23,9 @@ interface DataTableProps<T> {
   searchMessage?: string;
   searchTerm?: string;
   sorting?: SortingState;
-  onSortingChange?: (sorting: SortingState) => void;
+  onSortingChange?: OnChangeFn<SortingState>;
   columnFilters?: ColumnFiltersState;
-  onColumnFiltersChange?: (filters: ColumnFiltersState) => void;
+  onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
   headerClassName?: string;
   rowClassName?: string | ((row: T, index: number) => string);
   table?: TanStackTable<T>; // Allow passing pre-configured table
