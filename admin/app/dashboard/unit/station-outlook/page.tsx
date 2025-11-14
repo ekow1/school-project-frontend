@@ -1183,7 +1183,7 @@ const StationOutlookPage: React.FC = () => {
                       >
                         {header.isPlaceholder
                           ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
+                          : flexRender(header.column.columnDef.header as string | ((props: unknown) => React.ReactNode) | undefined, header.getContext() as unknown)}
                       </th>
                     ))}
                   </tr>
