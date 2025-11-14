@@ -33,10 +33,7 @@ declare module "axios" {
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>>;
 
-  export function delete<T = any>(
-    url: string,
-    config?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<T>>;
+  // delete is a reserved word, so we declare it in the axios object directly
 
   export function patch<T = any>(
     url: string,
@@ -50,7 +47,7 @@ declare module "axios" {
     get: typeof get;
     post: typeof post;
     put: typeof put;
-    delete: typeof delete;
+    delete: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
     patch: typeof patch;
     isAxiosError: typeof isAxiosError;
   };
