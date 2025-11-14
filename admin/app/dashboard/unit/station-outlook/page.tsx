@@ -1039,25 +1039,10 @@ const StationOutlookPage: React.FC = () => {
     },
   ];
 
-  // Get columns based on active tab
-  const getColumns = () => {
-    switch (activeTab) {
-      case 'jurisdiction':
-        return jurisdictionColumns;
-      case 'importance':
-        return importanceColumns;
-      case 'services':
-        return servicesColumns;
-      case 'hydrants':
-        return hydrantsColumns;
-      default:
-        return jurisdictionColumns;
-    }
-  };
-
-  const table = useReactTable({
-    data: filteredData,
-    columns: getColumns(),
+  // Create separate tables for each tab type (TanStack Table requires single row type per table)
+  const jurisdictionTable = useReactTable<JurisdictionPlace>({
+    data: activeTab === 'jurisdiction' ? filteredData as JurisdictionPlace[] : [],
+    columns: jurisdictionColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -1068,6 +1053,64 @@ const StationOutlookPage: React.FC = () => {
       columnFilters,
     },
   });
+
+  const importanceTable = useReactTable<PlaceOfImportance>({
+    data: activeTab === 'importance' ? filteredData as PlaceOfImportance[] : [],
+    columns: importanceColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
+
+  const servicesTable = useReactTable<SisterService>({
+    data: activeTab === 'services' ? filteredData as SisterService[] : [],
+    columns: servicesColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
+
+  const hydrantsTable = useReactTable<HydrantLocation>({
+    data: activeTab === 'hydrants' ? filteredData as HydrantLocation[] : [],
+    columns: hydrantsColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
+
+  // Get the active table based on current tab
+  const table = useMemo(() => {
+    switch (activeTab) {
+      case 'jurisdiction':
+        return jurisdictionTable;
+      case 'importance':
+        return importanceTable;
+      case 'services':
+        return servicesTable;
+      case 'hydrants':
+        return hydrantsTable;
+      default:
+        return jurisdictionTable;
+    }
+  }, [activeTab, jurisdictionTable, importanceTable, servicesTable, hydrantsTable]);
 
   if (isLoadingStations) {
     return (
@@ -1183,7 +1226,7 @@ const StationOutlookPage: React.FC = () => {
                       >
                         {header.isPlaceholder
                           ? null
-                          : flexRender(header.column.columnDef.header as string | ((props: unknown) => React.ReactNode) | undefined, header.getContext() as unknown)}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
                   </tr>
