@@ -213,6 +213,14 @@ const DepartmentManagementPage: React.FC = () => {
     });
   };
 
+  // Helper to extract stationId string from string or object
+  const extractStationId = (stationId?: string | { _id?: string; id?: string }): string | undefined => {
+    if (!stationId) return undefined;
+    if (typeof stationId === 'string') return stationId;
+    if (typeof stationId === 'object') return stationId._id || stationId.id || undefined;
+    return undefined;
+  };
+
   // Get station name helper
   const getStationName = (stationId?: string): string => {
     if (!stationId) return '-';
@@ -245,17 +253,7 @@ const DepartmentManagementPage: React.FC = () => {
     const filtered = departments
       .filter((dept) => {
         // Handle different stationId formats (string, object with _id/id, or nested)
-        let deptStationId: string | undefined;
-        
-        if (typeof dept.stationId === 'string') {
-          deptStationId = dept.stationId;
-        } else if (typeof dept.station_id === 'string') {
-          deptStationId = dept.station_id;
-        } else if (dept.stationId && typeof dept.stationId === 'object') {
-          deptStationId = dept.stationId._id || dept.stationId.id || undefined;
-        } else if (dept.station_id && typeof dept.station_id === 'object') {
-          deptStationId = dept.station_id._id || dept.station_id.id || undefined;
-        }
+        const deptStationId = extractStationId(dept.stationId) || extractStationId(dept.station_id);
         
         // Convert both to strings for comparison to handle any type mismatches
         const deptStationIdStr = String(deptStationId || '').trim();
@@ -285,14 +283,17 @@ const DepartmentManagementPage: React.FC = () => {
         
         return matches;
       })
-      .map((dept) => ({
-        ...dept,
-        id: dept.id || dept._id,
-        stationId: dept.stationId || dept.station_id, // Normalize station_id to stationId
-        stationName: getStationName(dept.stationId || dept.station_id),
-        unitCount: dept.unitCount || dept.units?.length || 0,
-        description: dept.description || '',
-      }));
+      .map((dept) => {
+        const stationIdStr = extractStationId(dept.stationId) || extractStationId(dept.station_id);
+        return {
+          ...dept,
+          id: dept.id || dept._id,
+          stationId: stationIdStr, // Normalize station_id to stationId as string
+          stationName: getStationName(stationIdStr),
+          unitCount: dept.unitCount || dept.units?.length || 0,
+          description: dept.description || '',
+        };
+      });
     
     console.log('Transformed departments result:', {
       filteredCount: filtered.length,
