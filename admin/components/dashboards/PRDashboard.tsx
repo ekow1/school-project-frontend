@@ -240,7 +240,7 @@ const PRDashboard: React.FC = () => {
               Public Relations Command Center
             </h1>
             <p className="text-gray-600 text-xl font-medium">
-              Welcome back, {user?.name || 'PR Officer'}
+              Welcome back, PR Officer
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>

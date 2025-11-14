@@ -254,7 +254,7 @@ const OperationsDashboard: React.FC = () => {
               Operations Command Center
             </h1>
             <p className="text-gray-600 text-xl font-medium">
-              Welcome back, {user?.name || 'Operations Officer'}
+              Welcome back, Operations Officer
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>

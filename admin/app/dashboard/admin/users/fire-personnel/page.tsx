@@ -325,6 +325,14 @@ const FirePersonnelPage: React.FC = () => {
     return department?.name || '-';
   };
 
+  // Helper to extract stationId string from string or object
+  const extractStationId = (stationId?: string | { _id?: string; id?: string }): string | undefined => {
+    if (!stationId) return undefined;
+    if (typeof stationId === 'string') return stationId;
+    if (typeof stationId === 'object') return stationId._id || stationId.id || undefined;
+    return undefined;
+  };
+
   // Get station name helper
   const getStationName = (stationId?: string): string => {
     if (!stationId) return '-';
@@ -448,15 +456,21 @@ const FirePersonnelPage: React.FC = () => {
   // Transform fire personnel to match table format
   const transformedPersonnel = useMemo(() => {
     return firePersonnel
-      .filter(personnel => (personnel.stationId || personnel.station_id) === adminStationId)
-      .map((personnel) => ({
-        ...personnel,
-        id: personnel.id || personnel._id,
-        rankName: getRankName(personnel.rankId),
-        departmentName: getDepartmentName(personnel.departmentId),
-        unitName: getUnitName(personnel.unitId),
-        stationName: getStationName(personnel.stationId || personnel.station_id),
-      }));
+      .filter(personnel => {
+        const personnelStationId = extractStationId(personnel.stationId) || extractStationId(personnel.station_id);
+        return personnelStationId === adminStationId;
+      })
+      .map((personnel) => {
+        const stationIdStr = extractStationId(personnel.stationId) || extractStationId(personnel.station_id);
+        return {
+          ...personnel,
+          id: personnel.id || personnel._id,
+          rankName: getRankName(personnel.rankId),
+          departmentName: getDepartmentName(personnel.departmentId),
+          unitName: getUnitName(personnel.unitId),
+          stationName: getStationName(stationIdStr),
+        };
+      });
   }, [firePersonnel, adminStationId, ranks, units, departments, stations]);
 
   const columns: ColumnDef<FirePersonnelDisplay>[] = useMemo(

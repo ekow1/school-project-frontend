@@ -62,13 +62,7 @@ const DashboardRouter: React.FC<DashboardRouterProps> = ({ initialRole }) => {
       case 'Admin':
         return <AdminDashboard />;
       case 'Operations':
-        return (
-          <OperationsDashboard 
-            stationId={user.stationId}
-            departmentId={user.departmentId}
-            subRole={user.subRole}
-          />
-        );
+        return <OperationsDashboard />;
       case 'Safety':
         return <SafetyDashboard />;
       case 'PR':

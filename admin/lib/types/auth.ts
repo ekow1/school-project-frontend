@@ -60,6 +60,7 @@ export interface UserRoleData {
   subRole?: OperationsSubRole; // For Operations role
   stationId?: string; // For Admin and Operations
   departmentId?: string; // For Operations sub-roles
+  unitId?: string; // For Operations personnel assigned to a unit
   permissions: Permission[];
   dashboardAccess: DashboardAccess[];
   stationAdminData?: StationAdminData; // Optional: Additional station admin data

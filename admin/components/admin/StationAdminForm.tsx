@@ -156,7 +156,7 @@ const StationAdminForm: React.FC<StationAdminFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6" noValidate>
+    <form onSubmit={handleSubmit(onFormSubmit as (data: StationAdminFormData) => void)} className="space-y-6" noValidate>
       {/* Username Field */}
       <div>
         <label

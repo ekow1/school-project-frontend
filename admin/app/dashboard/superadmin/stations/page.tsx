@@ -127,7 +127,7 @@ const StationsPage: React.FC = () => {
       id: station.id || station._id,
       call_sign: station.call_sign || '',
       region: station.region || 'Greater Accra',
-      departments: station.departments || [],
+      departments: (station.departments || []) as Department[],
     }));
   }, [stations]);
 

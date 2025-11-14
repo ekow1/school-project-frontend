@@ -286,12 +286,12 @@ const DepartmentManagementPage: React.FC = () => {
       .map((dept) => {
         const stationIdStr = extractStationId(dept.stationId) || extractStationId(dept.station_id);
         return {
-          ...dept,
-          id: dept.id || dept._id,
+        ...dept,
+        id: dept.id || dept._id,
           stationId: stationIdStr, // Normalize station_id to stationId as string
           stationName: getStationName(stationIdStr),
-          unitCount: dept.unitCount || dept.units?.length || 0,
-          description: dept.description || '',
+        unitCount: dept.unitCount || dept.units?.length || 0,
+        description: dept.description || '',
         };
       });
     

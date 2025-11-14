@@ -424,7 +424,7 @@ const SuperAdminDashboard: React.FC = () => {
               Fire Service Command Center
             </h1>
             <p className="text-gray-600 text-xl font-medium">
-              Welcome back, {user?.name || 'Super Admin'}
+              Welcome back, Super Admin
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>

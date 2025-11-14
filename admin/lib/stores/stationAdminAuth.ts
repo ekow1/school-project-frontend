@@ -4,6 +4,7 @@ import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AuthStore, UserRoleData, AuthFormData } from "@/lib/types/auth";
+import { StationAdmin } from "@/lib/types/stationAdmin";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const LOGIN_ENDPOINT = `${API_BASE_URL}/station-admin/login`;
@@ -418,8 +419,26 @@ export const useStationAdminAuthStore = create<StationAdminAuthStore>()(
             throw new Error(response.message || "Failed to fetch station admin data");
           }
 
-          const adminData = response.data;
-          const hasTempPassword = !!(adminData.tempPassword || adminData.passwordResetRequired);
+          const responseData = response.data;
+          const hasTempPassword = !!(responseData.tempPassword || responseData.passwordResetRequired);
+
+          // Transform API response to StationAdmin format
+          const adminData: StationAdmin = {
+            _id: responseData._id,
+            id: responseData.id || responseData._id,
+            username: responseData.username || '',
+            email: responseData.email || '',
+            name: responseData.name,
+            station: typeof responseData.station_id === 'string' 
+              ? responseData.station_id 
+              : responseData.station_id?._id || responseData.station_id?.id || '',
+            stationId: typeof responseData.station_id === 'string' 
+              ? responseData.station_id 
+              : responseData.station_id?._id || responseData.station_id?.id,
+            isActive: responseData.isActive ?? true,
+            createdAt: responseData.createdAt,
+            updatedAt: responseData.updatedAt,
+          };
 
           set({ isLoading: false, error: null });
           return { hasTempPassword, adminData };

@@ -111,6 +111,7 @@ const apiLogin = async (credentials: AuthFormData): Promise<{ userData?: UserRol
       role: (personnelData.role || "Operations") as UserRole,
       stationId: stationId,
       departmentId: departmentId,
+      unitId: unitId || undefined,
       permissions: ["read", "update_reports", "assign_personnel"],
       dashboardAccess: ["operations_dashboard", "incident_management"],
     };
@@ -240,6 +241,7 @@ const apiChangePassword = async (personnelId: string, oldPassword: string | null
       role: (personnelDataFromLogin.role || "Operations") as UserRole,
       stationId: stationId,
       departmentId: departmentId,
+      unitId: unitId || undefined,
       permissions: ["read", "update_reports", "assign_personnel"],
       dashboardAccess: ["operations_dashboard", "incident_management"],
     };

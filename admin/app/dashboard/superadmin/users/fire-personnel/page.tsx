@@ -75,7 +75,7 @@ const FirePersonnelPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [selectedUser, setSelectedUser] = useState<FirePersonnel | null>(null);
+  const [selectedUser, setSelectedUser] = useState<TransformedFirePersonnel | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,6 +83,7 @@ const FirePersonnelPage: React.FC = () => {
     serviceNumber: '',
     name: '',
     rank: '', // rankId
+    department: '', // departmentId (will be set by station admin later)
     station_id: '', // stationId
     tempPassword: ''
   });
@@ -165,6 +166,7 @@ const FirePersonnelPage: React.FC = () => {
         serviceNumber: formData.serviceNumber.trim(),
         name: formData.name.trim(),
         rank: formData.rank, // rankId
+        department: formData.department || '', // departmentId (empty for superadmin, will be set by station admin)
         station_id: formData.station_id, // stationId
         tempPassword: formData.tempPassword,
       });
@@ -194,6 +196,7 @@ const FirePersonnelPage: React.FC = () => {
       serviceNumber: '',
       name: '',
       rank: '',
+      department: '',
       station_id: '',
       tempPassword: ''
     });
@@ -213,8 +216,15 @@ const FirePersonnelPage: React.FC = () => {
     return station?.name || station?.call_sign || '-';
   };
 
+  // Type for transformed personnel data
+  type TransformedFirePersonnel = typeof firePersonnel[0] & { 
+    id: string;
+    rankName: string; 
+    stationName: string;
+  };
+
   // Transform fire personnel to match table format
-  const transformedPersonnel = useMemo(() => {
+  const transformedPersonnel = useMemo<TransformedFirePersonnel[]>(() => {
     return firePersonnel.map((personnel) => ({
       ...personnel,
       id: personnel.id || personnel._id,
@@ -223,7 +233,7 @@ const FirePersonnelPage: React.FC = () => {
     }));
   }, [firePersonnel, ranks, stations]);
 
-  const columns: ColumnDef<FirePersonnel & { rankName: string; stationName: string }>[] = useMemo(
+  const columns: ColumnDef<TransformedFirePersonnel>[] = useMemo(
     () => [
       {
         accessorKey: 'name',
@@ -320,7 +330,7 @@ const FirePersonnelPage: React.FC = () => {
     return filtered;
   }, [searchTerm, transformedPersonnel]);
 
-  const table = useReactTable({
+  const table = useReactTable<TransformedFirePersonnel>({
     data: filteredData,
     columns,
     state: {
@@ -569,30 +579,34 @@ const FirePersonnelPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                    {selectedUser.name.split(' ').map(n => n[0]).join('')}
+                    {(selectedUser.name || '').split(' ').map(n => n[0]).join('').substring(0, 2)}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-gray-900">{selectedUser.name}</h3>
-                    <p className="text-lg text-red-600 font-semibold">{selectedUser.rank}</p>
+                    <h3 className="text-2xl font-black text-gray-900">{selectedUser.name || '-'}</h3>
+                    <p className="text-lg text-red-600 font-semibold">{selectedUser.rankName || '-'}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Mail className="w-5 h-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedUser.email}</span>
+                    <span className="text-gray-900">{selectedUser.email || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-5 h-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedUser.phone}</span>
+                    <span className="text-gray-900">{selectedUser.phone || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedUser.station}</span>
+                    <span className="text-gray-900">{selectedUser.stationName || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedUser.department}</span>
+                    <span className="text-gray-900">
+                      {typeof selectedUser.department === 'string' 
+                        ? selectedUser.department 
+                        : selectedUser.department?.name || '-'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -600,40 +614,22 @@ const FirePersonnelPage: React.FC = () => {
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
                   <FileText className="w-6 h-6 text-red-600" />
-                  Incident Reports ({selectedUser.incidentCount})
+                  Service Information
                 </h3>
                 <div className="space-y-3">
-                  {selectedUser.incidentCount > 0 ? (
-                    <>
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-gray-900">Fire Emergency - Residential Building</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {selectedUser.lastIncident}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <AlertTriangle className="w-4 h-4 text-orange-600" />
-                                High Priority
-                              </span>
-                            </div>
-                          </div>
-                          <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                            View Details
-                          </button>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">Service Number: {selectedUser.serviceNumber || 'N/A'}</p>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            Joined: {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-center py-4">
-                        <button className="text-red-600 hover:text-red-700 font-semibold">
-                          View All Incidents
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">No incidents reported</p>
-                  )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
