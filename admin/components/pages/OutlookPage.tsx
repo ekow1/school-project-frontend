@@ -29,6 +29,7 @@ import {
   SortingState,
   getFilteredRowModel,
   ColumnFiltersState,
+  Row,
 } from '@tanstack/react-table';
 
 // Unified interfaces that work for both admin and unit dashboards
@@ -89,13 +90,11 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
     initialHydrants = [],
   } = config;
 
-  // Determine tab type based on mode
-  type TabType = mode extends 'admin' 
-    ? 'locations' | 'landmarks' | 'hydrants'
-    : 'jurisdiction' | 'importance' | 'services' | 'hydrants';
+  // Determine tab type based on mode - use union type to allow all possible tabs
+  type TabType = 'locations' | 'landmarks' | 'hydrants' | 'jurisdiction' | 'importance' | 'services';
 
   const [activeTab, setActiveTab] = useState<TabType>(
-    (mode === 'admin' ? 'locations' : 'jurisdiction') as TabType
+    (mode === 'admin' ? 'locations' : 'jurisdiction')
   );
   const [searchTerm, setSearchTerm] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -254,7 +253,7 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
     ...(mode === 'admin' ? [{
       accessorKey: 'accessibility',
       header: 'Accessibility',
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<LocationData> }) => {
         const accessibility = row.original.accessibility;
         return (
           <span className={`px-2 py-1 text-xs font-medium rounded ${
@@ -269,17 +268,17 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
     }] : [{
       accessorKey: 'distance',
       header: 'Distance',
-      cell: ({ row }) => <span>{row.original.distance}</span>,
+      cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.distance}</span>,
     }]),
     ...(mode === 'admin' ? [{
       accessorKey: 'notes',
       header: 'Notes',
-      cell: ({ row }) => <span className="max-w-xs">{row.original.notes}</span>,
+      cell: ({ row }: { row: Row<LocationData> }) => <span className="max-w-xs">{row.original.notes}</span>,
     }] : []),
     ...(enableAddEdit ? [{
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<LocationData> }) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleEdit(row.original)}
@@ -348,17 +347,17 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
     {
       accessorKey: mode === 'admin' ? 'proximityToStation' : 'distance',
       header: 'Distance from Station',
-      cell: ({ row }) => <span>{row.original.distance || row.original.proximityToStation}</span>,
+      cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.distance || row.original.proximityToStation}</span>,
     },
     {
       accessorKey: mode === 'admin' ? 'description' : 'description',
       header: 'Description',
-      cell: ({ row }) => <span className="max-w-xs">{row.original.description}</span>,
+      cell: ({ row }: { row: Row<LocationData> }) => <span className="max-w-xs">{row.original.description}</span>,
     },
     ...(enableAddEdit ? [{
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<LocationData> }) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleEdit(row.original)}
@@ -450,34 +449,34 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
       {
         accessorKey: 'lastInspection',
         header: 'Last Inspection',
-        cell: ({ row }) => <span>{row.original.lastInspection}</span>,
+        cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.lastInspection}</span>,
       },
       {
         accessorKey: 'nextInspection',
         header: 'Next Inspection',
-        cell: ({ row }) => <span>{row.original.nextInspection}</span>,
+        cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.nextInspection}</span>,
       },
     ] : [
       {
         accessorKey: 'distance',
         header: 'Distance',
-        cell: ({ row }) => <span>{row.original.distance}</span>,
+        cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.distance}</span>,
       },
       {
         accessorKey: 'lastInspection',
         header: 'Last Inspection',
-        cell: ({ row }) => <span>{row.original.lastInspection}</span>,
+        cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.lastInspection}</span>,
       },
       {
         accessorKey: 'nextInspection',
         header: 'Next Inspection',
-        cell: ({ row }) => <span>{row.original.nextInspection}</span>,
+        cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.nextInspection}</span>,
       },
     ]),
     ...(enableAddEdit ? [{
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<LocationData> }) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleEdit(row.original)}
@@ -532,12 +531,12 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
     {
       accessorKey: 'phone',
       header: 'Phone',
-      cell: ({ row }) => <span>{row.original.phone || row.original.contact}</span>,
+      cell: ({ row }: { row: Row<LocationData> }) => <span>{row.original.phone || row.original.contact}</span>,
     },
     ...(enableAddEdit ? [{
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<LocationData> }) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleEdit(row.original)}
@@ -849,7 +848,7 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
                         ? null
                         : flexRender(
                             header.column.columnDef.header as string | ((props: unknown) => React.ReactNode) | undefined,
-                            header.getContext() as unknown
+                            header.getContext() as any
                           )}
                     </th>
                   ))}
@@ -865,8 +864,8 @@ const OutlookPage: React.FC<OutlookPageProps> = ({ config }) => {
                     {row.getVisibleCells().map(cell => (
                       <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
                         {flexRender(
-                          cell.column.columnDef.cell as string | ((props: unknown) => React.ReactNode) | undefined,
-                          cell.getContext() as unknown
+                          cell.column.columnDef.cell as string | ((props: any) => React.ReactNode) | undefined,
+                          cell.getContext() as any
                         )}
                       </td>
                     ))}
