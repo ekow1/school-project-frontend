@@ -44,6 +44,15 @@ export type DashboardAccess =
   | 'pr_dashboard'
   | 'media_management';
 
+// Station Admin Data (optional additional data)
+export interface StationAdminData {
+  username?: string;
+  email?: string;
+  name?: string;
+  station?: string | any;
+  isActive?: boolean;
+}
+
 // User Role Interface
 export interface UserRoleData {
   userId: string;
@@ -53,6 +62,7 @@ export interface UserRoleData {
   departmentId?: string; // For Operations sub-roles
   permissions: Permission[];
   dashboardAccess: DashboardAccess[];
+  stationAdminData?: StationAdminData; // Optional: Additional station admin data
 }
 
 // Role-Based Access Control Configuration
@@ -98,11 +108,12 @@ export interface RoleBasedAccess {
 
 // Authentication Schema
 export const authSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'), // No case requirements
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export const registerSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'), // No case requirements
   confirmPassword: z.string(),

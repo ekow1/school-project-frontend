@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserRoleData } from '@/lib/types/auth';
 import { useAuthStore } from '@/lib/stores/auth';
 import { 
@@ -50,9 +51,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, user }) => 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { logout } = useAuthStore();
 
+  const router = useRouter();
+
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
+    router.push('/');
   };
 
   const getRoleIcon = (role: string) => {

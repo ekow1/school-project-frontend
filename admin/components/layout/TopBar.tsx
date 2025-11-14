@@ -17,22 +17,32 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
 
+  // Set mounted state and initial time on client only
+  useEffect(() => {
+    setIsMounted(true);
+    setCurrentTime(new Date());
+  }, []);
+
   // Update time every second
   useEffect(() => {
+    if (!isMounted) return;
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isMounted]);
 
   // Get greeting based on time of day
   const getGreeting = () => {
+    if (!currentTime) return 'Hello';
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
@@ -95,6 +105,20 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
           <User className="w-4 h-4 text-gray-500" />
           <span className="text-sm text-gray-600">
             {getGreeting()}, <span className="font-semibold text-gray-900">{user?.name || 'Admin'}</span>
+            {user?.role === 'Operations' && user?.departmentId && (
+              <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
+                {(() => {
+                  const departments: Record<string, string> = {
+                    'dept-1': 'Fire Suppression',
+                    'dept-2': 'Emergency Medical Services',
+                    'dept-3': 'Rescue Operations',
+                    'dept-4': 'Prevention & Safety',
+                    'dept-5': 'Training & Development',
+                  };
+                  return departments[user.departmentId] || 'Operations';
+                })()}
+              </span>
+            )}
           </span>
         </div>
 
@@ -102,12 +126,21 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
         <div className="flex items-center space-x-2">
           <Clock className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-mono text-gray-600">
-            {currentTime.toLocaleTimeString('en-US', { 
-              hour12: true, 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: '2-digit'
-            })}
+            {(() => {
+              if (!isMounted || !currentTime || !(currentTime instanceof Date)) {
+                return <span className="inline-block w-20 h-4 bg-gray-200 animate-pulse rounded"></span>;
+              }
+              try {
+                return currentTime.toLocaleTimeString('en-US', { 
+                  hour12: true, 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  second: '2-digit'
+                });
+              } catch (e) {
+                return <span className="inline-block w-20 h-4 bg-gray-200 animate-pulse rounded"></span>;
+              }
+            })()}
           </span>
         </div>
 

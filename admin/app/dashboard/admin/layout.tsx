@@ -3,7 +3,7 @@
 import React from 'react';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import TopBar from '@/components/layout/TopBar';
-import { useAuthStore } from '@/lib/stores/auth';
+import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLayout({
@@ -11,12 +11,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const logout = useAuthStore((state) => state.logout);
+  const logout = useStationAdminAuthStore((state) => state.logout);
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.push('/auth');
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      // Ignore errors, proceed with redirect
+    }
+    router.push('/');
   };
 
   return (

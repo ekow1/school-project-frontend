@@ -2,7 +2,7 @@
 
 import SuperAdminSidebar from '@/components/layout/SuperAdminSidebar';
 import TopBar from '@/components/layout/TopBar';
-import { useAuthStore } from '@/lib/stores/auth';
+import useSuperAdminAuthStore from '@/lib/stores/superAdminAuth';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -11,12 +11,16 @@ export default function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const logout = useAuthStore((state) => state.logout);
+  const logout = useSuperAdminAuthStore((state) => state.logout);
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.push('/auth');
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      // Ignore errors, proceed with redirect
+    }
+    router.push('/');
   };
 
   return (

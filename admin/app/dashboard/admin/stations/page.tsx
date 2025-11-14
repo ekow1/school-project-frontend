@@ -1,364 +1,291 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Building2, 
-  Edit, 
-  MapPin, 
-  Phone,
-  Users,
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  MapPin,
+  Search,
   Download,
-  Upload,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Save,
-  X
+  Phone,
+  Building2,
+  Loader2
 } from 'lucide-react';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  getSortedRowModel,
+  SortingState,
+  getFilteredRowModel,
+  ColumnFiltersState,
+} from '@tanstack/react-table';
+import { useStationsStore, selectStations, selectStationsIsLoading, selectStationsError, selectStationsCount, Station as StationType } from '@/lib/stores/stations';
+import toast from 'react-hot-toast';
 
-const AdminStationManagementPage: React.FC = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // Current station data
-  const [stationData, setStationData] = useState({
-    name: 'Accra Central Fire Station',
-    code: 'A1',
-    city: 'Accra',
-    region: 'Greater Accra',
-    address: 'Independence Avenue, Accra',
-    phone: '+233 30 123 4567',
-    email: 'accra.central@gnfs.gov.gh',
-    mdfodfo: 'Commander John Doe',
-    personnel: 45,
-    callSign: 'CENTRAL-A1',
-    status: 'active' as 'active' | 'maintenance' | 'offline',
-    lastInspection: '2024-02-15',
-    establishedDate: '2020-01-15'
+// Use Station type from store
+interface Station extends StationType {
+  call_sign?: string;
+  region?: string;
+}
+
+const StationsPage: React.FC = () => {
+  const stations = useStationsStore(selectStations);
+  const isLoading = useStationsStore(selectStationsIsLoading);
+  const error = useStationsStore(selectStationsError);
+  const count = useStationsStore(selectStationsCount);
+  const fetchStations = useStationsStore((state) => state.fetchStations);
+  const clearError = useStationsStore((state) => state.clearError);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  // Fetch stations on mount
+  useEffect(() => {
+    if (stations.length === 0 && !isLoading) {
+      fetchStations().catch((err) => {
+        console.error('Failed to fetch stations:', err);
+      });
+    }
+  }, [stations.length, isLoading, fetchStations]);
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  // Transform API stations to match local Station interface
+  const transformedStations: Station[] = useMemo(() => {
+    return stations.map((station) => ({
+      ...station,
+      id: station.id || station._id,
+      // Preserve original values - don't force empty strings
+      call_sign: station.call_sign,
+      region: station.region,
+    }));
+  }, [stations]);
+
+
+  const columns: ColumnDef<Station>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Station Name',
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-900">{row.original.name || '-'}</div>
+              <div className="text-xs text-gray-500">{row.original.location || '-'}</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'call_sign',
+        header: 'Call Sign',
+        cell: ({ getValue }) => (
+          <div className="text-gray-700">{getValue() as string || '-'}</div>
+        ),
+      },
+      {
+        accessorKey: 'region',
+        header: 'Region',
+        cell: ({ row }) => (
+          <div className="text-gray-700">{row.original.region || '-'}</div>
+        ),
+      },
+      {
+        accessorKey: 'phone_number',
+        header: 'Phone',
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-red-600" />
+            <span className="text-gray-700">{row.original.phone_number || '-'}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'location_url',
+        header: 'Map Location',
+        cell: ({ row }) => {
+          const url = row.original.location_url;
+          if (!url) return <span className="text-gray-400">-</span>;
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-600 hover:text-red-700 hover:underline flex items-center gap-1"
+            >
+              <MapPin className="w-4 h-4" />
+              View Map
+            </a>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Apply search filter to stations
+  const filteredStations = useMemo(() => {
+    if (!searchTerm) return transformedStations;
+    return transformedStations.filter(
+      station =>
+        station.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        station.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        station.region?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        station.call_sign?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, transformedStations]);
+
+  const table = useReactTable({
+    data: filteredStations,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const handleInputChange = (field: string, value: string | number) => {
-    setStationData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would save to API
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Reset to original data if needed
-  };
+  const totalStations = count || transformedStations.length;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 px-6">
-      {/* Header */}
-      <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
+      <div className="p-8 text-gray-900">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-black text-gray-900 mb-3">
+            <h1 className="text-5xl font-black mb-3 flex items-center gap-3">
+              <MapPin className="w-12 h-12 text-red-600" />
               Station Management
             </h1>
             <p className="text-gray-600 text-xl font-medium">
-              Manage station details, personnel, and operational status
+              Manage fire stations across all regions
             </p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-gray-500 text-sm">System Online</span>
-            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-3 rounded-xl">
-              <Building2 className="w-10 h-10 text-red-600" />
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-gray-900">{stationData.name}</span>
-              <p className="text-gray-500 text-sm">Current Station</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3">
-          {!isEditing ? (
-            <>
-              <button className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm">
-                <Download className="w-5 h-5" />
-                Export Data
-              </button>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:from-red-700 hover:to-red-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
-              >
-                <Edit className="w-5 h-5" />
-                Edit Station Details
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                onClick={handleCancel}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm"
-              >
-                <X className="w-5 h-5" />
-                Cancel
-              </button>
-              <button 
-                onClick={handleSave}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:from-red-700 hover:to-red-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
-              >
-                <Save className="w-5 h-5" />
-                Save Changes
-              </button>
-            </>
-          )}
         </div>
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-white to-red-50 border-2 border-red-200 p-6 rounded-2xl hover:border-red-400 hover:shadow-xl hover:shadow-red-100 transition-all duration-300 transform hover:-translate-y-1">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        <div className="bg-white border-2 border-red-200 p-6 rounded-xl hover:border-red-300 transition-all duration-300">
           <div className="flex items-start justify-between mb-4">
-            <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-xl shadow-lg">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-xs text-green-700 font-bold">Active</span>
-              </div>
+            <div className="bg-red-100 p-3 rounded-lg">
+              <MapPin className="w-6 h-6 text-red-600" />
             </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Station Status</h3>
-            <p className="text-4xl font-black text-gray-900 capitalize">{stationData.status}</p>
-            <p className="text-xs text-gray-400 font-medium">operational</p>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-white to-blue-50 border-2 border-blue-200 p-6 rounded-2xl hover:border-blue-400 hover:shadow-xl hover:shadow-blue-100 transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-start justify-between mb-4">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl shadow-lg">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-xs text-green-700 font-bold">100%</span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Personnel</h3>
-            <p className="text-4xl font-black text-gray-900">{stationData.personnel}</p>
-            <p className="text-xs text-gray-400 font-medium">station staff</p>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-white to-purple-50 border-2 border-purple-200 p-6 rounded-2xl hover:border-purple-400 hover:shadow-xl hover:shadow-purple-100 transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-start justify-between mb-4">
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl shadow-lg">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-xs text-green-700 font-bold">Current</span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Inspection</h3>
-            <p className="text-2xl font-black text-gray-900">{new Date(stationData.lastInspection).toLocaleDateString()}</p>
-            <p className="text-xs text-gray-400 font-medium">inspection date</p>
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Stations</h3>
+            <p className="text-3xl font-bold text-gray-900">{totalStations}</p>
+            <p className="text-xs text-gray-500">operational stations</p>
           </div>
         </div>
       </div>
 
-      {/* Station Details Form */}
-      <div className="space-y-6">
-        <h2 className="text-3xl font-black text-gray-900">Station Information</h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Basic Information */}
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Station Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.name}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Station Code</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.code}
-                  onChange={(e) => handleInputChange('code', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.code}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">City</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.city}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Region</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.region}
-                  onChange={(e) => handleInputChange('region', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.region}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Address</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.address}
-                </div>
-              )}
-            </div>
+      {/* Controls */}
+      <div className="bg-white border-2 border-gray-200 p-6 rounded-xl">
+        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="relative flex-1 max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search stations..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-red-300 focus:outline-none transition-colors"
+            />
           </div>
-
-          {/* Contact & Operational Info */}
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Phone Number</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.phone}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Email</label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  value={stationData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.email}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">MDFO/DFO</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.mdfodfo}
-                  onChange={(e) => handleInputChange('mdfodfo', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.mdfodfo}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Call Sign</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={stationData.callSign}
-                  onChange={(e) => handleInputChange('callSign', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                />
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 font-semibold">
-                  {stationData.callSign}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status</label>
-              {isEditing ? (
-                <select
-                  value={stationData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-red-500 focus:outline-none text-gray-900 font-medium"
-                >
-                  <option value="active">Active</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="offline">Offline</option>
-                </select>
-              ) : (
-                <div className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    stationData.status === 'active' ? 'bg-green-100 text-green-800' :
-                    stationData.status === 'maintenance' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {stationData.status.charAt(0).toUpperCase() + stationData.status.slice(1)}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="flex gap-3">
+            <button className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm">
+              <Download className="w-5 h-5" />
+              Export
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Table */}
+      <div className="bg-white border-2 border-gray-200 p-6 rounded-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gray-200 p-2 rounded-lg">
+            <Building2 className="w-6 h-6 text-gray-700" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900">Station Directory</h2>
+        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+            <span className="ml-3 text-gray-600">Loading stations...</span>
+          </div>
+        ) : filteredStations.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-gray-200">
+            <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">
+              {searchTerm ? 'No stations found matching your search' : 'No stations found'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border-2 border-gray-200">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead className="bg-gradient-to-r from-red-500 to-red-600">
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th
+                        key={header.id}
+                        className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-red-700 transition-colors"
+                        onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      >
+                        <div className="flex items-center gap-2">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                          {header.column.getCanSort() && (
+                            <span className="text-white/70">
+                              {{
+                                asc: ' ↑',
+                                desc: ' ↓',
+                              }[header.column.getIsSorted() as string] ?? ' ↕'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {table.getRowModel().rows.map((row) => (
+                  <tr key={row.id} className="hover:bg-red-50 transition-all duration-200">
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
 
-export default AdminStationManagementPage;
+export default StationsPage;

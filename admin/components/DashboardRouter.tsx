@@ -33,10 +33,10 @@ const DashboardRouter: React.FC<DashboardRouterProps> = ({ initialRole }) => {
     checkAuth();
   }, [checkAuth]);
 
-  // Client-side redirect to auth when unauthenticated
+  // Client-side redirect to login when unauthenticated
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user)) {
-      router.replace('/auth');
+      router.replace('/fire-personnel/login');
     }
   }, [isLoading, isAuthenticated, user, router]);
 

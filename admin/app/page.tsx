@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   Shield, 
@@ -16,10 +16,28 @@ import {
   Star,
   Zap,
   Globe,
-  Award
+  Award,
+  ChevronDown,
+  Building2,
+  LogIn
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
+  const [showLoginDropdown, setShowLoginDropdown] = useState(false);
+  const [showHeroDropdown, setShowHeroDropdown] = useState(false);
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.login-dropdown') && !target.closest('.login-button')) {
+        setShowLoginDropdown(false);
+        setShowHeroDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const features = [
     {
       icon: <Shield className="w-8 h-8 text-red-500" />,
@@ -103,13 +121,55 @@ const LandingPage: React.FC = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">Ghana National Fire Service</p>
               </div>
             </div>
-            <Link 
-              href="/auth"
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+            <div className="relative">
+              <button
+                onClick={() => setShowLoginDropdown(!showLoginDropdown)}
+                className="login-button bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
             >
               Access Dashboard
-              <ArrowRight className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transition-transform ${showLoginDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showLoginDropdown && (
+                <div className="login-dropdown absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+                  <div className="py-2">
+                    <Link
+                      href="/super-admin/login"
+                      onClick={() => setShowLoginDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <Shield className="w-5 h-5 text-red-600" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Super Admin</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">System administrators</div>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/station-admin/login"
+                      onClick={() => setShowLoginDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
+                    >
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Station Admin</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Fire station managers</div>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/fire-personnel/login"
+                      onClick={() => setShowLoginDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
+                    >
+                      <Users className="w-5 h-5 text-green-600" />
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Fire Personnel</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Operations & staff</div>
+                      </div>
             </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -132,7 +192,7 @@ const LandingPage: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
-                href="/auth"
+                href="/super-admin/login"
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
               >
                 Get Started
@@ -234,7 +294,7 @@ const LandingPage: React.FC = () => {
             Join the GNFS management system and experience the future of fire service operations.
           </p>
           <Link 
-            href="/auth"
+            href="/super-admin/login"
             className="bg-white text-red-600 hover:bg-gray-100 px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-xl"
           >
             Access Dashboard Now
@@ -281,10 +341,10 @@ const LandingPage: React.FC = () => {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <div className="space-y-2 text-gray-400">
-                <Link href="/auth" className="block hover:text-white transition-colors">Login</Link>
-                <Link href="/auth" className="block hover:text-white transition-colors">Register</Link>
+                <Link href="/super-admin/login" className="block hover:text-white transition-colors">Super Admin Login</Link>
+                <Link href="/station-admin/login" className="block hover:text-white transition-colors">Station Admin Login</Link>
+                <Link href="/fire-personnel/login" className="block hover:text-white transition-colors">Fire Personnel Login</Link>
                 <a href="#" className="block hover:text-white transition-colors">Support</a>
-                <a href="#" className="block hover:text-white transition-colors">Documentation</a>
               </div>
             </div>
           </div>

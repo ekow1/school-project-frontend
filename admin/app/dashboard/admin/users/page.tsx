@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
   ColumnDef,
   flexRender,
@@ -352,7 +353,7 @@ const AdminUserManagementPage: React.FC = () => {
               Personnel Management
             </h1>
             <p className="text-gray-600 text-xl font-medium">
-              Manage station personnel accounts and permissions
+              Manage station officers (fire personnel). Civilians register themselves.
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -470,10 +471,36 @@ const AdminUserManagementPage: React.FC = () => {
             <Download className="w-5 h-5" />
             Export Data
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:from-red-700 hover:to-red-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold">
+          <Link
+            href="/dashboard/admin/users/fire-personnel"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:from-red-700 hover:to-red-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+          >
             <Plus className="w-5 h-5" />
-            Add New User
-          </button>
+            Add New Officer
+          </Link>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="bg-white border-2 border-gray-200 p-6 rounded-xl mb-6">
+        <div className="flex items-center gap-4 border-b-2 border-gray-200 pb-4">
+          <Link
+            href="/dashboard/admin/users/civilian"
+            className="px-6 py-3 text-lg font-semibold text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-600 transition-colors"
+          >
+            Civilians
+          </Link>
+          <Link
+            href="/dashboard/admin/users/fire-personnel"
+            className="px-6 py-3 text-lg font-semibold text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-600 transition-colors"
+          >
+            Officers (Fire Personnel)
+          </Link>
+        </div>
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mt-4">
+          <p className="text-blue-800 text-sm">
+            <strong>Note:</strong> Admin can add Officers (Fire Personnel). Civilians are external users who register themselves.
+          </p>
         </div>
       </div>
 
@@ -482,7 +509,7 @@ const AdminUserManagementPage: React.FC = () => {
         <div className="p-6 border-b-2 border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Station Personnel</h3>
+              <h3 className="text-xl font-bold text-gray-900">Station Personnel (Officers)</h3>
               <p className="text-gray-600">Current staff accounts and permissions</p>
             </div>
             <div className="flex items-center gap-2">

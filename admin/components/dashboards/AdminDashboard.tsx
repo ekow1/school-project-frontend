@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth';
+import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
+import { useStationsStore, selectStations } from '@/lib/stores/stations';
 import { 
   Flame, 
   Ambulance, 
@@ -21,9 +23,11 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  X
+  X,
+  User,
+  Mail
 } from 'lucide-react';
-import { Incident } from '@/lib/types/incident';
+import { Incident, IncidentStatus } from '@/lib/types/incident';
 import toast, { Toaster } from 'react-hot-toast';
 import { STATION_IDS } from '@/lib/types/station';
 
@@ -56,6 +60,9 @@ import {
   useReactTable,
   getSortedRowModel,
   SortingState,
+  getFilteredRowModel,
+  ColumnFiltersState,
+  getPaginationRowModel,
 } from '@tanstack/react-table';
 import {
   LineChart,
@@ -201,7 +208,34 @@ const formatDate = (dateString: string) => {
 };
 
 const AdminDashboard: React.FC = () => {
-  const user = useAuthStore((state) => state.user);
+  const regularUser = useAuthStore((state) => state.user);
+  const stationAdminUser = useStationAdminAuthStore((state) => state.user);
+  const stations = useStationsStore(selectStations);
+  const isLoadingStations = useStationsStore((state) => state.isLoading);
+  const fetchStations = useStationsStore((state) => state.fetchStations);
+  const error = useStationsStore((state) => state.error);
+  const clearError = useStationsStore((state) => state.clearError);
+  
+  // Use station admin user if available, otherwise use regular user
+  const user = stationAdminUser || regularUser;
+
+  // Fetch stations on mount using the store
+  useEffect(() => {
+    if (stations.length === 0 && !isLoadingStations) {
+      fetchStations().catch((err) => {
+        console.error('Failed to fetch stations:', err);
+      });
+    }
+  }, [stations.length, isLoadingStations, fetchStations]);
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+  
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [showEmergencyAlert, setShowEmergencyAlert] = useState(true);
@@ -211,8 +245,21 @@ const AdminDashboard: React.FC = () => {
   const [referReason, setReferReason] = useState('');
   const [selectedStation, setSelectedStation] = useState('');
 
-  // Current station - in real app, get from auth/user context
-  const currentStationId = '69049470ee691673e388de18'; // Accra Central station ID
+  // Get current station from user's stationId
+  const currentStationId = user?.stationId;
+  
+  // Find station details from stations store
+  // Match by both _id and id fields, and handle string comparison
+  const currentStation = React.useMemo(() => {
+    if (!currentStationId || stations.length === 0) return null;
+    
+    const station = stations.find(s => {
+      const stationId = s._id || s.id;
+      return stationId && String(stationId) === String(currentStationId);
+    });
+    
+    return station || null;
+  }, [stations, currentStationId]);
 
   // Sample incident data for Accra Central station
   const allIncidents: Incident[] = [
@@ -346,7 +393,14 @@ const AdminDashboard: React.FC = () => {
 
     // Sort by priority (critical > high > medium > low) then by status (pending > dispatched > en_route > on_scene)
     const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-    const statusOrder = { pending: 4, dispatched: 3, en_route: 2, on_scene: 1 };
+    const statusOrder: Record<IncidentStatus, number> = { 
+      pending: 4, 
+      dispatched: 3, 
+      en_route: 2, 
+      on_scene: 1,
+      completed: 0,
+      cancelled: 0
+    };
 
     return activeIncidents.sort((a, b) => {
       const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
@@ -761,17 +815,210 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="flex items-center justify-between">
-              <div>
-          <h1 className="text-5xl font-black text-gray-900 mb-2">Fire Service Command Center</h1>
-          <p className="text-gray-600 text-xl">Welcome back, {user?.name || 'Station Admin'}</p>
-        </div>
-        <div className="text-right">
-          <div className="text-3xl font-black text-red-600">Accra Central Fire Station</div>
-          <div className="text-gray-500 font-medium">Accra Central</div>
+      {/* Admin and Station Information */}
+      <div className="mb-8">
+        <div className="bg-gradient-to-br from-red-600 via-red-500 to-red-600 rounded-2xl shadow-xl overflow-hidden border border-red-700/20">
+          {/* Decorative top border */}
+          <div className="h-1 bg-gradient-to-r from-white/20 via-white/40 to-white/20"></div>
+          
+          <div className="p-6 lg:p-8">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+              {/* Admin Info */}
+              <div className="flex-1 relative">
+                <div className="absolute top-0 left-0 w-1 h-full bg-white/20 rounded-full"></div>
+                <div className="pl-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-base font-bold text-white tracking-wide uppercase">Admin Information</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Name</p>
+                          <p className="text-sm font-semibold text-white">
+                            {user?.stationAdminData?.name || 'Station Admin'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {user?.stationAdminData?.username && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Username</p>
+                            <p className="text-sm font-semibold text-white">
+                              @{user.stationAdminData.username}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {user?.stationAdminData?.email && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                            <Mail className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Email</p>
+                            <p className="text-sm font-semibold text-white">
+                              {user.stationAdminData.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {user?.role && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Role</p>
+                            <span className="inline-block px-3 py-1 bg-white/20 text-white text-xs font-semibold rounded-md border border-white/30">
+                              {user.role}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Divider */}
+              <div className="hidden lg:block w-px bg-white/20"></div>
+
+              {/* Station Info */}
+              {currentStation && (
+                <div className="flex-1 relative">
+                  <div className="absolute top-0 right-0 w-1 h-full bg-white/20 rounded-full"></div>
+                  <div className="pr-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                        <Building2 className="w-5 h-5 text-white" />
+                      </div>
+                      <h3 className="text-base font-bold text-white tracking-wide uppercase">Station Information</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Station Name</p>
+                            <p className="text-sm font-semibold text-white">{currentStation.name}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {currentStation.location && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Location</p>
+                              <p className="text-sm font-semibold text-white">{currentStation.location}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {currentStation.phone_number && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <Phone className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Phone Number</p>
+                              <a href={`tel:${currentStation.phone_number}`} className="text-sm text-white hover:text-white/80 font-semibold transition-colors">
+                                {currentStation.phone_number}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {currentStation.call_sign && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Call Sign</p>
+                              <p className="text-sm font-semibold text-white">{currentStation.call_sign}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {currentStation.region && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Region</p>
+                              <p className="text-sm font-semibold text-white">{currentStation.region}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {currentStation.location_url && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Map Location</p>
+                              <a 
+                                href={currentStation.location_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-white hover:text-white/80 font-semibold transition-colors break-all"
+                              >
+                                {currentStation.location_url}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {(currentStation.lat && currentStation.lng) && (
+                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Coordinates</p>
+                              <p className="text-sm font-semibold text-white">
+                                {currentStation.lat.toFixed(6)}, {currentStation.lng.toFixed(6)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+      </div>
 
       {/* Time Filter - Right Aligned */}
       <div className="flex items-center justify-end space-x-2">
@@ -1057,6 +1304,7 @@ const AdminDashboard: React.FC = () => {
           </table>
       </div>
       </div>
+
       <Toaster position="top-right" />
     </div>
   );

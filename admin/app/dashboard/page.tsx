@@ -3,6 +3,7 @@
 import DashboardRouter from '@/components/DashboardRouter';
 import SuperAdminSidebar from '@/components/layout/SuperAdminSidebar';
 import AdminSidebar from '@/components/layout/AdminSidebar';
+import OperationsSidebar from '@/components/layout/OperationsSidebar';
 import TopBar from '@/components/layout/TopBar';
 import { useAuthStore } from '@/lib/stores/auth';
 import { useRouter } from 'next/navigation';
@@ -14,7 +15,7 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     logout();
-    router.push('/auth');
+    router.push('/');
   };
 
   // Render appropriate sidebar based on user role
@@ -22,7 +23,10 @@ export default function Dashboard() {
     if (user?.role === 'SuperAdmin') {
       return <SuperAdminSidebar />;
     }
-    // Use Admin sidebar as the unified default for all non-superadmin roles
+    if (user?.role === 'Operations') {
+      return <OperationsSidebar />;
+    }
+    // Use Admin sidebar as the unified default for Admin and other roles
     return <AdminSidebar />;
   };
 

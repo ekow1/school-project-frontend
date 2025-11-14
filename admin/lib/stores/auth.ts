@@ -8,22 +8,22 @@ const mockLogin = async (credentials: AuthFormData): Promise<UserRoleData> => {
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Mock user data based on email - using real station IDs
+  // Mock user data based on username - using real station IDs
   const mockUsers: Record<string, UserRoleData> = {
-    'superadmin@gnfs.gov.gh': {
+    superadmin: {
       userId: '1',
       role: 'SuperAdmin',
       permissions: ['create', 'read', 'update', 'delete', 'manage_users', 'system_config'],
       dashboardAccess: ['system_admin', 'analytics', 'user_management'],
     },
-    'admin@gnfs.gov.gh': {
+    admin: {
       userId: '2',
       role: 'Admin',
       stationId: STATION_IDS.ACCRA_CENTRAL, // Accra Central Fire Station
       permissions: ['read', 'update', 'manage_personnel', 'manage_reports'],
       dashboardAccess: ['station_admin', 'personnel_management', 'reports_management'],
     },
-    'operations@gnfs.gov.gh': {
+    operations: {
       userId: '3',
       role: 'Operations',
       subRole: 'main',
@@ -32,7 +32,7 @@ const mockLogin = async (credentials: AuthFormData): Promise<UserRoleData> => {
       permissions: ['read', 'update_reports', 'assign_personnel'],
       dashboardAccess: ['operations_dashboard', 'incident_management'],
     },
-    'watchroom@gnfs.gov.gh': {
+    watchroom: {
       userId: '4',
       role: 'Operations',
       subRole: 'watchroom',
@@ -41,7 +41,7 @@ const mockLogin = async (credentials: AuthFormData): Promise<UserRoleData> => {
       permissions: ['read', 'create_reports', 'dispatch_personnel'],
       dashboardAccess: ['watchroom_dashboard', 'dispatch_management'],
     },
-    'crew@gnfs.gov.gh': {
+    crew: {
       userId: '5',
       role: 'Operations',
       subRole: 'crew',
@@ -50,13 +50,13 @@ const mockLogin = async (credentials: AuthFormData): Promise<UserRoleData> => {
       permissions: ['read', 'update_status', 'report_progress'],
       dashboardAccess: ['crew_dashboard', 'field_operations'],
     },
-    'safety@gnfs.gov.gh': {
+    safety: {
       userId: '6',
       role: 'Safety',
       permissions: ['read', 'update_safety', 'compliance_reports'],
       dashboardAccess: ['safety_dashboard', 'compliance_monitoring'],
     },
-    'pr@gnfs.gov.gh': {
+    pr: {
       userId: '7',
       role: 'PR',
       permissions: ['read', 'create_announcements', 'media_reports'],
@@ -64,7 +64,8 @@ const mockLogin = async (credentials: AuthFormData): Promise<UserRoleData> => {
     },
   };
 
-  const user = mockUsers[credentials.email];
+  const username = credentials.username.toLowerCase();
+  const user = mockUsers[username];
   if (!user) {
     throw new Error('Invalid credentials');
   }
