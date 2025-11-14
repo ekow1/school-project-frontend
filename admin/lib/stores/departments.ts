@@ -12,8 +12,8 @@ export interface Department {
   id: string;
   name?: string;
   description?: string;
-  stationId?: string;
-  station_id?: string; // Backend field name
+  stationId?: string | { _id?: string; id?: string };
+  station_id?: string | { _id?: string; id?: string }; // Backend field name
   head?: string;
   headEmail?: string;
   headPhone?: string;
