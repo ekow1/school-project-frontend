@@ -108,7 +108,15 @@ const apiCreateStationAdmin = async (formData: StationAdminFormData): Promise<St
 const apiUpdateStationAdmin = async (id: string, formData: StationAdminFormData): Promise<StationAdmin> => {
   try {
     // Prepare data for API - only include password if provided, ensure station is sent as stationId
-    const apiData: any = {
+    interface UpdateStationAdminAPIData {
+      username: string;
+      email: string;
+      name?: string;
+      stationId: string;
+      isActive: boolean;
+      password?: string;
+    }
+    const apiData: UpdateStationAdminAPIData = {
       username: formData.username,
       email: formData.email,
       name: formData.name || undefined,

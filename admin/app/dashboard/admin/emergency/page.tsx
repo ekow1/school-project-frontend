@@ -34,7 +34,7 @@ import {
   getFilteredRowModel,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { Incident } from '@/lib/types/incident';
+import { Incident, IncidentStatus } from '@/lib/types/incident';
 import toast, { Toaster } from 'react-hot-toast';
 import { STATION_IDS } from '@/lib/types/station';
 
@@ -654,7 +654,14 @@ const EmergencyResponsePage: React.FC = () => {
 
     // Sort by priority (critical > high > medium > low) then by status (pending > dispatched > en_route > on_scene)
     const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-    const statusOrder = { pending: 4, dispatched: 3, en_route: 2, on_scene: 1 };
+    const statusOrder: Record<IncidentStatus, number> = { 
+      pending: 4, 
+      dispatched: 3, 
+      en_route: 2, 
+      on_scene: 1,
+      completed: 0,
+      cancelled: 0
+    };
 
     return activeIncidents.sort((a, b) => {
       const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);

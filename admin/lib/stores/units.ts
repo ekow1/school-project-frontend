@@ -37,6 +37,12 @@ export interface CreateUnitData {
   department: string; // departmentId
 }
 
+interface CreateUnitAPIData {
+  name: string;
+  color?: string;
+  department: string; // departmentId
+}
+
 interface UnitsStore {
   units: Unit[];
   isLoading: boolean;
@@ -137,7 +143,7 @@ const apiCreateUnit = async (formData: CreateUnitData): Promise<Unit> => {
 // API function to update unit
 const apiUpdateUnit = async (id: string, formData: Partial<CreateUnitData>): Promise<Unit> => {
   try {
-    const apiData: any = {};
+    const apiData: Partial<CreateUnitAPIData> = {};
     if (formData.name) apiData.name = formData.name.trim();
     if (formData.color !== undefined) apiData.color = formData.color || '#000000';
     if (formData.department) apiData.department = formData.department;

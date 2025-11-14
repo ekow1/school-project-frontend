@@ -22,7 +22,7 @@ export interface Department {
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
-  units?: any[];
+  units?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
 }
 
 export interface DepartmentsResponse {
@@ -35,6 +35,15 @@ export interface CreateDepartmentData {
   name: string;
   description?: string;
   stationId?: string;
+  head?: string;
+  headEmail?: string;
+  headPhone?: string;
+}
+
+interface CreateDepartmentAPIData {
+  name: string;
+  description?: string;
+  station_id?: string;
   head?: string;
   headEmail?: string;
   headPhone?: string;
@@ -100,7 +109,7 @@ const apiFetchDepartments = async (stationId?: string): Promise<DepartmentsRespo
 const apiCreateDepartment = async (formData: CreateDepartmentData): Promise<Department> => {
   try {
     // Map stationId to station_id for backend
-    const apiData: any = {
+    const apiData: CreateDepartmentAPIData = {
       name: formData.name,
       description: formData.description,
     };
@@ -136,7 +145,7 @@ const apiCreateDepartment = async (formData: CreateDepartmentData): Promise<Depa
 const apiUpdateDepartment = async (id: string, formData: Partial<CreateDepartmentData>): Promise<Department> => {
   try {
     // Map stationId to station_id for backend
-    const apiData: any = {};
+    const apiData: Partial<CreateDepartmentAPIData> = {};
     if (formData.name) apiData.name = formData.name;
     if (formData.description !== undefined) apiData.description = formData.description;
     if (formData.stationId) {

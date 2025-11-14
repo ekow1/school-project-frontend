@@ -71,7 +71,7 @@ class RoleBasedAPIClient {
   }
 
   // POST request
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -79,7 +79,7 @@ class RoleBasedAPIClient {
   }
 
   // PUT request
-  async put<T>(endpoint: string, data?: any): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
@@ -105,7 +105,7 @@ export const roleBasedAPI = {
     getSystemAnalytics: () => apiClient.get('/admin/superadmin/analytics'),
     getUserManagement: () => apiClient.get('/admin/superadmin/users'),
     getAuditLogs: () => apiClient.get('/admin/superadmin/audit-logs'),
-    updateSystemConfig: (config: any) => apiClient.put('/admin/superadmin/config', config),
+    updateSystemConfig: (config: unknown) => apiClient.put('/admin/superadmin/config', config),
   },
 
   // Admin endpoints
@@ -115,9 +115,9 @@ export const roleBasedAPI = {
     getStationReports: (stationId: string) => apiClient.get(`/admin/station/${stationId}/reports`),
     getStationAnalytics: (stationId: string) => apiClient.get(`/admin/station/${stationId}/analytics`),
     getDepartments: (stationId: string) => apiClient.get(`/admin/station/${stationId}/departments`),
-    updatePersonnel: (stationId: string, personnelId: string, data: any) => 
+    updatePersonnel: (stationId: string, personnelId: string, data: unknown) => 
       apiClient.put(`/admin/station/${stationId}/personnel/${personnelId}`, data),
-    updateStationConfig: (stationId: string, config: any) => 
+    updateStationConfig: (stationId: string, config: unknown) => 
       apiClient.put(`/admin/station/${stationId}/config`, config),
   },
 
@@ -150,10 +150,10 @@ export const roleBasedAPI = {
     getComplianceReports: () => apiClient.get('/safety/compliance'),
     getSafetyPersonnel: () => apiClient.get('/safety/personnel'),
     getSafetyAnalytics: () => apiClient.get('/safety/analytics'),
-    reportIncident: (incident: any) => apiClient.post('/safety/incidents', incident),
-    updateCompliance: (complianceId: string, data: any) => 
+    reportIncident: (incident: unknown) => apiClient.post('/safety/incidents', incident),
+    updateCompliance: (complianceId: string, data: unknown) => 
       apiClient.put(`/safety/compliance/${complianceId}`, data),
-    scheduleAudit: (audit: any) => apiClient.post('/safety/audits', audit),
+    scheduleAudit: (audit: unknown) => apiClient.post('/safety/audits', audit),
   },
 
   // PR endpoints
@@ -163,10 +163,10 @@ export const roleBasedAPI = {
     getPublicAnnouncements: () => apiClient.get('/pr/announcements'),
     getCampaigns: () => apiClient.get('/pr/campaigns'),
     getPRAnalytics: () => apiClient.get('/pr/analytics'),
-    createPressRelease: (release: any) => apiClient.post('/pr/press-releases', release),
-    createAnnouncement: (announcement: any) => apiClient.post('/pr/announcements', announcement),
-    launchCampaign: (campaign: any) => apiClient.post('/pr/campaigns', campaign),
-    updateMediaCoverage: (coverageId: string, data: any) => 
+    createPressRelease: (release: unknown) => apiClient.post('/pr/press-releases', release),
+    createAnnouncement: (announcement: unknown) => apiClient.post('/pr/announcements', announcement),
+    launchCampaign: (campaign: unknown) => apiClient.post('/pr/campaigns', campaign),
+    updateMediaCoverage: (coverageId: string, data: unknown) => 
       apiClient.put(`/pr/media/${coverageId}`, data),
   },
 
@@ -174,11 +174,11 @@ export const roleBasedAPI = {
   common: {
     login: (credentials: { email: string; password: string }) => 
       apiClient.post('/auth/login', credentials),
-    register: (userData: any) => apiClient.post('/auth/register', userData),
+    register: (userData: unknown) => apiClient.post('/auth/register', userData),
     logout: () => apiClient.post('/auth/logout'),
     refreshToken: () => apiClient.post('/auth/refresh'),
     getProfile: () => apiClient.get('/auth/profile'),
-    updateProfile: (data: any) => apiClient.put('/auth/profile', data),
+    updateProfile: (data: unknown) => apiClient.put('/auth/profile', data),
   },
 };
 

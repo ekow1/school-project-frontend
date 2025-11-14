@@ -37,6 +37,15 @@ export interface CreateRankData {
   description: string;
 }
 
+interface CreateRankAPIData {
+  name: string;
+  initials: string;
+  level: number;
+  group: 'junior' | 'senior';
+  gender: 'male' | 'female' | null;
+  description: string;
+}
+
 interface RanksStore {
   ranks: Rank[];
   isLoading: boolean;
@@ -90,20 +99,14 @@ const apiFetchRanks = async (): Promise<RanksResponse> => {
 // API function to create rank
 const apiCreateRank = async (formData: CreateRankData): Promise<Rank> => {
   try {
-    const apiData: any = {
+    const apiData: CreateRankAPIData = {
       name: formData.name.trim(),
       initials: formData.initials.trim().toUpperCase(),
       level: formData.level ?? 0,
       group: formData.group,
       description: formData.description.trim(),
+      gender: formData.group === 'junior' && formData.gender ? formData.gender : null,
     };
-    
-    // Only include gender if group is 'junior', otherwise set to null
-    if (formData.group === 'junior' && formData.gender) {
-      apiData.gender = formData.gender;
-    } else {
-      apiData.gender = null;
-    }
 
     const { data } = await axios.post<{ success: boolean; data: Rank } | Rank>(
       RANKS_ENDPOINT,
@@ -129,7 +132,7 @@ const apiCreateRank = async (formData: CreateRankData): Promise<Rank> => {
 // API function to update rank
 const apiUpdateRank = async (id: string, formData: Partial<CreateRankData>): Promise<Rank> => {
   try {
-    const apiData: any = {};
+    const apiData: Partial<CreateRankAPIData> = {};
     if (formData.name) apiData.name = formData.name.trim();
     if (formData.initials) apiData.initials = formData.initials.trim().toUpperCase();
     if (formData.level !== undefined) apiData.level = formData.level;

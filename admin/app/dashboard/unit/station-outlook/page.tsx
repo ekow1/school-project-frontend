@@ -97,7 +97,7 @@ const StationOutlookPage: React.FC = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<JurisdictionPlace | PlaceOfImportance | SisterService | HydrantLocation | null>(null);
 
   // State for storing places data
   const [jurisdictionPlacesState, setJurisdictionPlacesState] = useState<JurisdictionPlace[]>([]);
@@ -546,7 +546,7 @@ const StationOutlookPage: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: JurisdictionPlace | PlaceOfImportance | SisterService | HydrantLocation) => {
     setEditingItem(item);
     setFormData({ ...item });
     setShowAddModal(true);
@@ -671,7 +671,7 @@ const StationOutlookPage: React.FC = () => {
 
   // Filter data based on active tab and search
   const filteredData = useMemo(() => {
-    let data: any[] = [];
+    let data: (JurisdictionPlace | PlaceOfImportance | SisterService | HydrantLocation)[] = [];
     
     switch (activeTab) {
       case 'jurisdiction':

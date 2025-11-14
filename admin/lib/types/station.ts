@@ -9,8 +9,8 @@ export interface Station {
   lng?: number;
   phone_number?: string | null;
   placeId?: string;
-  departments?: any[];
-  personnel?: any[];
+  departments?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
+  personnel?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
   createdAt: string;
   updatedAt: string;
   __v: number;

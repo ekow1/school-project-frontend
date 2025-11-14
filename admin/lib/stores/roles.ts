@@ -29,6 +29,11 @@ export interface CreateRoleData {
   description: string;
 }
 
+interface CreateRoleAPIData {
+  name: string;
+  description: string;
+}
+
 interface RolesStore {
   roles: Role[];
   isLoading: boolean;
@@ -111,7 +116,7 @@ const apiCreateRole = async (formData: CreateRoleData): Promise<Role> => {
 // API function to update role
 const apiUpdateRole = async (id: string, formData: Partial<CreateRoleData>): Promise<Role> => {
   try {
-    const apiData: any = {};
+    const apiData: Partial<CreateRoleAPIData> = {};
     if (formData.name) apiData.name = formData.name.trim();
     if (formData.description !== undefined) apiData.description = formData.description.trim();
 

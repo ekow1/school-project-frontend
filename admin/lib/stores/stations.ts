@@ -22,9 +22,9 @@ export interface Station {
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
-  departments?: any[];
-  personnel?: any[];
-  stationAdmins?: any[];
+  departments?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
+  personnel?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
+  stationAdmins?: Array<{ _id?: string; id?: string; username?: string; [key: string]: unknown }>;
 }
 
 export interface StationsResponse {

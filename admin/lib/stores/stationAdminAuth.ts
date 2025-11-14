@@ -287,7 +287,7 @@ const apiCheckAuth = async (): Promise<UserRoleData | null> => {
 interface StationAdminAuthStore extends Omit<AuthStore, 'login'> {
   login: (credentials: AuthFormData) => Promise<{ requiresPasswordReset: boolean; username: string; adminId?: string } | void>;
   changePassword: (adminId: string, oldPassword: string | null, newPassword: string) => Promise<void>;
-  fetchStationAdminData: (stationId: string) => Promise<{ hasTempPassword: boolean; adminData: any }>;
+  fetchStationAdminData: (stationId: string) => Promise<{ hasTempPassword: boolean; adminData: StationAdmin }>;
 }
 
 export const useStationAdminAuthStore = create<StationAdminAuthStore>()(

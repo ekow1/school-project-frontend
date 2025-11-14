@@ -225,7 +225,17 @@ const FirePersonnelPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Prepare data - include department (required) and unit (if department has units)
-      const personnelData: any = {
+      interface CreatePersonnelData {
+        serviceNumber: string;
+        name: string;
+        rank: string;
+        department: string;
+        role?: string;
+        station_id: string;
+        tempPassword: string;
+        unit?: string;
+      }
+      const personnelData: CreatePersonnelData = {
         serviceNumber: formData.serviceNumber.trim(),
         name: formData.name.trim(),
         rank: formData.rank, // rankId
@@ -233,12 +243,8 @@ const FirePersonnelPage: React.FC = () => {
         role: formData.role || undefined, // roleId (optional)
         station_id: formData.station_id, // Pre-filled with admin's station
         tempPassword: formData.tempPassword,
+        ...(formData.unit && selectedDepartmentHasUnits && { unit: formData.unit }), // unitId
       };
-      
-      // Only include unit if the selected department has units
-      if (formData.unit && selectedDepartmentHasUnits) {
-        personnelData.unit = formData.unit; // unitId
-      }
       
       await createFirePersonnel(personnelData);
       toast.success(`Officer "${formData.name}" created successfully!`, {

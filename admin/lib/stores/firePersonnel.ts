@@ -71,6 +71,17 @@ export interface CreateFirePersonnelData {
   tempPassword: string;
 }
 
+interface CreateFirePersonnelAPIData {
+  serviceNumber: string;
+  name: string;
+  rank: string; // rankId
+  department: string; // departmentId
+  unit?: string; // unitId
+  role?: string; // roleId
+  station_id: string; // stationId
+  tempPassword: string;
+}
+
 interface FirePersonnelStore {
   firePersonnel: FirePersonnel[];
   isLoading: boolean;
@@ -155,24 +166,16 @@ const apiFetchFirePersonnel = async (stationId?: string): Promise<FirePersonnelR
 // API function to create fire personnel
 const apiCreateFirePersonnel = async (formData: CreateFirePersonnelData): Promise<FirePersonnel> => {
   try {
-    const apiData: any = {
+    const apiData: CreateFirePersonnelAPIData = {
       serviceNumber: formData.serviceNumber.trim(),
       name: formData.name.trim(),
       rank: formData.rank, // rankId
       department: formData.department, // departmentId (required)
       station_id: formData.station_id, // stationId
       tempPassword: formData.tempPassword,
+      ...(formData.unit && { unit: formData.unit }), // unitId
+      ...(formData.role && { role: formData.role }), // roleId
     };
-    
-    // Only include unit if provided (required if department has units)
-    if (formData.unit) {
-      apiData.unit = formData.unit; // unitId
-    }
-    
-    // Only include role if provided (optional, only for Admin)
-    if (formData.role) {
-      apiData.role = formData.role; // roleId
-    }
 
     const { data } = await axios.post<{ success: boolean; data: FirePersonnel } | FirePersonnel>(
       FIRE_PERSONNEL_ENDPOINT,
@@ -213,13 +216,13 @@ const apiCreateFirePersonnel = async (formData: CreateFirePersonnelData): Promis
 // API function to update fire personnel
 const apiUpdateFirePersonnel = async (id: string, formData: Partial<CreateFirePersonnelData>): Promise<FirePersonnel> => {
   try {
-    const apiData: any = {};
+    const apiData: Partial<CreateFirePersonnelAPIData> = {};
     if (formData.serviceNumber) apiData.serviceNumber = formData.serviceNumber.trim();
     if (formData.name) apiData.name = formData.name.trim();
     if (formData.rank) apiData.rank = formData.rank;
     if (formData.department) apiData.department = formData.department;
-    if (formData.unit !== undefined) apiData.unit = formData.unit || null;
-    if (formData.role !== undefined) apiData.role = formData.role || null;
+    if (formData.unit !== undefined) apiData.unit = formData.unit || undefined;
+    if (formData.role !== undefined) apiData.role = formData.role || undefined;
     if (formData.station_id) apiData.station_id = formData.station_id;
     if (formData.tempPassword) apiData.tempPassword = formData.tempPassword;
 
