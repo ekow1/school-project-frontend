@@ -345,10 +345,11 @@ const DepartmentManagementPage: React.FC = () => {
             <button
               onClick={() => {
                 setEditingDepartment(row.original);
+                const stationIdStr = extractStationId(row.original.stationId) || extractStationId(row.original.station_id) || '';
                 setFormData({
                   name: row.original.name || '',
                   description: row.original.description || '',
-                  stationId: row.original.stationId || ''
+                  stationId: stationIdStr
                 });
                 setShowAddModal(true);
               }}
