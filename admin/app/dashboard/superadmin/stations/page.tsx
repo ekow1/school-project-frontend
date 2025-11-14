@@ -35,7 +35,7 @@ import {
 } from '@tanstack/react-table';
 
 // Using Station type from store, but keeping local interface for compatibility
-interface Station extends StationType {
+interface Station extends Omit<StationType, 'departments'> {
   call_sign?: string;
   region?: string;
   departments?: Department[];
@@ -127,7 +127,7 @@ const StationsPage: React.FC = () => {
       id: station.id || station._id,
       call_sign: station.call_sign || '',
       region: station.region || 'Greater Accra',
-      departments: (station.departments || []) as Department[],
+      departments: (station.departments || []) as unknown as Department[],
     }));
   }, [stations]);
 
