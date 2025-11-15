@@ -463,11 +463,11 @@ const FirePersonnelPage: React.FC = () => {
       .map((personnel) => {
         const stationIdStr = extractStationId(personnel.stationId) || extractStationId(personnel.station_id);
         return {
-          ...personnel,
-          id: personnel.id || personnel._id,
-          rankName: getRankName(personnel.rankId),
-          departmentName: getDepartmentName(personnel.departmentId),
-          unitName: getUnitName(personnel.unitId),
+        ...personnel,
+        id: personnel.id || personnel._id,
+        rankName: getRankName(personnel.rankId),
+        departmentName: getDepartmentName(personnel.departmentId),
+        unitName: getUnitName(personnel.unitId),
           stationName: getStationName(stationIdStr),
         };
       });

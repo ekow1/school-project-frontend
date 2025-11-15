@@ -117,18 +117,27 @@ export function middleware(request: NextRequest) {
                                request.headers.get("x-nextjs-data") ||
                                request.headers.get("sec-fetch-mode") === "navigate";
     
-    // If no token but we're coming from a login page OR it's a client navigation to dashboard,
-    // allow through (client-side will handle auth)
-    // This prevents redirect loops after successful login
+    // Check if navigating within the same dashboard area (e.g., from /dashboard/superadmin to /dashboard/superadmin/analytics)
+    // This allows client-side navigation between dashboard pages
+    const isDashboardNavigation = referer && pathname.startsWith("/dashboard") && (
+      (referer.includes("/dashboard/superadmin") && pathname.startsWith("/dashboard/superadmin")) ||
+      (referer.includes("/dashboard/admin") && pathname.startsWith("/dashboard/admin")) ||
+      (referer.includes("/dashboard/operations") && pathname.startsWith("/dashboard/operations")) ||
+      (referer.includes("/dashboard/unit") && pathname.startsWith("/dashboard/unit"))
+    );
+    
+    // If no token but we're coming from a login page, it's a client navigation to dashboard,
+    // OR navigating within the same dashboard area, allow through (client-side will handle auth)
+    // This prevents redirect loops after successful login and allows navigation between dashboard pages
     // Note: In production, cookies set by backend might not be immediately available to middleware
     // So we allow the request through and let client-side auth handle the verification
-    if (!token && (isFromLogin || (isClientNavigation && pathname.startsWith("/dashboard")))) {
+    if (!token && (isFromLogin || (isClientNavigation && pathname.startsWith("/dashboard")) || isDashboardNavigation)) {
       // Allow the request through - client-side auth will handle it
       // The client-side code will redirect to login if auth fails
       return NextResponse.next();
     }
     
-    // Require token for all protected routes (unless coming from login)
+    // Require token for all protected routes (unless coming from login or navigating within dashboard)
     if (!token && !hasAnyAuthIndicator) {
       // Determine which login page to redirect to based on the route
       let loginRedirect = "/fire-personnel/login";
@@ -144,10 +153,17 @@ export function middleware(request: NextRequest) {
   // If authenticated, check if user has access to the requested path
   if (token && role) {
     const allowedPaths = buildAllowedPaths(role);
+    const baseDashboardPath = resolveDashboardPath(role);
 
-    if (!isPathAllowed(pathname, allowedPaths)) {
+    // Allow access if:
+    // 1. Path is in allowed paths list, OR
+    // 2. Path is under the user's dashboard base path (for nested routes)
+    const isAllowed = isPathAllowed(pathname, allowedPaths) || 
+                      (baseDashboardPath && pathname.startsWith(baseDashboardPath));
+
+    if (!isAllowed) {
       return NextResponse.redirect(
-        new URL(resolveDashboardPath(role), request.url),
+        new URL(baseDashboardPath, request.url),
       );
     }
   }
