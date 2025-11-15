@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/stores/auth';
+import useSuperAdminAuthStore from '@/lib/stores/superAdminAuth';
+import { resolveDashboardPath } from '@/lib/constants/roles';
 import { 
   UserCog,
   Search,
@@ -49,7 +50,7 @@ import {
 
 const StationAdminsPage: React.FC = () => {
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
+  const user = useSuperAdminAuthStore((state) => state.user);
   const stations = useStationsStore(selectStations);
   const stationAdmins = useStationAdminsStore(selectStationAdmins);
   const isLoadingStore = useStationAdminsStore(selectStationAdminsIsLoading);
@@ -78,10 +79,18 @@ const StationAdminsPage: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Check if user is Super Admin
+  // Only redirect if user is explicitly set and doesn't have SuperAdmin role
   useEffect(() => {
-    if (user?.role !== 'SuperAdmin') {
-      router.replace('/dashboard');
-    }
+    // Wait a bit for auth store to initialize before checking
+    const timer = setTimeout(() => {
+      if (user && user.role !== 'SuperAdmin') {
+        // Redirect unauthorized users to their appropriate dashboard
+        const dashboardPath = resolveDashboardPath(user.role) || '/dashboard';
+        router.replace(dashboardPath);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [user, router]);
 
   // Fetch station admins on mount
