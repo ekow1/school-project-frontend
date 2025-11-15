@@ -75,10 +75,11 @@ const AuthForm = ({
   useEffect(() => {
     if (user && !loading && user.role) {
       const dashboardPath = resolveDashboardPath(user.role) || "/dashboard";
-      // Small delay to ensure state is fully updated and show success message
+      // Longer delay to ensure cookies are set by backend and available to middleware
+      // This is especially important in production where cookie propagation might take longer
       const redirectTimer = setTimeout(() => {
         router.replace(dashboardPath);
-      }, 500);
+      }, 1000);
       
       return () => clearTimeout(redirectTimer);
     }

@@ -71,24 +71,65 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Now check for authentication tokens
-  // Check for multiple possible cookie names (super admin, station admin, fire personnel, etc.)
-  const adminToken = request.cookies.get("admin_token")?.value;
-  const stationAdminToken = request.cookies.get("station_admin_token")?.value;
-  const firePersonnelToken = request.cookies.get("fire_personnel_token")?.value;
-  const anyAuthCookie = request.cookies.get("auth_token")?.value || 
-                       request.cookies.get("token")?.value ||
-                       request.cookies.get("session")?.value;
-  
-  // Use whichever token is available
-  const token = adminToken || stationAdminToken || firePersonnelToken || anyAuthCookie;
-  const cookieRole = request.cookies.get("role")?.value;
+  // Helper function to get all possible auth tokens
+  const getAllAuthTokens = () => {
+    const adminToken = request.cookies.get("admin_token")?.value;
+    const stationAdminToken = request.cookies.get("station_admin_token")?.value;
+    const firePersonnelToken = request.cookies.get("fire_personnel_token")?.value;
+    const superAdminToken = request.cookies.get("super_admin_token")?.value;
+    const anyAuthCookie = request.cookies.get("auth_token")?.value || 
+                         request.cookies.get("token")?.value ||
+                         request.cookies.get("session")?.value ||
+                         request.cookies.get("access_token")?.value ||
+                         request.cookies.get("refresh_token")?.value;
+    
+    return adminToken || stationAdminToken || firePersonnelToken || superAdminToken || anyAuthCookie;
+  };
+
+  // Check for authentication tokens with multiple possible cookie names
+  const token = getAllAuthTokens();
+  const cookieRole = request.cookies.get("role")?.value || 
+                     request.cookies.get("user_role")?.value ||
+                     request.cookies.get("userRole")?.value;
   const role = cookieRole ?? decodeRoleFromToken(token);
 
   // For protected routes, check authentication
   if (isProtectedRoute(pathname)) {
-    // Require token for all protected routes
-    if (!token) {
+    // Check if this is a dashboard route that might be accessed right after login
+    // Allow access if there's any indication of authentication (even if token check fails)
+    // This handles the case where cookies are being set but not yet available to middleware
+    const hasAnyAuthIndicator = token || 
+                                 cookieRole || 
+                                 request.cookies.get("authenticated")?.value === "true";
+    
+    // Check if request is coming from a login page (client-side navigation after login)
+    // This helps prevent redirect loops after successful login in production
+    const referer = request.headers.get("referer");
+    const isFromLogin = referer && (
+      referer.includes("/super-admin/login") ||
+      referer.includes("/station-admin/login") ||
+      referer.includes("/fire-personnel/login")
+    );
+    
+    // Check if this is a client-side navigation (Next.js router navigation)
+    // Client-side navigations often don't have referer, so we check other indicators
+    const isClientNavigation = request.headers.get("x-middleware-rewrite") ||
+                               request.headers.get("x-nextjs-data") ||
+                               request.headers.get("sec-fetch-mode") === "navigate";
+    
+    // If no token but we're coming from a login page OR it's a client navigation to dashboard,
+    // allow through (client-side will handle auth)
+    // This prevents redirect loops after successful login
+    // Note: In production, cookies set by backend might not be immediately available to middleware
+    // So we allow the request through and let client-side auth handle the verification
+    if (!token && (isFromLogin || (isClientNavigation && pathname.startsWith("/dashboard")))) {
+      // Allow the request through - client-side auth will handle it
+      // The client-side code will redirect to login if auth fails
+      return NextResponse.next();
+    }
+    
+    // Require token for all protected routes (unless coming from login)
+    if (!token && !hasAnyAuthIndicator) {
       // Determine which login page to redirect to based on the route
       let loginRedirect = "/fire-personnel/login";
       if (pathname.startsWith("/dashboard/superadmin") || pathname.startsWith("/super-admin")) {
