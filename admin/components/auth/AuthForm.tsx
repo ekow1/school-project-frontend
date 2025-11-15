@@ -73,9 +73,14 @@ const AuthForm = ({
 
   // Redirect after successful login
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && user.role) {
       const dashboardPath = resolveDashboardPath(user.role) || "/dashboard";
-      router.replace(dashboardPath);
+      // Small delay to ensure state is fully updated and show success message
+      const redirectTimer = setTimeout(() => {
+        router.replace(dashboardPath);
+      }, 500);
+      
+      return () => clearTimeout(redirectTimer);
     }
   }, [user, loading, router]);
 
