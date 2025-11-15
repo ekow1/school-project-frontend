@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth';
+import useSuperAdminAuthStore from '@/lib/stores/superAdminAuth';
+import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
+import { resolveDashboardPath } from '@/lib/constants/roles';
 import { 
   User,
   Search,
@@ -41,7 +44,22 @@ interface Civilian {
 
 const CivilianPage: React.FC = () => {
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
+  const pathname = usePathname();
+  
+  // Get user from appropriate auth store based on route
+  // Both Admin and SuperAdmin can access this page
+  const superAdminUser = useSuperAdminAuthStore((state) => state.user);
+  const stationAdminUser = useStationAdminAuthStore((state) => state.user);
+  const authStoreUser = useAuthStore((state) => state.user);
+  
+  // Determine which user to use based on the pathname
+  // This allows the same component to work for both /dashboard/admin and /dashboard/superadmin routes
+  const user = pathname?.includes('/superadmin') 
+    ? superAdminUser 
+    : pathname?.includes('/admin')
+    ? stationAdminUser
+    : authStoreUser;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -49,11 +67,20 @@ const CivilianPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<Civilian | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Check if user is Admin or Super Admin
+  // Access control: Only Admin and SuperAdmin can view civilians
+  // Both roles are allowed - this page is shared between /dashboard/admin/users/civilian and /dashboard/superadmin/users/civilian
   useEffect(() => {
-    if (user?.role !== 'Admin' && user?.role !== 'SuperAdmin') {
-      router.replace('/dashboard');
-    }
+    // Wait a bit for auth stores to initialize before checking
+    const timer = setTimeout(() => {
+      // Only redirect if user exists and doesn't have Admin or SuperAdmin role
+      if (user && user.role !== 'Admin' && user.role !== 'SuperAdmin') {
+        // Redirect unauthorized users to their appropriate dashboard
+        const dashboardPath = resolveDashboardPath(user.role) || '/dashboard';
+        router.replace(dashboardPath);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [user, router]);
 
   // Mock data - in production, this would come from an API
