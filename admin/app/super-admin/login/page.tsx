@@ -20,7 +20,11 @@ const SuperAdminLoginPage = () => {
           </p>
         </div>
 
-        <AuthForm />
+        <AuthForm 
+          authType="superadmin" 
+          usernameLabel="Username"
+          usernamePlaceholder="Enter your username"
+        />
       </div>
 
       <Toaster position="top-right" />

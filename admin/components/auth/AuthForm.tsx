@@ -13,16 +13,49 @@ import {
   selectFirePersonnelIsLoading,
   selectFirePersonnelError,
 } from "@/lib/stores/firePersonnelAuth";
+import {
+  useSuperAdminAuthStore,
+  selectSuperAdminUser,
+  selectSuperAdminIsLoading,
+  selectSuperAdminError,
+} from "@/lib/stores/superAdminAuth";
 import { useRouter } from "next/navigation";
 
-const AuthForm = () => {
+type AuthType = "superadmin" | "firepersonnel";
+
+interface AuthFormProps {
+  authType?: AuthType;
+  usernameLabel?: string;
+  usernamePlaceholder?: string;
+}
+
+const AuthForm = ({ 
+  authType = "firepersonnel",
+  usernameLabel = "Service Number",
+  usernamePlaceholder = "Enter your service number"
+}: AuthFormProps) => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const login = useFirePersonnelAuthStore((state) => state.login);
-  const clearError = useFirePersonnelAuthStore((state) => state.clearError);
-  const loading = useFirePersonnelAuthStore(selectFirePersonnelIsLoading);
-  const error = useFirePersonnelAuthStore(selectFirePersonnelError);
-  const user = useFirePersonnelAuthStore(selectFirePersonnelUser);
+  
+  // Use appropriate auth store based on authType
+  const firePersonnelLogin = useFirePersonnelAuthStore((state) => state.login);
+  const firePersonnelClearError = useFirePersonnelAuthStore((state) => state.clearError);
+  const firePersonnelLoading = useFirePersonnelAuthStore(selectFirePersonnelIsLoading);
+  const firePersonnelError = useFirePersonnelAuthStore(selectFirePersonnelError);
+  const firePersonnelUser = useFirePersonnelAuthStore(selectFirePersonnelUser);
+  
+  const superAdminLogin = useSuperAdminAuthStore((state) => state.login);
+  const superAdminClearError = useSuperAdminAuthStore((state) => state.clearError);
+  const superAdminLoading = useSuperAdminAuthStore(selectSuperAdminIsLoading);
+  const superAdminError = useSuperAdminAuthStore(selectSuperAdminError);
+  const superAdminUser = useSuperAdminAuthStore(selectSuperAdminUser);
+  
+  // Select the appropriate store based on authType
+  const login = authType === "superadmin" ? superAdminLogin : firePersonnelLogin;
+  const clearError = authType === "superadmin" ? superAdminClearError : firePersonnelClearError;
+  const loading = authType === "superadmin" ? superAdminLoading : firePersonnelLoading;
+  const error = authType === "superadmin" ? superAdminError : firePersonnelError;
+  const user = authType === "superadmin" ? superAdminUser : firePersonnelUser;
 
   const {
     register,
@@ -66,7 +99,7 @@ const AuthForm = () => {
           htmlFor="username"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
         >
-          Service Number
+          {usernameLabel}
         </label>
         <div className="relative">
           <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -75,7 +108,7 @@ const AuthForm = () => {
             type="text"
             autoComplete="username"
             className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-600"
-            placeholder="Enter your service number"
+            placeholder={usernamePlaceholder}
             {...register("username")}
           />
         </div>
