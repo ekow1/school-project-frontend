@@ -75,6 +75,7 @@ const StationsPage: React.FC = () => {
   const error = useStationsStore(selectStationsError);
   const count = useStationsStore(selectStationsCount);
   const fetchStations = useStationsStore((state) => state.fetchStations);
+  const updateStation = useStationsStore((state) => state.updateStation);
   const clearError = useStationsStore((state) => state.clearError);
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +94,8 @@ const StationsPage: React.FC = () => {
     lng: '',
     region: '',
     phone_number: '',
-    placeId: ''
+    placeId: '',
+    status: 'in commission' as 'in commission' | 'out of commission'
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
@@ -106,7 +108,7 @@ const StationsPage: React.FC = () => {
         // Redirect unauthorized users to their appropriate dashboard
         const dashboardPath = resolveDashboardPath(user.role) || '/dashboard';
         router.replace(dashboardPath);
-      }
+    }
     }, 100);
     
     return () => clearTimeout(timer);
@@ -170,6 +172,52 @@ const StationsPage: React.FC = () => {
     });
   };
 
+  // Function to format phone number to standard format: +233 XX XXX XXXX
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters except +
+    let cleaned = value.replace(/[^\d+]/g, '');
+    
+    // If it starts with 233 (without +), add +
+    if (cleaned.startsWith('233') && !cleaned.startsWith('+233')) {
+      cleaned = '+' + cleaned;
+    }
+    
+    // If it starts with 0, replace with +233
+    if (cleaned.startsWith('0')) {
+      cleaned = '+233' + cleaned.substring(1);
+    }
+    
+    // If it doesn't start with +, try to add it
+    if (!cleaned.startsWith('+')) {
+      // If it's 9 digits, add +233
+      if (/^\d{9}$/.test(cleaned)) {
+        cleaned = '+233' + cleaned;
+      } else if (/^233\d{9}$/.test(cleaned)) {
+        cleaned = '+' + cleaned;
+      }
+    }
+    
+    // Extract only digits after +233
+    const match = cleaned.match(/^\+233(\d*)$/);
+    if (match) {
+      const digits = match[1];
+      // Format as +233 XX XXX XXXX
+      if (digits.length <= 2) {
+        return `+233 ${digits}`;
+      } else if (digits.length <= 5) {
+        return `+233 ${digits.substring(0, 2)} ${digits.substring(2)}`;
+      } else if (digits.length <= 9) {
+        return `+233 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}`;
+      } else {
+        // If more than 9 digits, truncate to 9
+        return `+233 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 9)}`;
+      }
+    }
+    
+    // If it doesn't match the pattern, return as is (will be validated)
+    return cleaned;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
 
@@ -201,6 +249,16 @@ const StationsPage: React.FC = () => {
       }
     }
 
+    // Validate phone number format if provided
+    if (formData.phone_number && formData.phone_number.trim()) {
+      // Normalize phone number for validation (remove spaces)
+      const normalizedPhone = formData.phone_number.replace(/\s/g, '');
+      const phoneRegex = /^\+233[0-9]{9}$/;
+      if (!phoneRegex.test(normalizedPhone)) {
+        newErrors.phone_number = 'Phone number must be in format: +233 followed by 9 digits';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -214,7 +272,7 @@ const StationsPage: React.FC = () => {
 
     // Build station data object - include all fields from Mongoose schema
     // Empty strings will be converted to undefined/null for optional fields
-    const stationData: Partial<Station> = {};
+    const stationData: Partial<StationType> = {};
     
     // All fields are optional per Mongoose schema (required: false)
     // Include fields only if they have values (empty strings become undefined)
@@ -258,16 +316,23 @@ const StationsPage: React.FC = () => {
     if (trimmedRegion) stationData.region = trimmedRegion;
     
     const trimmedPhoneNumber = formData.phone_number.trim();
-    if (trimmedPhoneNumber) stationData.phone_number = trimmedPhoneNumber;
+    if (trimmedPhoneNumber) {
+      // Normalize phone number: remove spaces for storage (backend may prefer this)
+      // Or keep formatted version if backend accepts it
+      const normalizedPhone = trimmedPhoneNumber.replace(/\s/g, '');
+      stationData.phone_number = normalizedPhone;
+    }
     
     const trimmedPlaceId = formData.placeId.trim();
     if (trimmedPlaceId) stationData.placeId = trimmedPlaceId;
+    
+    // Status field - default to 'in commission' if not set
+    stationData.status = formData.status || 'in commission';
 
     try {
     if (editingStation) {
-        // TODO: Implement update functionality via API
-        // await updateStation(editingStation.id, stationData);
-        console.log('Update station:', editingStation.id, stationData);
+        const stationId = editingStation.id || editingStation._id;
+        await updateStation(stationId, stationData);
         toast.success('Station updated successfully!');
         // Refresh stations list
         await fetchStations();
@@ -299,7 +364,8 @@ const StationsPage: React.FC = () => {
       lng: '',
       region: '',
       phone_number: '',
-      placeId: ''
+      placeId: '',
+      status: 'in commission'
     });
   };
 
@@ -365,6 +431,23 @@ const StationsPage: React.FC = () => {
         ),
       },
       {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+          const status = row.original.status || 'in commission';
+          const isInCommission = status === 'in commission';
+          return (
+            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+              isInCommission 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {status === 'in commission' ? 'In Commission' : 'Out of Commission'}
+            </span>
+          );
+        },
+      },
+      {
         id: 'departments',
         header: 'Departments',
         cell: ({ row }) => (
@@ -393,7 +476,8 @@ const StationsPage: React.FC = () => {
                   lng: station.lng !== undefined && station.lng !== null ? station.lng.toString() : '',
                   region: station.region ?? '',
                   phone_number: station.phone_number ?? '',
-                  placeId: station.placeId ?? ''
+                  placeId: station.placeId ?? '',
+                  status: (station.status as 'in commission' | 'out of commission') || 'in commission'
                 });
                 setErrors({});
                 setShowAddModal(true);
@@ -563,7 +647,8 @@ const StationsPage: React.FC = () => {
                   lng: '',
                   region: '',
                   phone_number: '',
-                  placeId: ''
+                  placeId: '',
+                  status: 'in commission'
                 });
                 setShowAddModal(true);
               }}
@@ -646,60 +731,129 @@ const StationsPage: React.FC = () => {
                           <div className="space-y-6">
                             {/* Station Details */}
                             <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-red-600" />
                                 Station Details
                               </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {station.location_url && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Station Name</label>
+                                  <div className="text-sm font-medium text-gray-900">{station.name || '-'}</div>
+                                </div>
+                                
+                                {station.call_sign && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Location URL</label>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Call Sign</label>
+                                    <div className="text-sm text-gray-900 font-mono">{station.call_sign}</div>
+                                  </div>
+                                )}
+                                
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Location</label>
+                                  <div className="text-sm text-gray-900">{station.location || '-'}</div>
+                                </div>
+                                
+                                {station.region && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Region</label>
+                                    <div className="text-sm text-gray-900">{station.region}</div>
+                                  </div>
+                                )}
+                                
+                                {station.phone_number && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Phone Number</label>
+                                    <div className="text-sm text-gray-900 flex items-center gap-2">
+                                      <Phone className="w-4 h-4 text-gray-500" />
+                                      {station.phone_number}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Status</label>
+                                  <div className="mt-1">
+                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                      (station.status || 'in commission') === 'in commission'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {(station.status || 'in commission') === 'in commission' ? 'In Commission' : 'Out of Commission'}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {station.location_url && (
+                                  <div className="md:col-span-2 lg:col-span-3">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Location URL</label>
                                     <div className="mt-1">
                                       <a
                                         href={station.location_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                        className="text-blue-600 hover:text-blue-800 text-sm break-all underline"
                                       >
                                         {station.location_url}
                                       </a>
                                     </div>
                                   </div>
                                 )}
+                                
                                 {(station.lat !== undefined && station.lat !== null) && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Latitude</label>
-                                    <div className="mt-1 text-gray-900">{station.lat}</div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Latitude</label>
+                                    <div className="text-sm text-gray-900 font-mono">{station.lat}</div>
                                   </div>
                                 )}
+                                
                                 {(station.lng !== undefined && station.lng !== null) && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Longitude</label>
-                                    <div className="mt-1 text-gray-900">{station.lng}</div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Longitude</label>
+                                    <div className="text-sm text-gray-900 font-mono">{station.lng}</div>
                                   </div>
                                 )}
+                                
                                 {station.placeId && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Google Place ID</label>
-                                    <div className="mt-1 text-gray-900 font-mono text-sm">{station.placeId}</div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Google Place ID</label>
+                                    <div className="text-sm text-gray-900 font-mono break-all">{station.placeId}</div>
                                   </div>
                                 )}
+                                
                                 {station.createdAt && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Created At</label>
-                                    <div className="mt-1 text-gray-900 text-sm">
-                                      {new Date(station.createdAt).toLocaleDateString()}
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Created At</label>
+                                    <div className="text-sm text-gray-900">
+                                      {new Date(station.createdAt).toLocaleString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
                                     </div>
                                   </div>
                                 )}
+                                
                                 {station.updatedAt && (
                                   <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Updated At</label>
-                                    <div className="mt-1 text-gray-900 text-sm">
-                                      {new Date(station.updatedAt).toLocaleDateString()}
+                                    <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Updated At</label>
+                                    <div className="text-sm text-gray-900">
+                                      {new Date(station.updatedAt).toLocaleString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
                                     </div>
                                   </div>
                                 )}
+                                
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Station ID</label>
+                                  <div className="text-sm text-gray-900 font-mono break-all">{station.id || station._id}</div>
+                                </div>
                               </div>
                             </div>
 
@@ -937,14 +1091,14 @@ const StationsPage: React.FC = () => {
 
                 {/* Station Information Section - All fields optional per Mongoose schema */}
                 <div className="bg-blue-50/50 border-2 border-blue-100 rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-6">
                     <Building2 className="w-4 h-4 text-blue-600" />
                     <h3 className="text-lg font-bold text-blue-900">Station Information</h3>
                     <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md font-semibold">All fields optional</span>
                   </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2.5">Station Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Station Name</label>
                     <input
                       type="text"
                       value={formData.name}
@@ -957,17 +1111,17 @@ const StationsPage: React.FC = () => {
                         errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Official name of the fire station</p>
                     {errors.name && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.name}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Call Sign</label>
-                    <p className="text-xs text-gray-500 mb-1.5">Unique identifier for the station</p>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Call Sign</label>
                     <input
                       type="text"
                       value={formData.call_sign}
@@ -980,16 +1134,17 @@ const StationsPage: React.FC = () => {
                         errors.call_sign ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Unique identifier for the station</p>
                     {errors.call_sign && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.call_sign}
                       </p>
                     )}
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Location</label>
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Location</label>
                     <input
                       type="text"
                       value={formData.location}
@@ -1002,16 +1157,17 @@ const StationsPage: React.FC = () => {
                         errors.location ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Physical address of the station</p>
                     {errors.location && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.location}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Region</label>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Region</label>
                     <select
                       value={formData.region}
                       onChange={(e) => {
@@ -1029,39 +1185,72 @@ const StationsPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">Administrative region where station is located</p>
                     {errors.region && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.region}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Phone Number</label>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Phone Number</label>
                     <input
                       type="tel"
                       value={formData.phone_number}
                       onChange={(e) => {
-                        setFormData({ ...formData, phone_number: e.target.value });
+                        const formatted = formatPhoneNumber(e.target.value);
+                        setFormData({ ...formData, phone_number: formatted });
                         setErrors({ ...errors, phone_number: '' });
                       }}
-                      placeholder="e.g., +233 30 123 4567"
-                      pattern="[0-9+]*"
+                      onBlur={(e) => {
+                        // Final format on blur
+                        if (e.target.value.trim()) {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          setFormData({ ...formData, phone_number: formatted });
+                        }
+                      }}
+                      placeholder="+233 XX XXX XXXX"
                       className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
                         errors.phone_number ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Format: +233 followed by 9 digits. Auto-formats as you type (e.g., 0241234567 → +233 24 123 4567)</p>
                     {errors.phone_number && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.phone_number}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Location URL</label>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => {
+                        setFormData({ ...formData, status: e.target.value as 'in commission' | 'out of commission' });
+                        setErrors({ ...errors, status: '' });
+                      }}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                        errors.status ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                      }`}
+                    >
+                      <option value="in commission">In Commission</option>
+                      <option value="out of commission">Out of Commission</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Operational status of the station</p>
+                    {errors.status && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {errors.status}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Location URL</label>
                     <input
                       type="url"
                       value={formData.location_url}
@@ -1074,17 +1263,17 @@ const StationsPage: React.FC = () => {
                         errors.location_url ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Google Maps link to the station location</p>
                     {errors.location_url && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.location_url}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Google Place ID</label>
-                    <p className="text-xs text-gray-500 mb-1.5">Unique identifier from Google Maps (optional, unique if provided)</p>
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Google Place ID</label>
                     <input
                       type="text"
                       value={formData.placeId}
@@ -1092,21 +1281,21 @@ const StationsPage: React.FC = () => {
                       placeholder="e.g., ChIJN1t_tDeuEmsRUsoyG83frY4"
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:bg-blue-50/30 focus:outline-none transition-all duration-200"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Unique identifier from Google Maps (optional, unique if provided)</p>
                   </div>
                 </div>
                 </div>
 
                 {/* Geographic Coordinates Section */}
                 <div className="bg-green-50/50 border-2 border-green-100 rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-6">
                     <MapPin className="w-4 h-4 text-green-600" />
                     <h3 className="text-lg font-bold text-green-900">Geographic Coordinates</h3>
                     <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-md font-semibold">Optional</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Latitude</label>
-                      <p className="text-xs text-gray-500 mb-1.5">Must be between -90 and 90</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Latitude</label>
                     <input
                       type="number"
                       step="any"
@@ -1122,17 +1311,17 @@ const StationsPage: React.FC = () => {
                           errors.lat ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-green-400 focus:bg-green-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Must be between -90 and 90</p>
                     {errors.lat && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.lat}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">Longitude</label>
-                      <p className="text-xs text-gray-500 mb-1.5">Must be between -180 and 180</p>
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-gray-700">Longitude</label>
                     <input
                       type="number"
                       step="any"
@@ -1148,14 +1337,15 @@ const StationsPage: React.FC = () => {
                           errors.lng ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-green-400 focus:bg-green-50/30'
                       }`}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Must be between -180 and 180</p>
                     {errors.lng && (
-                      <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         {errors.lng}
                       </p>
                     )}
                   </div>
-                  </div>
+                </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">

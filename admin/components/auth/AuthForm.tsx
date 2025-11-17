@@ -78,7 +78,7 @@ const AuthForm = ({
       // Longer delay to ensure cookies are set by backend and available to middleware
       // This is especially important in production where cookie propagation might take longer
       const redirectTimer = setTimeout(() => {
-        router.replace(dashboardPath);
+      router.replace(dashboardPath);
       }, 1000);
       
       return () => clearTimeout(redirectTimer);

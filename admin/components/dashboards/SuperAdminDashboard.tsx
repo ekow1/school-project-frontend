@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth';
+import ActiveIncidentsBanner from '@/components/incidents/ActiveIncidentsBanner';
 import { 
   Flame, 
   Ambulance, 
@@ -416,6 +417,7 @@ const SuperAdminDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
+      <ActiveIncidentsBanner />
       {/* Header */}
       <div className="p-8 text-gray-900">
         <div className="flex items-center justify-between">
@@ -742,6 +744,7 @@ const SuperAdminDashboard: React.FC = () => {
           </table>
         </div>
       </div>
+
     </div>
   );
 };

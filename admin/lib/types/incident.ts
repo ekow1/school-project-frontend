@@ -28,34 +28,65 @@ export interface IncidentStation {
 }
 
 export type IncidentType = 'fire' | 'medical' | 'rescue' | 'flood' | 'hazardous' | 'other';
-export type IncidentStatus = 'pending' | 'dispatched' | 'en_route' | 'on_scene' | 'completed' | 'cancelled';
+export type IncidentStatus = 'pending' | 'dispatched' | 'en_route' | 'on_scene' | 'completed' | 'cancelled' | 'active';
 export type IncidentPriority = 'low' | 'medium' | 'high' | 'critical';
 export type DamageLevel = 'none' | 'minimal' | 'moderate' | 'major' | 'severe';
 
-export interface Incident {
+// Alert ID structure (nested in incident)
+export interface IncidentAlertId {
   _id: string;
   id: string;
   incidentType: IncidentType;
   incidentName: string;
   location: IncidentLocation;
-  station: IncidentStation | null;
-  userId: IncidentUser;
-  status: IncidentStatus;
+  station: string; // Station ID
+  status: 'active' | 'pending' | 'accepted' | 'rejected' | 'referred';
   priority: IncidentPriority;
+  responseTimeMinutes: number | null;
+}
+
+// Department structure
+export interface IncidentDepartment {
+  _id: string;
+  id: string;
+  name: string;
   description?: string;
-  estimatedCasualties: number;
-  estimatedDamage: DamageLevel;
-  assignedPersonnel: string[];
-  reportedAt: string;
+}
+
+// Unit structure
+export interface IncidentUnit {
+  _id: string;
+  id: string;
+  name: string;
+  department: string; // Department ID
+  isActive: boolean;
+}
+
+// New Incident structure from /incidents endpoint
+export interface Incident {
+  _id: string;
+  id: string;
+  alertId: IncidentAlertId | null; // Can be null
+  departmentOnDuty: IncidentDepartment;
+  unitOnDuty: IncidentUnit;
+  status: IncidentStatus;
   createdAt: string;
   updatedAt: string;
+  __v?: number;
   responseTimeMinutes: number | null;
-  __v: number;
+  resolutionTimeMinutes: number | null;
+  totalIncidentTimeMinutes: number | null;
 }
 
 export interface IncidentResponse {
   success: boolean;
-  data: Incident[];
-  total: number;
+  data: Incident | Incident[];
+  total?: number;
+  count?: number;
+  message?: string;
+  pagination?: {
+    current: number;
+    pages: number;
+    total: number;
+  };
 }
-

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth';
 import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
 import { useStationsStore, selectStations } from '@/lib/stores/stations';
+import { useEmergencyAlertsStore } from '@/lib/stores/emergencyAlerts';
+import ActiveIncidentsBanner from '@/components/incidents/ActiveIncidentsBanner';
 import { 
   Flame, 
   Ambulance, 
@@ -28,6 +30,7 @@ import {
   Mail
 } from 'lucide-react';
 import { Incident, IncidentStatus } from '@/lib/types/incident';
+import { EmergencyAlert } from '@/lib/types/emergencyAlert';
 import toast, { Toaster } from 'react-hot-toast';
 import { STATION_IDS } from '@/lib/types/station';
 
@@ -235,6 +238,24 @@ const AdminDashboard: React.FC = () => {
       clearError();
     }
   }, [error, clearError]);
+
+  // Get current station from user's stationId
+  const currentStationId = user?.stationId;
+
+  // Join station room when connected (connection is global, managed by WebSocketProvider)
+  useEffect(() => {
+    const isConnected = useEmergencyAlertsStore.getState().isConnected;
+    const joinStationRoom = useEmergencyAlertsStore.getState().joinStationRoom;
+    const leaveStationRoom = useEmergencyAlertsStore.getState().leaveStationRoom;
+    
+    if (isConnected && currentStationId) {
+      joinStationRoom(currentStationId);
+      
+      return () => {
+        leaveStationRoom(currentStationId);
+      };
+    }
+  }, [currentStationId]);
   
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -244,9 +265,6 @@ const AdminDashboard: React.FC = () => {
   const [declineReason, setDeclineReason] = useState('');
   const [referReason, setReferReason] = useState('');
   const [selectedStation, setSelectedStation] = useState('');
-
-  // Get current station from user's stationId
-  const currentStationId = user?.stationId;
   
   // Find station details from stations store
   // Match by both _id and id fields, and handle string comparison
@@ -261,120 +279,129 @@ const AdminDashboard: React.FC = () => {
     return station || null;
   }, [stations, currentStationId]);
 
-  // Sample incident data for Accra Central station
+  // Sample incident data for Accra Central station - matching actual Incident type structure
   const allIncidents: Incident[] = [
     {
       _id: '6904781bee691673e388ddf1',
       id: '6904781bee691673e388ddf1',
-      incidentType: 'fire',
-      incidentName: 'Building Fire - Central Business District',
-      location: {
-        coordinates: {
-          latitude: 5.6037,
-          longitude: -0.1870,
+      alertId: {
+        _id: '6900f7bed2ee11e1e199f3df',
+        id: '6900f7bed2ee11e1e199f3df',
+        incidentType: 'fire',
+        incidentName: 'Building Fire - Central Business District',
+        location: {
+          coordinates: {
+            latitude: 5.6037,
+            longitude: -0.1870,
+          },
+          locationUrl: 'https://www.google.com/maps?q=5.6037,-0.1870',
+          locationName: 'Central Business District, Accra, Greater Accra Region, Ghana',
         },
-        locationUrl: 'https://www.google.com/maps?q=5.6037,-0.1870',
-        locationName: 'Central Business District, Accra, Greater Accra Region, Ghana',
+        station: '69049470ee691673e388de18',
+        status: 'accepted',
+        priority: 'critical',
+        responseTimeMinutes: 8,
       },
-      station: {
-        _id: '69049470ee691673e388de18',
-        id: '69049470ee691673e388de18',
-        name: 'Accra Central Fire Station',
-        location: 'Central Business District, Accra',
-        phone_number: '+233302123456',
+      departmentOnDuty: {
+        _id: '691505bee82fe84babd8ba0c',
+        id: '691505bee82fe84babd8ba0c',
+        name: 'Operations Department',
       },
-      userId: {
-        _id: '6900c34ad10dd5db82c49ff9',
-        id: '6900c34ad10dd5db82c49ff9',
-        name: 'John Mensah',
-        phone: '+233241234567',
+      unitOnDuty: {
+        _id: '69161271232308c1103936e3',
+        id: '69161271232308c1103936e3',
+        name: 'Red Watch',
+        department: '691505bee82fe84babd8ba0c',
+        isActive: true,
       },
       status: 'on_scene',
-      priority: 'critical',
-      description: 'Multi-story commercial building fire with heavy smoke and flames visible from 3rd floor',
-      estimatedCasualties: 0,
-      estimatedDamage: 'major',
-      assignedPersonnel: ['P001', 'P002', 'P003'],
-      reportedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
       createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
       updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
       responseTimeMinutes: 8,
+      resolutionTimeMinutes: null,
+      totalIncidentTimeMinutes: null,
       __v: 0,
     },
     {
       _id: '6904781bee691673e388ddf2',
       id: '6904781bee691673e388ddf2',
-      incidentType: 'medical',
-      incidentName: 'Vehicle Accident - Market Circle',
-      location: {
-        coordinates: {
-          latitude: 5.6000,
-          longitude: -0.1850,
+      alertId: {
+        _id: '690100b7ee691673e388dc4f',
+        id: '690100b7ee691673e388dc4f',
+        incidentType: 'medical',
+        incidentName: 'Vehicle Accident - Market Circle',
+        location: {
+          coordinates: {
+            latitude: 5.6000,
+            longitude: -0.1850,
+          },
+          locationUrl: 'https://www.google.com/maps?q=5.6000,-0.1850',
+          locationName: 'Market Circle, Accra Central, Greater Accra Region, Ghana',
         },
-        locationUrl: 'https://www.google.com/maps?q=5.6000,-0.1850',
-        locationName: 'Market Circle, Accra Central, Greater Accra Region, Ghana',
+        station: '69049470ee691673e388de18',
+        status: 'accepted',
+        priority: 'high',
+        responseTimeMinutes: null,
       },
-      station: {
-        _id: '69049470ee691673e388de18',
-        id: '69049470ee691673e388de18',
-        name: 'Accra Central Fire Station',
-        location: 'Central Business District, Accra',
-        phone_number: '+233302123456',
+      departmentOnDuty: {
+        _id: '691505bee82fe84babd8ba0c',
+        id: '691505bee82fe84babd8ba0c',
+        name: 'Operations Department',
       },
-      userId: {
-        _id: '6900c34ad10dd5db82c49ff9',
-        id: '6900c34ad10dd5db82c49ff9',
-        name: 'Ama Serwaa',
-        phone: '+233202345678',
+      unitOnDuty: {
+        _id: '69161271232308c1103936e3',
+        id: '69161271232308c1103936e3',
+        name: 'Red Watch',
+        department: '691505bee82fe84babd8ba0c',
+        isActive: true,
       },
       status: 'en_route',
-      priority: 'high',
-      description: 'Two-vehicle collision with injuries reported, ambulance required',
-      estimatedCasualties: 3,
-      estimatedDamage: 'moderate',
-      assignedPersonnel: ['P004', 'P005'],
-      reportedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
       createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
       updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       responseTimeMinutes: null,
+      resolutionTimeMinutes: null,
+      totalIncidentTimeMinutes: null,
       __v: 0,
     },
     {
       _id: '6904781bee691673e388ddf3',
       id: '6904781bee691673e388ddf3',
-      incidentType: 'other',
-      incidentName: 'Electrical Fault - Office Complex',
-      location: {
-        coordinates: {
-          latitude: 5.6050,
-          longitude: -0.1900,
+      alertId: {
+        _id: '6900fe3dd2ee11e1e199f3f9',
+        id: '6900fe3dd2ee11e1e199f3f9',
+        incidentType: 'other',
+        incidentName: 'Electrical Fault - Office Complex',
+        location: {
+          coordinates: {
+            latitude: 5.6050,
+            longitude: -0.1900,
+          },
+          locationUrl: 'https://www.google.com/maps?q=5.6050,-0.1900',
+          locationName: 'Ridge Road, Accra Central, Greater Accra Region, Ghana',
         },
-        locationUrl: 'https://www.google.com/maps?q=5.6050,-0.1900',
-        locationName: 'Ridge Road, Accra Central, Greater Accra Region, Ghana',
+        station: '69049470ee691673e388de18',
+        status: 'accepted',
+        priority: 'medium',
+        responseTimeMinutes: null,
       },
-      station: {
-        _id: '69049470ee691673e388de18',
-        id: '69049470ee691673e388de18',
-        name: 'Accra Central Fire Station',
-        location: 'Central Business District, Accra',
-        phone_number: '+233302123456',
+      departmentOnDuty: {
+        _id: '691505bee82fe84babd8ba0c',
+        id: '691505bee82fe84babd8ba0c',
+        name: 'Operations Department',
       },
-      userId: {
-        _id: '6900c34ad10dd5db82c49ff9',
-        id: '6900c34ad10dd5db82c49ff9',
-        name: 'Kwame Asante',
-        phone: '+233263456789',
+      unitOnDuty: {
+        _id: '69161271232308c1103936e3',
+        id: '69161271232308c1103936e3',
+        name: 'Red Watch',
+        department: '691505bee82fe84babd8ba0c',
+        isActive: true,
       },
       status: 'pending',
-      priority: 'medium',
-      description: 'Electrical panel smoking in basement of office building, no visible flames',
-      estimatedCasualties: 0,
-      estimatedDamage: 'minimal',
-      assignedPersonnel: [],
-      reportedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       responseTimeMinutes: null,
+      resolutionTimeMinutes: null,
+      totalIncidentTimeMinutes: null,
       __v: 0,
     },
   ];
@@ -382,28 +409,31 @@ const AdminDashboard: React.FC = () => {
   // Find the most critical/urgent incident for emergency alert
   const mostUrgentIncident = useMemo(() => {
     const stationIncidents = allIncidents.filter(incident => 
-      incident.station?.id === currentStationId
+      incident.alertId?.station === currentStationId
     );
     
     const activeIncidents = stationIncidents.filter(incident => 
-      ['pending', 'dispatched', 'en_route', 'on_scene'].includes(incident.status)
+      ['pending', 'dispatched', 'en_route', 'on_scene', 'active'].includes(incident.status)
     );
 
     if (activeIncidents.length === 0) return null;
 
     // Sort by priority (critical > high > medium > low) then by status (pending > dispatched > en_route > on_scene)
-    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    const priorityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
     const statusOrder: Record<IncidentStatus, number> = { 
       pending: 4, 
       dispatched: 3, 
       en_route: 2, 
       on_scene: 1,
+      active: 5,
       completed: 0,
       cancelled: 0
     };
 
     return activeIncidents.sort((a, b) => {
-      const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+      const aPriority = a.alertId?.priority || 'low';
+      const bPriority = b.alertId?.priority || 'low';
+      const priorityDiff = (priorityOrder[bPriority] || 0) - (priorityOrder[aPriority] || 0);
       if (priorityDiff !== 0) return priorityDiff;
       return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
     })[0];
@@ -422,11 +452,11 @@ const AdminDashboard: React.FC = () => {
                 <span className="font-bold text-red-600">EMERGENCY ALERT</span>
           </div>
               <div className="text-sm">
-                <p className="font-semibold">{mostUrgentIncident.incidentName}</p>
-                <p className="text-gray-600">{mostUrgentIncident.location.locationName}</p>
+                <p className="font-semibold">{mostUrgentIncident.alertId?.incidentName || 'Unknown Incident'}</p>
+                <p className="text-gray-600">{mostUrgentIncident.alertId?.location?.locationName || 'Unknown Location'}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Priority: {capitalize(mostUrgentIncident.priority)} | 
-                  Type: {capitalize(mostUrgentIncident.incidentType)}
+                  Priority: {capitalize(mostUrgentIncident.alertId?.priority || 'low')} | 
+                  Type: {capitalize(mostUrgentIncident.alertId?.incidentType || 'unknown')}
             </p>
           </div>
         </div>
@@ -532,6 +562,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 px-6">
+      <ActiveIncidentsBanner />
       {/* Emergency Alert Banner */}
       {showEmergencyAlert && mostUrgentIncident && (
         <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl shadow-2xl border-4 border-red-800 p-6 animate-pulse">
@@ -544,11 +575,11 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-center gap-3 mb-3">
                   <h2 className="text-2xl font-black">🚨 EMERGENCY ALERT</h2>
                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                    mostUrgentIncident.priority === 'critical' ? 'bg-red-900 text-white' :
-                    mostUrgentIncident.priority === 'high' ? 'bg-orange-600 text-white' :
+                    mostUrgentIncident.alertId?.priority === 'critical' ? 'bg-red-900 text-white' :
+                    mostUrgentIncident.alertId?.priority === 'high' ? 'bg-orange-600 text-white' :
                     'bg-yellow-500 text-black'
                   }`}>
-                    {capitalize(mostUrgentIncident.priority)} Priority
+                    {capitalize(mostUrgentIncident.alertId?.priority || 'low')} Priority
                   </span>
                   <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold">
                     {capitalize(mostUrgentIncident.status.replace('_', ' '))}
@@ -560,19 +591,17 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-5 h-5" />
                       <span className="font-bold">Incident:</span>
-                      <span className="font-semibold">{mostUrgentIncident.incidentName}</span>
+                      <span className="font-semibold">{mostUrgentIncident.alertId?.incidentName || 'Unknown'}</span>
           </div>
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5" />
-                      <span className="font-bold">Caller:</span>
-                      <span>{mostUrgentIncident.userId.name}</span>
+                      <span className="font-bold">Department:</span>
+                      <span>{mostUrgentIncident.departmentOnDuty?.name || 'N/A'}</span>
           </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-5 h-5" />
-                      <span className="font-bold">Phone:</span>
-                      <a href={`tel:${mostUrgentIncident.userId.phone}`} className="hover:underline">
-                        {mostUrgentIncident.userId.phone}
-                      </a>
+                      <span className="font-bold">Unit:</span>
+                      <span>{mostUrgentIncident.unitOnDuty?.name || 'N/A'}</span>
         </div>
       </div>
 
@@ -580,29 +609,25 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <MapPin className="w-5 h-5" />
                       <span className="font-bold">Location:</span>
-                      <span className="text-sm">{mostUrgentIncident.location.locationName}</span>
+                      <span className="text-sm">{mostUrgentIncident.alertId?.location?.locationName || 'Unknown'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
-                      <span className="font-bold">Coordinates:</span>
-                      <span className="text-sm font-mono">
-                        {mostUrgentIncident.location.coordinates.latitude.toFixed(6)}, {mostUrgentIncident.location.coordinates.longitude.toFixed(6)}
-                      </span>
-                    </div>
+                    {mostUrgentIncident.alertId?.location?.coordinates && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5" />
+                        <span className="font-bold">Coordinates:</span>
+                        <span className="text-sm font-mono">
+                          {mostUrgentIncident.alertId.location.coordinates.latitude.toFixed(6)}, {mostUrgentIncident.alertId.location.coordinates.longitude.toFixed(6)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Activity className="w-5 h-5" />
                       <span className="font-bold">Type:</span>
-                      <span className="capitalize">{mostUrgentIncident.incidentType}</span>
+                      <span className="capitalize">{mostUrgentIncident.alertId?.incidentType || 'unknown'}</span>
                     </div>
         </div>
             </div>
 
-                {mostUrgentIncident.description && (
-                  <div className="bg-white/10 rounded-lg p-3 mb-3">
-                    <p className="font-semibold mb-1">Description:</p>
-                    <p className="text-sm">{mostUrgentIncident.description}</p>
-            </div>
-                )}
 
                 <div className="flex items-center gap-4 mt-4 flex-wrap">
                   <button
@@ -629,16 +654,20 @@ const AdminDashboard: React.FC = () => {
                     <XCircle className="w-4 h-4" />
                     Decline
                   </button>
-                  <a
-                    href={`tel:${mostUrgentIncident.userId.phone}`}
-                    className="bg-white text-red-700 px-4 py-2 rounded-lg font-bold hover:bg-red-50 transition-colors flex items-center gap-2"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call {mostUrgentIncident.userId.name.split(' ')[0]}
-                  </a>
+                  {mostUrgentIncident.alertId?.location?.locationUrl && (
+                    <a
+                      href={mostUrgentIncident.alertId.location.locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white text-red-700 px-4 py-2 rounded-lg font-bold hover:bg-red-50 transition-colors flex items-center gap-2"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      View Location
+                    </a>
+                  )}
                   <div className="text-white/80 text-sm flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Reported: {formatDate(mostUrgentIncident.reportedAt)}
+                    Created: {formatDate(mostUrgentIncident.createdAt)}
                   </div>
                 </div>
               </div>
@@ -679,7 +708,7 @@ const AdminDashboard: React.FC = () => {
                 Refer this incident to another station:
               </p>
               <p className="text-sm font-semibold text-gray-900 mb-4">
-                {mostUrgentIncident?.incidentName}
+                {mostUrgentIncident?.alertId?.incidentName || 'Unknown Incident'}
               </p>
             </div>
 
@@ -773,7 +802,7 @@ const AdminDashboard: React.FC = () => {
                 Please provide a reason for declining this incident:
               </p>
               <p className="text-sm font-semibold text-gray-900 mb-2">
-                {mostUrgentIncident?.incidentName}
+                {mostUrgentIncident?.alertId?.incidentName || 'Unknown Incident'}
               </p>
             </div>
 

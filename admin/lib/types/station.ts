@@ -1,4 +1,6 @@
 // Station Types matching API response structure
+export type StationStatus = 'in commission' | 'out of commission';
+
 export interface Station {
   _id: string;
   id: string; // Duplicate of _id for convenience
@@ -9,6 +11,7 @@ export interface Station {
   lng?: number;
   phone_number?: string | null;
   placeId?: string;
+  status?: StationStatus;
   departments?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
   personnel?: Array<{ _id?: string; id?: string; name?: string; [key: string]: unknown }>;
   createdAt: string;

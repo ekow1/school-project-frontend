@@ -73,12 +73,12 @@ export function middleware(request: NextRequest) {
 
   // Helper function to get all possible auth tokens
   const getAllAuthTokens = () => {
-    const adminToken = request.cookies.get("admin_token")?.value;
-    const stationAdminToken = request.cookies.get("station_admin_token")?.value;
-    const firePersonnelToken = request.cookies.get("fire_personnel_token")?.value;
+  const adminToken = request.cookies.get("admin_token")?.value;
+  const stationAdminToken = request.cookies.get("station_admin_token")?.value;
+  const firePersonnelToken = request.cookies.get("fire_personnel_token")?.value;
     const superAdminToken = request.cookies.get("super_admin_token")?.value;
-    const anyAuthCookie = request.cookies.get("auth_token")?.value || 
-                         request.cookies.get("token")?.value ||
+  const anyAuthCookie = request.cookies.get("auth_token")?.value || 
+                       request.cookies.get("token")?.value ||
                          request.cookies.get("session")?.value ||
                          request.cookies.get("access_token")?.value ||
                          request.cookies.get("refresh_token")?.value;

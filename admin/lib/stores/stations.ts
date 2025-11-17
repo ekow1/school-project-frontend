@@ -7,6 +7,8 @@ import { persist } from "zustand/middleware";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const STATIONS_ENDPOINT = `${API_BASE_URL}/fire/stations`;
 
+export type StationStatus = 'in commission' | 'out of commission';
+
 export interface Station {
   _id: string;
   id: string;
@@ -19,6 +21,7 @@ export interface Station {
   region?: string;
   phone_number?: string;
   placeId?: string;
+  status?: StationStatus;
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
@@ -39,6 +42,7 @@ interface StationsStore {
   error: string | null;
   count: number;
   fetchStations: () => Promise<void>;
+  updateStation: (id: string, stationData: Partial<Station>) => Promise<Station | null>;
   clearError: () => void;
 }
 
@@ -54,6 +58,23 @@ const apiFetchStations = async (): Promise<StationsResponse> => {
     const message = axios.isAxiosError(error)
       ? error.response?.data?.message || error.message || "Failed to fetch stations"
       : "Failed to fetch stations";
+    throw new Error(message);
+  }
+};
+
+// API function to update a station
+const apiUpdateStation = async (id: string, stationData: Partial<Station>): Promise<{ success: boolean; data: Station }> => {
+  try {
+    const { data } = await axios.patch<{ success: boolean; data: Station }>(
+      `${STATIONS_ENDPOINT}/${id}`,
+      stationData,
+      { withCredentials: true }
+    );
+    return data;
+  } catch (error) {
+    const message = axios.isAxiosError(error)
+      ? error.response?.data?.message || error.message || "Failed to update station"
+      : "Failed to update station";
     throw new Error(message);
   }
 };
@@ -89,6 +110,36 @@ export const useStationsStore = create<StationsStore>()(
             error: errorMessage,
           });
           throw error; // Re-throw to allow error handling in components
+        }
+      },
+
+      updateStation: async (id: string, stationData: Partial<Station>) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await apiUpdateStation(id, stationData);
+          const updatedStation = {
+            ...response.data,
+            id: response.data.id || response.data._id,
+            _id: response.data._id || response.data.id,
+          };
+          
+          // Update the station in the store
+          set((state) => ({
+            stations: state.stations.map((station) =>
+              (station.id === id || station._id === id) ? updatedStation : station
+            ),
+            isLoading: false,
+            error: null,
+          }));
+          
+          return updatedStation;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to update station";
+          set({
+            isLoading: false,
+            error: errorMessage,
+          });
+          throw error;
         }
       },
 
