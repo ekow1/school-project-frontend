@@ -736,7 +736,7 @@ const StationsPage: React.FC = () => {
                                 Station Details
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div>
+                                  <div>
                                   <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Station Name</label>
                                   <div className="text-sm font-medium text-gray-900">{station.name || '-'}</div>
                                 </div>
@@ -1345,7 +1345,7 @@ const StationsPage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">

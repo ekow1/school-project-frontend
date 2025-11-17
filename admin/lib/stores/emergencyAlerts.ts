@@ -14,7 +14,7 @@ import { Incident, IncidentResponse } from "@/lib/types/incident";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const EMERGENCY_ALERTS_ENDPOINT = `${API_BASE_URL}/emergency/alerts`;
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_BASE_URL || "http://localhost:8080";
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_BASE_URL || "https://auth.ekowlabs.space";
 
 // Setup incident listeners on the socket (shared connection)
 const setupIncidentListeners = (socket: Socket) => {
