@@ -149,8 +149,7 @@ const ActiveIncidentsBanner: React.FC<ActiveIncidentsBannerProps> = ({
     try {
       const incidentId = selectedIncident.id || selectedIncident._id;
       await updateIncident(incidentId, { 
-        status: 'completed',
-        description: closeReason 
+        status: 'completed'
       });
       toast.success('Incident closed successfully');
       setShowCloseDialog(false);
