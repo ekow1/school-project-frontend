@@ -19,14 +19,15 @@ const GlobalActiveIncidentHandler: React.FC = () => {
   const updateAlert = useEmergencyAlertsStore((state) => state.updateAlert);
   const setActiveIncidentNotification = useEmergencyAlertsStore((state) => state.setActiveIncidentNotification);
 
-  // Listen for active incident notifications from store
+  // Get active incident notification from store
+  const activeIncidentNotification = useEmergencyAlertsStore((state) => state.activeIncidentNotification);
+
+  // Listen for active incident notifications from store and custom events
   useEffect(() => {
-    const unsubscribe = useEmergencyAlertsStore.subscribe(
-      (state) => state.activeIncidentNotification,
-      (activeIncidentNotification) => {
-        setNotification(activeIncidentNotification);
-      }
-    );
+    // Update notification when store state changes
+    if (activeIncidentNotification) {
+      setNotification(activeIncidentNotification);
+    }
 
     // Also listen to custom events
     const handleActiveIncident = (event: CustomEvent) => {
@@ -36,10 +37,9 @@ const GlobalActiveIncidentHandler: React.FC = () => {
     window.addEventListener('activeIncidentExists', handleActiveIncident as EventListener);
 
     return () => {
-      unsubscribe();
       window.removeEventListener('activeIncidentExists', handleActiveIncident as EventListener);
     };
-  }, []);
+  }, [activeIncidentNotification]);
 
   const handleClose = () => {
     setNotification(null);
