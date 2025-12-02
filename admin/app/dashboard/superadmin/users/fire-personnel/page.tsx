@@ -6,6 +6,7 @@ import useSuperAdminAuthStore from '@/lib/stores/superAdminAuth';
 import { useFirePersonnelStore, selectFirePersonnel, selectFirePersonnelIsLoading, selectFirePersonnelError, selectFirePersonnelCount } from '@/lib/stores/firePersonnel';
 import { useRanksStore, selectRanks } from '@/lib/stores/ranks';
 import { useStationsStore, selectStations } from '@/lib/stores/stations';
+import { useUnitsStore, selectUnits } from '@/lib/stores/units';
 import { 
   Flame,
   User,
@@ -71,6 +72,9 @@ const FirePersonnelPage: React.FC = () => {
   const stations = useStationsStore(selectStations);
   const fetchStations = useStationsStore((state) => state.fetchStations);
 
+  const units = useUnitsStore(selectUnits);
+  const fetchUnits = useUnitsStore((state) => state.fetchUnits);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -84,6 +88,7 @@ const FirePersonnelPage: React.FC = () => {
     name: '',
     rank: '', // rankId
     department: '', // departmentId (will be set by station admin later)
+    unit: '', // unitId (optional)
     station_id: '', // stationId
     tempPassword: ''
   });
@@ -100,6 +105,11 @@ const FirePersonnelPage: React.FC = () => {
     if (stations.length === 0) {
       fetchStations().catch((err) => {
         console.error('Failed to fetch stations:', err);
+      });
+    }
+    if (units.length === 0) {
+      fetchUnits().catch((err) => {
+        console.error('Failed to fetch units:', err);
       });
     }
   }, [fetchFirePersonnel, fetchRanks, fetchStations, stations.length]);
@@ -167,6 +177,7 @@ const FirePersonnelPage: React.FC = () => {
         name: formData.name.trim(),
         rank: formData.rank, // rankId
         department: formData.department || '', // departmentId (empty for superadmin, will be set by station admin)
+        unit: formData.unit || undefined, // unitId (optional)
         station_id: formData.station_id, // stationId
         tempPassword: formData.tempPassword,
       });
@@ -197,6 +208,7 @@ const FirePersonnelPage: React.FC = () => {
       name: '',
       rank: '',
       department: '',
+      unit: '',
       station_id: '',
       tempPassword: ''
     });
@@ -668,7 +680,7 @@ const FirePersonnelPage: React.FC = () => {
                     <AlertTriangle className="w-4 h-4 text-red-600" />
                     <h3 className="text-lg font-bold text-red-900">Required Information</h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-900 mb-2.5">Service Number *</label>
                       <input
@@ -767,6 +779,26 @@ const FirePersonnelPage: React.FC = () => {
                           {errors.station_id}
                         </p>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2.5">Unit (Optional)</label>
+                      <select
+                        value={formData.unit}
+                        onChange={(e) => {
+                          setFormData({ ...formData, unit: e.target.value });
+                        }}
+                        disabled={isSubmitting}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 border-gray-200 focus:border-red-400 focus:bg-red-50/30 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">Select Unit (Optional)</option>
+                        {units.map((unit) => (
+                          <option key={unit.id || unit._id} value={unit.id || unit._id}>
+                            {unit.name || 'Unnamed Unit'}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1.5">Optional: Assign to a specific unit within the station</p>
                     </div>
                   </div>
                 </div>

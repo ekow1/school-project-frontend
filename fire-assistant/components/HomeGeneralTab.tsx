@@ -6,20 +6,20 @@ import * as Location from "expo-location"
 import { useRouter } from "expo-router"
 import { memo, useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    KeyboardAvoidingView,
-    Linking,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    Vibration,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Vibration,
+  View
 } from "react-native"
 import MapView, { Callout, Marker, Polygon } from "react-native-maps"
 import { useLocation } from "../context/LocationContext"
@@ -140,8 +140,19 @@ const mockReports = [
 
 const statusColors = {
   pending: { bg: Colors.warningAlpha, text: Colors.warning, border: Colors.warning + "30" },
+  'in-progress': { bg: Colors.accentAlpha, text: Colors.accent, border: Colors.accent + "30" },
   handled: { bg: Colors.accentAlpha, text: Colors.accent, border: Colors.accent + "30" },
   resolved: { bg: Colors.successAlpha, text: Colors.success, border: Colors.success + "30" },
+  cancelled: { bg: Colors.tertiary + "20", text: Colors.tertiary, border: Colors.tertiary + "30" },
+}
+
+// Helper function to get status colors with fallback
+const getStatusColors = (status: string) => {
+  return statusColors[status as keyof typeof statusColors] || {
+    bg: Colors.tertiary + "20",
+    text: Colors.tertiary,
+    border: Colors.tertiary + "30"
+  }
 }
 
 const getDailyTip = () => {
@@ -711,45 +722,95 @@ export default function HomeGeneralTab() {
     message: '',
   })
 
-  // Prompt for location permission on mount
+  // Prompt for location permission on mount - only if user is authenticated
+  // Note: This is a fallback - LocationContext should handle location detection
+  // This effect only runs if LocationContext hasn't set a location yet
   useEffect(() => {
-    ;(async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted") {
-        setAlertConfig({
-          visible: true,
-          type: 'warning',
-          title: 'Location Permission Needed',
-          message: 'Allow location access to automatically find the nearest fire stations and emergency services.',
-          onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
-        })
-        return
+    // Only request location if user is logged in and we don't have a location yet
+    if (!user || location) {
+      return;
+    }
+
+    // Add delay to let LocationContext try first
+    const timer = setTimeout(() => {
+      // Only try if LocationContext hasn't set location after 3 seconds
+      if (!location) {
+        ;(async () => {
+          try {
+            // Check if location services are enabled
+            const isEnabled = await Location.hasServicesEnabledAsync();
+            if (!isEnabled) {
+              return; // Let LocationContext handle the error
+            }
+
+            const { status } = await Location.requestForegroundPermissionsAsync()
+            if (status !== "granted") {
+              return; // Let LocationContext handle the permission request
+            }
+            
+            // Add timeout for location request (20 seconds)
+            const locationPromise = Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+              timeout: 20000,
+              maximumAge: 300000, // Accept cached location up to 5 minutes old
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Location request timeout')), 20000)
+            );
+            
+            const loc = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
+            
+            if (!loc || !loc.coords) {
+              throw new Error('Invalid location data received');
+            }
+            
+            let address = "Current Location"
+            try {
+              const geocode = await Location.reverseGeocodeAsync({
+                latitude: loc.coords.latitude,
+                longitude: loc.coords.longitude,
+              })
+              if (geocode && geocode.length > 0) {
+                const g = geocode[0]
+                address = [g.name, g.street, g.city, g.region, g.country].filter(Boolean).join(", ")
+              }
+            } catch (e) {
+              console.warn('Failed to reverse geocode:', e);
+            }
+            
+            const detected = {
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              address,
+            }
+            setLocation(detected)
+            setInitialAutoLocation(detected)
+          } catch (error: any) {
+            console.error('Error getting location in HomeGeneralTab:', error);
+            // Don't show alert here - let LocationContext handle it
+            // This is just a fallback attempt
+          }
+        })()
       }
-      const loc = await Location.getCurrentPositionAsync({})
-      let address = "Current Location"
-      try {
-        const geocode = await Location.reverseGeocodeAsync({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        })
-        if (geocode && geocode.length > 0) {
-          const g = geocode[0]
-          address = [g.name, g.street, g.city, g.region, g.country].filter(Boolean).join(", ")
-        }
-      } catch (e) {}
-      const detected = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        address,
-      }
-      setLocation(detected)
-      setInitialAutoLocation(detected)
-    })()
-  }, [])
+    }, 3000); // Wait 3 seconds for LocationContext to try first
+
+    return () => clearTimeout(timer);
+  }, [user, location])
 
   // Fetch stations when location changes
   useEffect(() => {
-    if (!location) return
+    // Add safety checks to prevent crashes
+    if (!location || typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
+      return;
+    }
+
+    // Check if location is valid (not NaN)
+    if (isNaN(location.latitude) || isNaN(location.longitude)) {
+      console.warn('Invalid location coordinates:', location);
+      return;
+    }
+
     if (
       lastFetchedLocation.current &&
       lastFetchedLocation.current.latitude === location.latitude &&
@@ -757,11 +818,39 @@ export default function HomeGeneralTab() {
     ) {
       return // Don't refetch if location hasn't changed
     }
+    
     lastFetchedLocation.current = { latitude: location.latitude, longitude: location.longitude }
     setLoadingStations(true)
     fetchNearbyFireStations(location.latitude, location.longitude)
-      .then(setFireStations)
-      .finally(() => setLoadingStations(false))
+      .then((stations) => {
+        // Ensure we always set an array, even if empty
+        setFireStations(Array.isArray(stations) ? stations : []);
+      })
+      .catch((error) => {
+        console.error('Error fetching fire stations:', error);
+        setFireStations([]); // Set empty array on error
+        // Only show alert if component is still mounted
+        try {
+          setAlertConfig({
+            visible: true,
+            type: 'error',
+            title: 'Unable to Load Fire Stations',
+            message: 'Failed to fetch nearby fire stations. Please check your internet connection and try again.',
+            onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+          });
+        } catch (e) {
+          // Silently fail if component is unmounting
+          console.warn('Could not set alert config:', e);
+        }
+      })
+      .finally(() => {
+        try {
+          setLoadingStations(false);
+        } catch (e) {
+          // Silently fail if component is unmounting
+          console.warn('Could not set loading state:', e);
+        }
+      })
   }, [location])
 
   // Fetch user's fire reports on mount
@@ -903,10 +992,7 @@ export default function HomeGeneralTab() {
   const currentLocationString = `${mockLocation.city}, ${mockLocation.area}`
   const closestStationId = fireStations.length > 0 ? fireStations[0].id : null
 
-  // Enhanced loading state
-  if (loading || !location) {
-    return <EnhancedLoadingScreen />
-  }
+  // Removed location detection preloader - app will show content even without location
 
   return (
     <View style={styles.container}>
@@ -926,7 +1012,7 @@ export default function HomeGeneralTab() {
           </View>
           <View style={styles.locationInfo}>
             <Text style={styles.locationTitle}>Current Location</Text>
-            <Text style={styles.locationText}>{manualLocation || location.address}</Text>
+            <Text style={styles.locationText}>{manualLocation || location?.address || 'Location not available'}</Text>
           </View>
           <TouchableOpacity
             style={[styles.locationButton, !location && { opacity: 0.5 }]}
@@ -1176,15 +1262,15 @@ export default function HomeGeneralTab() {
             <View style={styles.reportIconContainer}>
               <LinearGradient
                 colors={[
-                  statusColors[report.status as keyof typeof statusColors].text + "20",
-                  statusColors[report.status as keyof typeof statusColors].text + "10",
+                  getStatusColors(report.status).text + "20",
+                  getStatusColors(report.status).text + "10",
                 ]}
                 style={styles.reportIcon}
               >
                 <Ionicons
                   name={getIncidentIcon(report.incidentType)}
                   size={24}
-                  color={statusColors[report.status as keyof typeof statusColors].text}
+                  color={getStatusColors(report.status).text}
                 />
               </LinearGradient>
             </View>
@@ -1227,15 +1313,15 @@ export default function HomeGeneralTab() {
                 style={[
                   styles.statusBadge,
                   {
-                    backgroundColor: statusColors[report.status as keyof typeof statusColors].bg,
-                    borderColor: statusColors[report.status as keyof typeof statusColors].border,
+                    backgroundColor: getStatusColors(report.status).bg,
+                    borderColor: getStatusColors(report.status).border,
                   },
                 ]}
               >
                 <Text
-                  style={[styles.statusText, { color: statusColors[report.status as keyof typeof statusColors].text }]}
+                  style={[styles.statusText, { color: getStatusColors(report.status).text }]}
                 >
-                  {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                  {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('-', ' ')}
                 </Text>
               </View>
             </View>

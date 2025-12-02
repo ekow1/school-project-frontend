@@ -538,11 +538,19 @@ const UnitsPage: React.FC = () => {
                     } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <option value="">Select Department</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id || dept._id} value={dept.id || dept._id}>
-                        {dept.name || 'Unnamed Department'}
-                      </option>
-                    ))}
+                    {departments
+                      .filter((dept) => {
+                        // Only show departments that belong to the admin's station
+                        const deptStationId = typeof dept.stationId === 'string'
+                          ? dept.stationId
+                          : dept.stationId?._id || dept.stationId?.id || dept.station_id;
+                        return deptStationId === user?.stationId;
+                      })
+                      .map((dept) => (
+                        <option key={dept.id || dept._id} value={dept.id || dept._id}>
+                          {dept.name || 'Unnamed Department'}
+                        </option>
+                      ))}
                   </select>
                   {errors.department && (
                     <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">

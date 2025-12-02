@@ -166,7 +166,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts`, {
         method: 'POST',
         headers,
         body: JSON.stringify(reportData),
@@ -216,7 +216,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts`, {
         method: 'GET',
         headers,
       });
@@ -259,7 +259,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'GET',
         headers,
       });
@@ -302,7 +302,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/user/${userId}`, {
         method: 'GET',
         headers,
       });
@@ -345,7 +345,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/station/${stationId}`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/station/${stationId}`, {
         method: 'GET',
         headers,
       });
@@ -388,7 +388,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updateData),
@@ -440,7 +440,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'DELETE',
         headers,
       });
@@ -489,7 +489,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/fire/reports/stats`, {
+      const response = await fetch(`${API_BASE_URL}/emergency/alerts/stats`, {
         method: 'GET',
         headers,
       });

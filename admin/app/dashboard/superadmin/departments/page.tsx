@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -20,116 +20,127 @@ import {
   Building2,
   Users,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
-
-interface Department {
-  id: string;
-  name: string;
-  description: string;
-  unitCount: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { useDepartmentsStore, selectDepartments, selectDepartmentsIsLoading, selectDepartmentsError, selectDepartmentsCount, Department } from '@/lib/stores/departments';
+import { useDepartmentAdminsStore, selectDepartmentAdmins, selectDepartmentAdminsIsLoading, selectDepartmentAdminsError, selectDepartmentAdminsCount } from '@/lib/stores/departmentAdmins';
+import toast, { Toaster } from 'react-hot-toast';
 
 const DepartmentManagementPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [editingDepartment, setEditingDepartment] = useState<any | null>(null);
   const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    tempPassword: '',
     name: '',
-    description: ''
+    department_id: ''
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data
-  const [departments, setDepartments] = useState<Department[]>([
-    {
-      id: '1',
-      name: 'Fire Suppression',
-      description: 'Primary firefighting operations and emergency response',
-      unitCount: 3,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '2',
-      name: 'Emergency Medical Services',
-      description: 'Medical emergency response and ambulance services',
-      unitCount: 2,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '3',
-      name: 'Rescue Operations',
-      description: 'Technical rescue operations and specialized rescue services',
-      unitCount: 2,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '4',
-      name: 'Prevention & Safety',
-      description: 'Fire prevention, safety inspections, and public education',
-      unitCount: 2,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '5',
-      name: 'Training & Development',
-      description: 'Personnel training, skill development, and certification programs',
-      unitCount: 1,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
+  // Store hooks
+  const departments = useDepartmentsStore(selectDepartments);
+  const isLoading = useDepartmentsStore(selectDepartmentsIsLoading);
+  const error = useDepartmentsStore(selectDepartmentsError);
+  const count = useDepartmentsStore(selectDepartmentsCount);
+  const fetchDepartments = useDepartmentsStore((state) => state.fetchDepartments);
+  const createDepartment = useDepartmentsStore((state) => state.createDepartment);
+  const updateDepartment = useDepartmentsStore((state) => state.updateDepartment);
+  const deleteDepartment = useDepartmentsStore((state) => state.deleteDepartment);
+  const clearError = useDepartmentsStore((state) => state.clearError);
+
+  const departmentAdmins = useDepartmentAdminsStore(selectDepartmentAdmins);
+  const departmentAdminsIsLoading = useDepartmentAdminsStore(selectDepartmentAdminsIsLoading);
+  const departmentAdminsError = useDepartmentAdminsStore(selectDepartmentAdminsError);
+  const departmentAdminsCount = useDepartmentAdminsStore(selectDepartmentAdminsCount);
+  const fetchDepartmentAdmins = useDepartmentAdminsStore((state) => state.fetchDepartmentAdmins);
+  const createDepartmentAdmin = useDepartmentAdminsStore((state) => state.createDepartmentAdmin);
+  const updateDepartmentAdmin = useDepartmentAdminsStore((state) => state.updateDepartmentAdmin);
+  const deleteDepartmentAdmin = useDepartmentAdminsStore((state) => state.deleteDepartmentAdmin);
+  const clearDepartmentAdminsError = useDepartmentAdminsStore((state) => state.clearError);
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchDepartments().catch((err) => {
+      console.error('Failed to fetch departments:', err);
+    });
+  }, [fetchDepartments]);
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
     }
-  ]);
+  }, [error, clearError]);
 
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Department name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
 
-    // Description is optional in schema but we'll keep it
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.tempPassword.trim()) {
+      newErrors.tempPassword = 'Temporary password is required';
+    } else if (formData.tempPassword.length < 6) {
+      newErrors.tempPassword = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.department_id) {
+      newErrors.department_id = 'Department is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+
+    if (!validateForm() || isSubmitting) {
       return;
     }
 
-    if (editingDepartment) {
-      setDepartments(departments.map(dept =>
-        dept.id === editingDepartment.id
-          ? {
-              ...dept,
-              name: formData.name.trim(),
-              description: formData.description.trim()
-            }
-          : dept
-      ));
-    } else {
-      const newDepartment: Department = {
-        id: (departments.length + 1).toString(),
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        unitCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    setIsSubmitting(true);
+    try {
+      const departmentAdminData = {
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        tempPassword: formData.tempPassword,
+        name: formData.name.trim() || undefined,
+        department_id: formData.department_id,
       };
-      setDepartments([...departments, newDepartment]);
+
+      await createDepartmentAdmin(departmentAdminData);
+      toast.success(`Department Admin "${formData.username}" created successfully!`, {
+        icon: '✅',
+        duration: 3000,
+      });
+
+      handleCloseModal();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create department admin';
+      toast.error(errorMessage, {
+        icon: '❌',
+        duration: 4000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    handleCloseModal();
   };
 
   const handleCloseModal = () => {
@@ -137,8 +148,11 @@ const DepartmentManagementPage: React.FC = () => {
     setEditingDepartment(null);
     setErrors({});
     setFormData({
+      username: '',
+      email: '',
+      tempPassword: '',
       name: '',
-      description: ''
+      department_id: ''
     });
   };
 
@@ -162,10 +176,10 @@ const DepartmentManagementPage: React.FC = () => {
       {
         accessorKey: 'unitCount',
         header: 'Units',
-        cell: ({ getValue }) => (
+        cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-gray-500" />
-            <span className="font-semibold text-gray-900">{getValue() as number}</span>
+            <span className="font-semibold text-gray-900">{row.original.unitCount || 0}</span>
           </div>
         ),
       },
@@ -178,9 +192,12 @@ const DepartmentManagementPage: React.FC = () => {
               onClick={() => {
                 setEditingDepartment(row.original);
                 setFormData({
-                  name: row.original.name,
-                  description: row.original.description
-                });
+                  username: '',
+                  email: '',
+                  tempPassword: '',
+                  name: '',
+                  department_id: row.original.id || row.original._id || ''
+                } as any);
                 setShowAddModal(true);
               }}
               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
@@ -188,8 +205,22 @@ const DepartmentManagementPage: React.FC = () => {
               <Edit className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                setDepartments(departments.filter(r => r.id !== row.original.id));
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to delete this department?')) {
+                  try {
+                    await deleteDepartment(row.original.id || row.original._id);
+                    toast.success('Department deleted successfully!', {
+                      icon: '✅',
+                      duration: 3000,
+                    });
+                  } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : 'Failed to delete department';
+                    toast.error(errorMessage, {
+                      icon: '❌',
+                      duration: 4000,
+                    });
+                  }
+                }
               }}
               className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
             >
@@ -220,16 +251,17 @@ const DepartmentManagementPage: React.FC = () => {
     if (!searchTerm) return departments;
     return departments.filter(
       dept =>
-        dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dept.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (dept.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, departments]);
 
-  const totalDepartments = departments.length;
-  const totalUnits = departments.reduce((sum, d) => sum + d.unitCount, 0);
+  const totalDepartments = count || departments.length;
+  const totalUnits = departments.reduce((sum, d) => sum + (d.unitCount || 0), 0);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
+      <Toaster position="top-right" />
       <div className="p-8 text-gray-900">
         <div className="flex items-center justify-between">
           <div>
@@ -288,19 +320,22 @@ const DepartmentManagementPage: React.FC = () => {
               <Download className="w-5 h-5" />
               Export
             </button>
-            <button 
+            <button
               onClick={() => {
                 setEditingDepartment(null);
                 setFormData({
+                  username: '',
+                  email: '',
+                  tempPassword: '',
                   name: '',
-                  description: ''
+                  department_id: ''
                 });
                 setShowAddModal(true);
               }}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:from-red-700 hover:to-red-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
             >
               <Plus className="w-5 h-5" />
-              Add Department
+              Add Department Admin
             </button>
           </div>
         </div>
@@ -363,7 +398,7 @@ const DepartmentManagementPage: React.FC = () => {
                     <Building2 className="w-6 h-6 text-white" />
                   </div>
                   <h2 className="text-3xl font-black text-gray-900">
-                    {editingDepartment ? 'Edit Department' : 'Add New Department'}
+                    {editingDepartment ? 'Edit Department Admin' : 'Add New Department Admin'}
                   </h2>
                 </div>
                 <button
@@ -376,36 +411,107 @@ const DepartmentManagementPage: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Department Name *</label>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Username *</label>
                   <input
                     type="text"
-                    value={formData.name}
+                    value={formData.username}
                     onChange={(e) => {
-                      setFormData({ ...formData, name: e.target.value });
-                      setErrors({ ...errors, name: '' });
+                      setFormData({ ...formData, username: e.target.value });
+                      setErrors({ ...errors, username: '' });
                     }}
-                    placeholder="e.g., Fire Suppression"
+                    placeholder="e.g., dept_admin_fire"
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
-                      errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                      errors.username ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                     }`}
                   />
-                  {errors.name && (
+                  {errors.username && (
                     <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {errors.name}
+                      {errors.username}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    placeholder="Enter department description"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-400 focus:bg-red-50/30 focus:outline-none transition-all duration-200 resize-none"
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Email *</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      setErrors({ ...errors, email: '' });
+                    }}
+                    placeholder="e.g., admin@fire.gov.gh"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                    }`}
                   />
+                  {errors.email && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">Full Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., John Doe"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-400 focus:bg-red-50/30 focus:outline-none transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Department *</label>
+                  <select
+                    value={formData.department_id}
+                    onChange={(e) => {
+                      setFormData({ ...formData, department_id: e.target.value });
+                      setErrors({ ...errors, department_id: '' });
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.department_id ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                    }`}
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id || dept._id} value={dept.id || dept._id}>
+                        {dept.name || 'Unnamed Department'}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.department_id && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.department_id}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Temporary Password *</label>
+                  <input
+                    type="text"
+                    value={formData.tempPassword}
+                    onChange={(e) => {
+                      setFormData({ ...formData, tempPassword: e.target.value });
+                      setErrors({ ...errors, tempPassword: '' });
+                    }}
+                    placeholder="Enter temporary password"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.tempPassword ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                    }`}
+                  />
+                  {errors.tempPassword && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.tempPassword}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">
@@ -420,7 +526,7 @@ const DepartmentManagementPage: React.FC = () => {
                     type="submit"
                     className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
                   >
-                    {editingDepartment ? 'Update Department' : 'Create Department'}
+                    {editingDepartment ? 'Update Department Admin' : 'Create Department Admin'}
                   </button>
                 </div>
               </form>

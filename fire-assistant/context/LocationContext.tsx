@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { useAuthStore } from '../store/authStore';
 
 interface LocationData {
   latitude: number;
@@ -22,20 +23,59 @@ interface LocationProviderProps {
 
 export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) => {
   const [location, setLocation] = useState<LocationData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start as false to prevent blocking
+  const { token, user, isInitialized } = useAuthStore();
+  const isInitializingRef = React.useRef(false);
 
-  const refreshLocation = async () => {
+  const refreshLocation = React.useCallback(async () => {
+    // Prevent multiple simultaneous location requests
+    if (isInitializingRef.current) {
+      return;
+    }
+
+    // Only request location if user is authenticated
+    if (!token || !user) {
+      setLoading(false);
+      return;
+    }
+
+    isInitializingRef.current = true;
     setLoading(true);
+    
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
+      // Check if location services are available
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        console.warn('Location services are disabled');
         setLoading(false);
+        isInitializingRef.current = false;
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Location permission not granted');
+        setLoading(false);
+        isInitializingRef.current = false;
+        return;
+      }
+
+      // Add timeout for location request (20 seconds for first attempt, longer timeout)
+      const locationPromise = Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 20000, // Increased timeout to 20 seconds
+        maximumAge: 300000, // Accept cached location up to 5 minutes old for faster response
       });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Location request timeout')), 20000)
+      );
+      
+      const loc = await Promise.race([locationPromise, timeoutPromise]);
+      
+      if (!loc || !loc.coords || typeof loc.coords.latitude !== 'number' || typeof loc.coords.longitude !== 'number') {
+        throw new Error('Invalid location data received');
+      }
 
       let address = 'Current Location';
       try {
@@ -52,6 +92,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         }
       } catch (e) {
         console.warn('Failed to get address:', e);
+        // Continue with default address
       }
 
       setLocation({
@@ -59,18 +100,57 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         longitude: loc.coords.longitude,
         address,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get location:', error);
+      // Don't set location on error - let the app continue without location
+      // The UI should handle the case where location is null
+      // Don't crash the app - just log the error
     } finally {
       setLoading(false);
+      isInitializingRef.current = false;
     }
-  };
+  }, [token, user]);
 
   useEffect(() => {
-    refreshLocation().catch((error) => {
-      console.warn('Failed to initialize location:', error);
-    });
-  }, []);
+    // Wait for auth to be initialized before trying to get location
+    if (!isInitialized) {
+      setLoading(false);
+      return;
+    }
+
+    // Only request location if user is authenticated
+    if (token && user) {
+      // Add a longer delay to ensure app and location services are fully initialized
+      // Also add retry logic for better reliability
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      const attemptLocation = async () => {
+        try {
+          await refreshLocation();
+        } catch (error) {
+          console.warn(`Location attempt ${retryCount + 1} failed:`, error);
+          retryCount++;
+          
+          // Retry after a delay if we haven't exceeded max retries
+          if (retryCount <= maxRetries) {
+            setTimeout(() => {
+              attemptLocation();
+            }, 2000); // Wait 2 seconds before retry
+          }
+        }
+      };
+
+      // Initial delay - give the app more time to initialize (1.5 seconds)
+      const timer = setTimeout(() => {
+        attemptLocation();
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    } else {
+      setLoading(false);
+    }
+  }, [token, user, isInitialized, refreshLocation]);
 
   const value: LocationContextType = {
     location,

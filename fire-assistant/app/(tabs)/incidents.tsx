@@ -21,12 +21,25 @@ const statusColors = {
   'in-progress': { bg: '#DBEAFE', border: '#3B82F6', text: '#1D4ED8' },
   resolved: { bg: '#D1FAE5', border: '#10B981', text: '#059669' },
   cancelled: { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626' },
+  canceled: { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626' }, // Alternative spelling
 };
 
 const priorityColors = {
   low: { bg: '#F3F4F6', text: '#6B7280' },
   medium: { bg: '#FEF3C7', text: '#D97706' },
   high: { bg: '#FEE2E2', text: '#DC2626' },
+};
+
+// Helper function to safely get status colors with fallback
+const getStatusColors = (status: string) => {
+  return statusColors[status as keyof typeof statusColors] || 
+         statusColors.pending; // Default to pending if status not found
+};
+
+// Helper function to safely get priority colors with fallback
+const getPriorityColors = (priority: string) => {
+  return priorityColors[priority as keyof typeof priorityColors] || 
+         priorityColors.medium; // Default to medium if priority not found
 };
 
 const incidentTypeIcons = {
@@ -201,15 +214,15 @@ export default function IncidentsScreen() {
                       style={[
                         styles.statusBadge,
                         {
-                          backgroundColor: statusColors[report.status].bg,
-                          borderColor: statusColors[report.status].border,
+                          backgroundColor: getStatusColors(report.status).bg,
+                          borderColor: getStatusColors(report.status).border,
                         },
                       ]}
                     >
                       <Text
                         style={[
                           styles.statusText,
-                          { color: statusColors[report.status].text },
+                          { color: getStatusColors(report.status).text },
                         ]}
                       >
                         {report.status.replace('-', ' ').toUpperCase()}
@@ -219,14 +232,14 @@ export default function IncidentsScreen() {
                       style={[
                         styles.priorityBadge,
                         {
-                          backgroundColor: priorityColors[report.priority].bg,
+                          backgroundColor: getPriorityColors(report.priority).bg,
                         },
                       ]}
                     >
                       <Text
                         style={[
                           styles.priorityText,
-                          { color: priorityColors[report.priority].text },
+                          { color: getPriorityColors(report.priority).text },
                         ]}
                       >
                         {report.priority.toUpperCase()}

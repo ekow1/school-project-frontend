@@ -3,7 +3,6 @@ import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Linking,
     RefreshControl,
     ScrollView,
@@ -16,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomAlert from '../../components/CustomAlert';
 import { FireStationDetailCard } from '../../components/FireStationDetailCard';
 import { LocationSearch } from '../../components/LocationSearch';
+import { useAuthStore } from '../../store/authStore';
 import { FireStationClickData, useFireStationStore } from '../../store/fireStationStore';
 import { fetchNearbyFireStations, FireStation } from '../../utils/fireStationSearch';
 
@@ -40,6 +40,7 @@ const Colors = {
 
 export default function FireStationsScreen() {
   const insets = useSafeAreaInsets();
+  const { user, token } = useAuthStore();
   const { sendFireStationClick, sendFireStationsBulk, isSaving, isLoading: storeLoading, error, clearError } = useFireStationStore();
   const [fireStations, setFireStations] = useState<FireStation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,8 +61,13 @@ export default function FireStationsScreen() {
   });
 
   useEffect(() => {
-    requestLocationPermission();
-  }, []);
+    // Only request location permission if user is authenticated
+    if (user && token) {
+      requestLocationPermission();
+    } else {
+      setLocationPermission(false);
+    }
+  }, [user, token]);
 
   const requestLocationPermission = async () => {
     try {
@@ -71,42 +77,86 @@ export default function FireStationsScreen() {
         await getCurrentLocation();
       } else {
         setLocationPermission(false);
-        Alert.alert(
-          'Location Permission Required',
-          'Please enable location access to find nearby fire stations.',
-          [{ text: 'OK' }]
-        );
+        setAlertConfig({
+          title: 'Location Permission Required',
+          message: 'Please enable location access to find nearby fire stations.',
+          type: 'warning',
+        });
+        setAlertVisible(true);
       }
     } catch (error) {
       console.error('Error requesting location permission:', error);
       setLocationPermission(false);
+      setAlertConfig({
+        title: 'Permission Error',
+        message: 'An error occurred while requesting location permission. Please try again.',
+        type: 'error',
+      });
+      setAlertVisible(true);
     }
   };
 
   const getCurrentLocation = async () => {
     try {
-      const location = await Location.getCurrentPositionAsync({
+      // Add timeout for location request (15 seconds)
+      const locationPromise = Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        timeout: 15000,
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Location request timeout')), 15000)
+      );
+      
+      const location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
+      
+      if (!location || !location.coords) {
+        throw new Error('Invalid location data received');
+      }
+      
       setUserLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
       await searchFireStations(location.coords.latitude, location.coords.longitude);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting location:', error);
-      Alert.alert('Location Error', 'Unable to get your current location.');
+      setLocationPermission(false);
+      const errorMessage = error?.message?.includes('timeout')
+        ? 'Location request timed out. Please check your GPS settings and try again, or search for a location manually.'
+        : 'Unable to get your current location. Please search for a location manually.';
+      setAlertConfig({
+        title: 'Location Error',
+        message: errorMessage,
+        type: 'error',
+      });
+      setAlertVisible(true);
     }
   };
 
   const searchFireStations = async (lat: number, lng: number, regionName?: string) => {
     setLoading(true);
     try {
-      const stations = await fetchNearbyFireStations(lat, lng, 25000, stationLimit, regionName || null);
-      setFireStations(stations);
-    } catch (error) {
+      // Validate coordinates
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        throw new Error('Invalid coordinates');
+      }
+      
+      const stations = await fetchNearbyFireStations(lat, lng, 20000, stationLimit, regionName || null);
+      // Ensure we always set an array, even if empty
+      setFireStations(Array.isArray(stations) ? stations : []);
+    } catch (error: any) {
       console.error('Error fetching fire stations:', error);
-      Alert.alert('Error', 'Failed to fetch fire stations. Please try again.');
+      setFireStations([]); // Set empty array on error to prevent crashes
+      const errorMessage = error?.message?.includes('network') || error?.message?.includes('fetch')
+        ? 'Network error. Please check your internet connection and try again.'
+        : 'Failed to fetch fire stations. Please try again.';
+      setAlertConfig({
+        title: 'Error',
+        message: errorMessage,
+        type: 'error',
+      });
+      setAlertVisible(true);
     } finally {
       setLoading(false);
     }
@@ -123,14 +173,25 @@ export default function FireStationsScreen() {
       const lat = selectedLocation?.latitude || userLocation?.latitude;
       const lng = selectedLocation?.longitude || userLocation?.longitude;
       
-      if (lat && lng) {
-        const regionName = selectedLocation ? extractRegionName(selectedLocation.name, selectedLocation.address) : undefined;
-        const stations = await fetchNearbyFireStations(lat, lng, 25000, newLimit, regionName || null);
-        setFireStations(stations);
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        throw new Error('Invalid coordinates');
       }
-    } catch (error) {
+      
+      const regionName = selectedLocation ? extractRegionName(selectedLocation.name, selectedLocation.address) : undefined;
+      const stations = await fetchNearbyFireStations(lat, lng, 20000, newLimit, regionName || null);
+      // Ensure we always set an array, even if empty
+      setFireStations(Array.isArray(stations) ? stations : []);
+    } catch (error: any) {
       console.error('Error loading more fire stations:', error);
-      Alert.alert('Error', 'Failed to load more fire stations. Please try again.');
+      const errorMessage = error?.message?.includes('network') || error?.message?.includes('fetch')
+        ? 'Network error. Please check your internet connection and try again.'
+        : 'Failed to load more fire stations. Please try again.';
+      setAlertConfig({
+        title: 'Error',
+        message: errorMessage,
+        type: 'error',
+      });
+      setAlertVisible(true);
     } finally {
       setLoadingMore(false);
     }
@@ -151,7 +212,12 @@ export default function FireStationsScreen() {
     if (station.phone) {
       Linking.openURL(`tel:${station.phone}`);
     } else {
-      Alert.alert('No Phone Number', 'Phone number not available for this station.');
+      setAlertConfig({
+        title: 'No Phone Number',
+        message: 'Phone number not available for this station.',
+        type: 'warning',
+      });
+      setAlertVisible(true);
     }
   };
 
@@ -241,58 +307,64 @@ export default function FireStationsScreen() {
 
   const handleSaveAllToBackend = async () => {
     if (fireStations.length === 0) {
-      showAlert('No Data', 'No fire stations to send to backend.', 'warning');
+      setAlertConfig({
+        title: 'No Data',
+        message: 'No fire stations to send to backend.',
+        type: 'warning',
+      });
+      setAlertVisible(true);
       return;
     }
 
-    Alert.alert(
-      'Send All to Backend',
-      `Send all ${fireStations.length} fire stations to backend?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Send All', 
-          style: 'default',
-          onPress: async () => {
-            try {
-              const stationsData = fireStations.map(station => ({
-                name: station.name,
-                location: station.address,
-                location_url: `https://maps.google.com/maps?q=${station.latitude},${station.longitude}`,
-                latitude: station.latitude,
-                longitude: station.longitude,
-                phone_number: station.phone || null,
-                placeId: station.placeId
-              }));
+    setAlertConfig({
+      title: 'Send All to Backend',
+      message: `Send all ${fireStations.length} fire stations to backend?`,
+      type: 'confirm',
+      onConfirm: async () => {
+        setAlertVisible(false);
+        try {
+          const stationsData = fireStations.map(station => ({
+            name: station.name,
+            location: station.address,
+            location_url: `https://maps.google.com/maps?q=${station.latitude},${station.longitude}`,
+            latitude: station.latitude,
+            longitude: station.longitude,
+            phone_number: station.phone || null,
+            placeId: station.placeId
+          }));
 
-              const result = await sendFireStationsBulk(stationsData);
-              
-              if (result.success) {
-                showAlert(
-                  'Data Added Successfully',
-                  `Successfully added ${fireStations.length} fire stations to the database!`,
-                  'success'
-                );
-              } else {
-                showAlert(
-                  'Error',
-                  'Failed to send fire stations to backend. Please try again.',
-                  'error'
-                );
-              }
-              
-            } catch (error) {
-              console.error('Error in bulk send:', error);
-              showAlert(
-                'Error', 
-                'Failed to send fire stations to backend. Please try again.',
-                'error'
-              );
-            }
+          const result = await sendFireStationsBulk(stationsData);
+          
+          if (result.success) {
+            showAlert(
+              'Data Added Successfully',
+              `Successfully added ${fireStations.length} fire stations to the database!`,
+              'success'
+            );
+          } else {
+            showAlert(
+              'Error',
+              'Failed to send fire stations to backend. Please try again.',
+              'error'
+            );
           }
-        },
-      ]
-    );
+          
+        } catch (error) {
+          console.error('Error in bulk send:', error);
+          showAlert(
+            'Error', 
+            'Failed to send fire stations to backend. Please try again.',
+            'error'
+          );
+        }
+      },
+      onCancel: () => {
+        setAlertVisible(false);
+      },
+      confirmText: 'Send All',
+      cancelText: 'Cancel',
+    });
+    setAlertVisible(true);
   };
 
   const extractRegionName = (locationName: string, address: string): string | undefined => {
@@ -539,6 +611,10 @@ export default function FireStationsScreen() {
         message={alertConfig.message}
         type={alertConfig.type}
         onClose={() => setAlertVisible(false)}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
       />
 
     </View>

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Alert,
     Dimensions,
     Image,
     KeyboardAvoidingView,
@@ -143,9 +144,29 @@ export default function RegisterScreen() {
 
     try {
       const formattedPhone = formatPhoneNumber(formData.phone);
-      await register(formData.name, formattedPhone, '', formData.password);
+      await register({
+        name: formData.name,
+        phone: formattedPhone,
+        password: formData.password,
+      });
+      
+      // Show success message and redirect to login
+      Alert.alert(
+        'Registration Successful!',
+        'Your account has been created successfully. Please login to continue.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.replace('/login');
+            }
+          }
+        ],
+        { cancelable: false }
+      );
     } catch (error) {
       console.error('Registration error:', error);
+      // Error is already handled by the store and displayed in the UI
     }
   };
 

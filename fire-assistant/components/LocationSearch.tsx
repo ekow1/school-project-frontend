@@ -2,20 +2,22 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Keyboard,
-    Modal,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native"
+import axios from 'axios'
+import { ENV } from "../config/env"
 
-const GOOGLE_API_KEY = "AIzaSyABM58KqCxdeVPL6LgGPXfAkHZxbfNE-pA"
+const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY // Still used for fallback place details
 
 interface Location {
   latitude: number
@@ -32,6 +34,12 @@ interface SearchResult {
     secondary_text: string
   }
   terms: Array<{ value: string }>
+  // Serper API fields
+  title?: string
+  address?: string
+  latitude?: number
+  longitude?: number
+  placeId?: string
 }
 
 interface LocationSearchProps {
@@ -130,88 +138,112 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect
     abortControllerRef.current = new AbortController()
 
     try {
-      const searchStrategies = [
-        {
-          url: `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-            query,
-          )}&key=${GOOGLE_API_KEY}&components=country:gh&language=en&types=geocode|establishment`,
-          priority: 1,
-        },
-        {
-          url: `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-            query + " Ghana",
-          )}&key=${GOOGLE_API_KEY}&language=en&types=geocode|establishment`,
-          priority: 2,
-        },
-        {
-          url: `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-            query,
-          )}&key=${GOOGLE_API_KEY}&types=establishment&components=country:gh&language=en`,
-          priority: 3,
-        },
-      ]
+      // Build search queries for Serper API
+      const searchQueries = [
+        query,
+        `${query} Ghana`,
+        `${query} location Ghana`
+      ];
 
-      const results = await Promise.allSettled(
-        searchStrategies.map(async (strategy) => {
-          const response = await fetch(strategy.url, {
-            signal: abortControllerRef.current?.signal,
-          })
+      const allResults: (SearchResult & { priority: number })[] = []
+      const seenPlaceIds = new Set<string>()
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
+      // Search with each query
+      for (let i = 0; i < searchQueries.length; i++) {
+        const searchQuery = searchQueries[i];
+        
+        try {
+          const data = JSON.stringify({
+            q: searchQuery
+          });
 
-          const data = await response.json()
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://google.serper.dev/places',
+            headers: { 
+              'X-API-KEY': ENV.SERPER_API_KEY, 
+              'Content-Type': 'application/json'
+            },
+            data: data,
+            signal: abortControllerRef.current?.signal
+          };
 
-          if (data.status === "REQUEST_DENIED") {
-            throw new Error("API key invalid or quota exceeded")
-          }
-
-          return {
-            predictions: data.predictions || [],
-            priority: strategy.priority,
-          }
-        }),
-      )
-
-      let allResults: (SearchResult & { priority: number })[] = []
-
-      results.forEach((result) => {
-        if (result.status === "fulfilled" && result.value.predictions) {
-          const ghanaResults = result.value.predictions
-            .filter((prediction: SearchResult) => {
-              const description = prediction.description.toLowerCase()
-              const queryLower = query.toLowerCase()
-              
+          const response = await axios.request(config);
+          
+          console.log(`Serper API Response for "${searchQuery}":`, JSON.stringify(response.data, null, 2));
+          
+          if (response.data && response.data.places) {
+            response.data.places.forEach((place: any) => {
               // Check if it's in Ghana
-              const isGhana =
-                description.includes("ghana") ||
-                prediction.terms.some((term: { value: string }) => term.value.toLowerCase() === "ghana") ||
-                result.value.priority === 1
-
-              // Check if it matches the searched region/city
-              const matchesSearch = matchesSearchLocation(description, queryLower, prediction.terms)
-
-              const isDuplicate = allResults.some((existing) => existing.place_id === prediction.place_id)
-
-              return isGhana && matchesSearch && !isDuplicate
-            })
-            .map((prediction: SearchResult) => ({
-              ...prediction,
-              priority: result.value.priority,
-            }))
-
-          allResults = [...allResults, ...ghanaResults]
+              const address = (place.address || '').toLowerCase();
+              const title = (place.title || '').toLowerCase();
+              const searchText = `${title} ${address}`;
+              
+              const isGhana = searchText.includes('ghana') || 
+                             address.includes('accra') ||
+                             address.includes('kumasi') ||
+                             address.includes('tema') ||
+                             address.includes('cape coast') ||
+                             address.includes('tamale');
+              
+              if (!isGhana) {
+                return;
+              }
+              
+              // Check for duplicates
+              const placeId = place.placeId || place.place_id || `${place.latitude}_${place.longitude}`;
+              if (seenPlaceIds.has(placeId)) {
+                return;
+              }
+              seenPlaceIds.add(placeId);
+              
+              // Transform Serper result to SearchResult format
+              const searchResult: SearchResult & { priority: number } = {
+                place_id: placeId,
+                description: place.address || place.title || '',
+                structured_formatting: {
+                  main_text: place.title || place.address || '',
+                  secondary_text: place.address || ''
+                },
+                terms: [
+                  { value: place.title || '' },
+                  { value: place.address || '' }
+                ],
+                title: place.title,
+                address: place.address,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                placeId: place.placeId || place.place_id,
+                priority: i + 1 // Lower number = higher priority
+              };
+              
+              allResults.push(searchResult);
+            });
+          }
+          
+          // Add delay between requests
+          if (i < searchQueries.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } catch (queryError: any) {
+          // Ignore canceled requests (expected when user types quickly)
+          if (queryError.name !== "AbortError" && 
+              queryError.name !== "CanceledError" && 
+              !queryError.message?.includes("canceled") &&
+              !queryError.message?.includes("aborted")) {
+            console.error(`Error searching Serper API with query "${searchQuery}":`, queryError);
+          }
         }
-      })
+      }
 
       console.log("Found results:", allResults.length) // Debug log
 
       if (allResults.length > 0) {
         // Sort by relevance and priority
         const sortedResults = allResults.sort((a, b) => {
-          const aMain = a.structured_formatting?.main_text?.toLowerCase() || a.description.toLowerCase()
-          const bMain = b.structured_formatting?.main_text?.toLowerCase() || b.description.toLowerCase()
+          const aMain = (a.structured_formatting?.main_text || a.title || a.description || '').toLowerCase()
+          const bMain = (b.structured_formatting?.main_text || b.title || b.description || '').toLowerCase()
           const queryLower = query.toLowerCase()
 
           // Exact match first
@@ -238,7 +270,11 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect
         setSearchResults([])
       }
     } catch (error: any) {
-      if (error.name !== "AbortError") {
+      // Ignore canceled requests (expected when user types quickly)
+      if (error.name !== "AbortError" && 
+          error.name !== "CanceledError" && 
+          !error.message?.includes("canceled") &&
+          !error.message?.includes("aborted")) {
         console.error("Search error:", error)
         setError("Failed to search locations. Please try again.")
         setSearchResults([])
@@ -335,10 +371,27 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect
     }
   }, [])
 
+  const handleLocationSelectFromResult = (item: SearchResult) => {
+    // If we already have coordinates from Serper API, use them directly
+    if (item.latitude != null && item.longitude != null) {
+      const location: Location = {
+        latitude: item.latitude,
+        longitude: item.longitude,
+        address: item.address || item.description || item.structured_formatting?.secondary_text || '',
+        name: item.title || item.structured_formatting?.main_text || item.description || '',
+      };
+      onLocationSelect(location);
+      handleClose();
+    } else {
+      // Fallback to getting place details (for backward compatibility)
+      getPlaceDetails(item.place_id, item.structured_formatting.main_text);
+    }
+  };
+
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
     <TouchableOpacity
       style={styles.searchResultItem}
-      onPress={() => getPlaceDetails(item.place_id, item.structured_formatting.main_text)}
+      onPress={() => handleLocationSelectFromResult(item)}
       activeOpacity={0.8}
     >
       <View style={styles.searchResultContent}>
@@ -439,13 +492,6 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({ onLocationSelect
 
           {/* Search Results */}
           <View style={styles.resultsContainer}>
-            {/* Debug info */}
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugText}>
-                Results: {searchResults.length} | Searching: {isSearching ? "Yes" : "No"} | HasSearched: {hasSearched ? "Yes" : "No"}
-              </Text>
-            </View>
-            
             {searchResults.length > 0 ? (
               <FlatList
                 data={searchResults}
@@ -644,15 +690,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#ffffff",
     fontSize: 15,
-    fontWeight: "600",
-  },
-  debugInfo: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  debugText: {
-    fontSize: 11,
-    color: "#dc2626",
     fontWeight: "600",
   },
 })

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FolderTree,
   Plus,
@@ -11,7 +11,8 @@ import {
   Users,
   Download,
   AlertTriangle,
-  Shield
+  Shield,
+  Loader2
 } from 'lucide-react';
 import {
   ColumnDef,
@@ -23,17 +24,10 @@ import {
   getFilteredRowModel,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-
-interface Unit {
-  id: string;
-  name: string;
-  color: string;
-  department: string;
-  groupNames: string[];
-  personnelCount: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { useUnitsStore, selectUnits, selectUnitsIsLoading, selectUnitsError, selectUnitsCount, Unit } from '@/lib/stores/units';
+import { useDepartmentsStore, selectDepartments } from '@/lib/stores/departments';
+import { useUnitAdminsStore, selectUnitAdmins, selectUnitAdminsIsLoading, selectUnitAdminsError, selectUnitAdminsCount } from '@/lib/stores/unitAdmins';
+import toast, { Toaster } from 'react-hot-toast';
 
 const UnitsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,117 +36,138 @@ const UnitsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    tempPassword: '',
     name: '',
-    color: '#000000',
-    department: '',
-    groupNames: ''
+    unit_id: ''
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data
-  const [units, setUnits] = useState<Unit[]>([
-    {
-      id: '1',
-      name: 'Unit A',
-      color: '#FF0000',
-      department: 'Fire Suppression',
-      groupNames: ['Group 1', 'Group 2'],
-      personnelCount: 12,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '2',
-      name: 'Unit B',
-      color: '#00FF00',
-      department: 'Fire Suppression',
-      groupNames: ['Group 3'],
-      personnelCount: 8,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: '3',
-      name: 'Medical Response Unit',
-      color: '#0000FF',
-      department: 'Emergency Medical Services',
-      groupNames: ['AMB-1', 'AMB-2'],
-      personnelCount: 15,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
+  // Store hooks
+  const units = useUnitsStore(selectUnits);
+  const isLoading = useUnitsStore(selectUnitsIsLoading);
+  const error = useUnitsStore(selectUnitsError);
+  const count = useUnitsStore(selectUnitsCount);
+  const fetchUnits = useUnitsStore((state) => state.fetchUnits);
+  const createUnit = useUnitsStore((state) => state.createUnit);
+  const updateUnit = useUnitsStore((state) => state.updateUnit);
+  const deleteUnit = useUnitsStore((state) => state.deleteUnit);
+  const clearError = useUnitsStore((state) => state.clearError);
+
+  const departments = useDepartmentsStore(selectDepartments);
+  const fetchDepartments = useDepartmentsStore((state) => state.fetchDepartments);
+
+  const unitAdmins = useUnitAdminsStore(selectUnitAdmins);
+  const unitAdminsIsLoading = useUnitAdminsStore(selectUnitAdminsIsLoading);
+  const unitAdminsError = useUnitAdminsStore(selectUnitAdminsError);
+  const unitAdminsCount = useUnitAdminsStore(selectUnitAdminsCount);
+  const fetchUnitAdmins = useUnitAdminsStore((state) => state.fetchUnitAdmins);
+  const createUnitAdmin = useUnitAdminsStore((state) => state.createUnitAdmin);
+  const updateUnitAdmin = useUnitAdminsStore((state) => state.updateUnitAdmin);
+  const deleteUnitAdmin = useUnitAdminsStore((state) => state.deleteUnitAdmin);
+  const clearUnitAdminsError = useUnitAdminsStore((state) => state.clearError);
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchUnits().catch((err) => {
+      console.error('Failed to fetch units:', err);
+    });
+    fetchDepartments().catch((err) => {
+      console.error('Failed to fetch departments:', err);
+    });
+  }, [fetchUnits, fetchDepartments]);
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
     }
-  ]);
-
-  const departments = [
-    'Fire Suppression',
-    'Emergency Medical Services',
-    'Rescue Operations',
-    'Prevention & Safety',
-    'Training & Development'
-  ];
+  }, [error, clearError]);
 
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Unit name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
 
-    if (!formData.department) {
-      newErrors.department = 'Department is required';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.tempPassword.trim()) {
+      newErrors.tempPassword = 'Temporary password is required';
+    } else if (formData.tempPassword.length < 6) {
+      newErrors.tempPassword = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.unit_id) {
+      newErrors.unit_id = 'Unit is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+
+    if (!validateForm() || isSubmitting) {
       return;
     }
 
-    const groupNamesArray = formData.groupNames.split(',').map(g => g.trim()).filter(g => g);
-
-    if (editingUnit) {
-      setUnits(units.map(unit =>
-        unit.id === editingUnit.id
-          ? {
-              ...unit,
-              name: formData.name.trim(),
-              color: formData.color,
-              department: formData.department,
-              groupNames: groupNamesArray
-            }
-          : unit
-      ));
-    } else {
-      const newUnit: Unit = {
-        id: (units.length + 1).toString(),
-        name: formData.name.trim(),
-        color: formData.color,
-        department: formData.department,
-        groupNames: groupNamesArray,
-        personnelCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    setIsSubmitting(true);
+    try {
+      const unitAdminData = {
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        tempPassword: formData.tempPassword,
+        name: formData.name.trim() || undefined,
+        unit_id: formData.unit_id,
       };
-      setUnits([...units, newUnit]);
+
+      await createUnitAdmin(unitAdminData);
+      toast.success(`Unit Admin "${formData.username}" created successfully!`, {
+        icon: '✅',
+        duration: 3000,
+      });
+      handleCloseModal();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save unit';
+      toast.error(errorMessage, {
+        icon: '❌',
+        duration: 4000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    handleCloseModal();
   };
 
   const handleCloseModal = () => {
+    if (isSubmitting) return;
     setShowAddModal(false);
     setEditingUnit(null);
     setErrors({});
     setFormData({
+      username: '',
+      email: '',
+      tempPassword: '',
       name: '',
-      color: '#000000',
-      department: '',
-      groupNames: ''
+      unit_id: ''
     });
+  };
+
+  // Helper function to get department name
+  const getDepartmentName = (department: Unit['department']): string => {
+    if (typeof department === 'string') return department;
+    return department?.name || 'Unknown Department';
   };
 
   const columns: ColumnDef<Unit>[] = useMemo(
@@ -162,40 +177,13 @@ const UnitsPage: React.FC = () => {
         header: 'Unit Name',
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: row.original.color }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: row.original.color || '#000000' }}>
               <FolderTree className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="font-semibold text-gray-900">{row.original.name}</div>
-              <div className="text-xs text-gray-500">{row.original.department}</div>
+              <div className="font-semibold text-gray-900">{row.original.name || '-'}</div>
+              <div className="text-xs text-gray-500">{getDepartmentName(row.original.department)}</div>
             </div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'groupNames',
-        header: 'Groups',
-        cell: ({ row }) => (
-          <div className="flex flex-wrap gap-2">
-            {row.original.groupNames.length > 0 ? (
-              row.original.groupNames.map((group, idx) => (
-                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md">
-                  {group}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-xs">No groups</span>
-            )}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'personnelCount',
-        header: 'Personnel',
-        cell: ({ getValue }) => (
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-600" />
-            <span className="font-semibold text-gray-900">{getValue() as number}</span>
           </div>
         ),
       },
@@ -208,11 +196,12 @@ const UnitsPage: React.FC = () => {
               onClick={() => {
                 setEditingUnit(row.original);
                 setFormData({
-                  name: row.original.name,
-                  color: row.original.color,
-                  department: row.original.department,
-                  groupNames: row.original.groupNames.join(', ')
-                });
+                  username: '',
+                  email: '',
+                  tempPassword: '',
+                  name: '',
+                  unit_id: row.original.id || row.original._id || ''
+                } as any);
                 setShowAddModal(true);
               }}
               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
@@ -220,8 +209,22 @@ const UnitsPage: React.FC = () => {
               <Edit className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                setUnits(units.filter(r => r.id !== row.original.id));
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to delete this unit?')) {
+                  try {
+                    await deleteUnit(row.original.id || row.original._id);
+                    toast.success('Unit deleted successfully!', {
+                      icon: '✅',
+                      duration: 3000,
+                    });
+                  } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : 'Failed to delete unit';
+                    toast.error(errorMessage, {
+                      icon: '❌',
+                      duration: 4000,
+                    });
+                  }
+                }
               }}
               className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
             >
@@ -231,7 +234,7 @@ const UnitsPage: React.FC = () => {
         ),
       },
     ],
-    [units]
+    [deleteUnit]
   );
 
   const table = useReactTable({
@@ -252,16 +255,16 @@ const UnitsPage: React.FC = () => {
     if (!searchTerm) return units;
     return units.filter(
       unit =>
-        unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        unit.department.toLowerCase().includes(searchTerm.toLowerCase())
+        (unit.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getDepartmentName(unit.department).toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, units]);
 
-  const totalUnits = units.length;
-  const totalPersonnel = units.reduce((sum, r) => sum + r.personnelCount, 0);
+  const totalUnits = count || units.length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
+      <Toaster position="top-right" />
       <div className="p-8 text-gray-900">
         <div className="flex items-center justify-between">
           <div>
@@ -277,7 +280,7 @@ const UnitsPage: React.FC = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-white border-2 border-blue-200 p-6 rounded-xl hover:border-blue-300 transition-all duration-300">
           <div className="flex items-start justify-between mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -288,19 +291,6 @@ const UnitsPage: React.FC = () => {
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Units</h3>
             <p className="text-3xl font-bold text-gray-900">{totalUnits}</p>
             <p className="text-xs text-gray-500">operational units</p>
-          </div>
-        </div>
-
-        <div className="bg-white border-2 border-green-200 p-6 rounded-xl hover:border-green-300 transition-all duration-300">
-          <div className="flex items-start justify-between mb-4">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Personnel</h3>
-            <p className="text-3xl font-bold text-gray-900">{totalPersonnel}</p>
-            <p className="text-xs text-gray-500">across all units</p>
           </div>
         </div>
       </div>
@@ -327,17 +317,18 @@ const UnitsPage: React.FC = () => {
               onClick={() => {
                 setEditingUnit(null);
                 setFormData({
+                  username: '',
+                  email: '',
+                  tempPassword: '',
                   name: '',
-                  color: '#000000',
-                  department: '',
-                  groupNames: ''
+                  unit_id: ''
                 });
                 setShowAddModal(true);
               }}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-2 border-blue-600 rounded-xl hover:from-blue-700 hover:to-blue-800 hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
             >
               <Plus className="w-5 h-5" />
-              Add Unit
+              Add Unit Admin
             </button>
           </div>
         </div>
@@ -400,7 +391,7 @@ const UnitsPage: React.FC = () => {
                     <FolderTree className="w-6 h-6 text-white" />
                   </div>
                   <h2 className="text-3xl font-black text-gray-900">
-                    {editingUnit ? 'Edit Unit' : 'Add New Unit'}
+                    {editingUnit ? 'Edit Unit Admin' : 'Add New Unit Admin'}
                   </h2>
                 </div>
                 <button
@@ -413,86 +404,138 @@ const UnitsPage: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Unit Name *</label>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Username *</label>
                   <input
                     type="text"
-                    value={formData.name}
+                    value={formData.username}
                     onChange={(e) => {
-                      setFormData({ ...formData, name: e.target.value });
-                      setErrors({ ...errors, name: '' });
+                      setFormData({ ...formData, username: e.target.value });
+                      setErrors({ ...errors, username: '' });
                     }}
-                    placeholder="e.g., Red Watch, Yellow Watch, Blue Watch"
+                    placeholder="e.g., unit_admin_red"
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
-                      errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
+                      errors.username ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
                     }`}
                   />
-                  {errors.name ? (
+                  {errors.username && (
                     <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {errors.name}
+                      {errors.username}
                     </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 mt-1.5">Common examples: Red Watch, Yellow Watch, Blue Watch, Green Watch</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Color</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-16 h-16 border-2 border-gray-300 rounded-lg cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      placeholder="#000000"
-                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:bg-blue-50/30 focus:outline-none transition-all duration-200"
-                    />
-                  </div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Email *</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      setErrors({ ...errors, email: '' });
+                    }}
+                    placeholder="e.g., admin@red.gov.gh"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
+                    }`}
+                  />
+                  {errors.email && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">Full Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., John Doe"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:bg-blue-50/30 focus:outline-none transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Unit *</label>
+                  <select
+                    value={formData.unit_id}
+                    onChange={(e) => {
+                      setFormData({ ...formData, unit_id: e.target.value });
+                      setErrors({ ...errors, unit_id: '' });
+                    }}
+                    disabled={isSubmitting}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.unit_id ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
+                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">Select Unit</option>
+                    {units.map((unit) => (
+                      <option key={unit.id || unit._id} value={unit.id || unit._id}>
+                        {unit.name || 'Unnamed Unit'}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.unit_id && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.unit_id}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2.5">Temporary Password *</label>
+                  <input
+                    type="text"
+                    value={formData.tempPassword}
+                    onChange={(e) => {
+                      setFormData({ ...formData, tempPassword: e.target.value });
+                      setErrors({ ...errors, tempPassword: '' });
+                    }}
+                    placeholder="Enter temporary password"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                      errors.tempPassword ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
+                    }`}
+                  />
+                  {errors.tempPassword && (
+                    <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {errors.tempPassword}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-900 mb-2.5">Department *</label>
                   <select
-                    value={formData.department}
+                    value={formData.unit_id}
                     onChange={(e) => {
-                      setFormData({ ...formData, department: e.target.value });
-                      setErrors({ ...errors, department: '' });
+                      setFormData({ ...formData, unit_id: e.target.value });
+                      setErrors({ ...errors, unit_id: '' });
                     }}
+                    disabled={isSubmitting}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
-                      errors.department ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
-                    }`}
+                      errors.unit_id ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400 focus:bg-blue-50/30'
+                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <option value="">Select Department</option>
-                    {departments.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
+                    <option value="">Select Unit</option>
+                    {units.map((unit) => (
+                      <option key={unit.id || unit._id} value={unit.id || unit._id}>
+                        {unit.name || 'Unnamed Unit'}
                       </option>
                     ))}
                   </select>
-                  {errors.department && (
+                  {errors.unit_id && (
                     <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {errors.department}
+                      {errors.unit_id}
                     </p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">Group Names</label>
-                  <input
-                    type="text"
-                    value={formData.groupNames}
-                    onChange={(e) => setFormData({ ...formData, groupNames: e.target.value })}
-                    placeholder="e.g., Crew, Watch Room, Dispatch, Emergency (comma separated)"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:bg-blue-50/30 focus:outline-none transition-all duration-200"
-                  />
-                  <p className="text-xs text-gray-500 mt-1.5">Common examples: Crew, Watch Room, Dispatch, Emergency, Admin (comma separated)</p>
-                </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-100">
                   <button
@@ -504,8 +547,10 @@ const UnitsPage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
+                    disabled={isSubmitting}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                   >
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     {editingUnit ? 'Update Unit' : 'Create Unit'}
                   </button>
                 </div>

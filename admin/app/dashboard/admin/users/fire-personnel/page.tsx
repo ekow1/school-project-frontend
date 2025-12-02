@@ -97,7 +97,7 @@ const FirePersonnelPage: React.FC = () => {
     name: '',
     rank: '', // rankId
     department: '', // departmentId
-    unit: '', // unitId (required if department has units)
+    unit: '', // unitId (optional)
     role: '', // roleId (optional)
     station_id: adminStationId, // Pre-filled with admin's station
     tempPassword: ''
@@ -196,10 +196,7 @@ const FirePersonnelPage: React.FC = () => {
       newErrors.department = 'Department is required';
     }
 
-    // Unit is required only if the selected department has units
-    if (formData.department && selectedDepartmentHasUnits && !formData.unit) {
-      newErrors.unit = 'Unit is required';
-    }
+    // Unit is optional - no validation required
 
     if (!formData.station_id) {
       newErrors.station_id = 'Station is required';
@@ -224,7 +221,7 @@ const FirePersonnelPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Prepare data - include department (required) and unit (if department has units)
+      // Prepare data - include department (required) and unit (optional)
       interface CreatePersonnelData {
         serviceNumber: string;
         name: string;
@@ -890,7 +887,7 @@ const FirePersonnelPage: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-3xl font-black text-gray-900">Add New Officer</h2>
-                    <p className="text-sm text-gray-600 mt-1">Fill in the officer details below. Department assignment is required.</p>
+                    <p className="text-sm text-gray-600 mt-1">Fill in the officer details below. Department assignment is required, unit is optional.</p>
                   </div>
                 </div>
                 <button
@@ -1056,7 +1053,7 @@ const FirePersonnelPage: React.FC = () => {
 
                     {selectedDepartmentHasUnits && (
                       <div>
-                        <label className="block text-sm font-bold text-gray-900 mb-2.5">Unit *</label>
+                        <label className="block text-sm font-bold text-gray-900 mb-2.5">Unit</label>
                         {isLoadingUnits ? (
                           <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -1075,7 +1072,7 @@ const FirePersonnelPage: React.FC = () => {
                                 errors.unit ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
                               } ${isSubmitting || filteredUnits.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                              <option value="">Select Unit</option>
+                              <option value="">Select Unit (Optional)</option>
                               {filteredUnits.length > 0 ? (
                                 filteredUnits.map((unit) => (
                                   <option key={unit.id || unit._id} value={unit.id || unit._id}>
@@ -1194,7 +1191,7 @@ const FirePersonnelPage: React.FC = () => {
                     <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                     <div className="text-red-800 text-sm space-y-1">
                       <p>
-                        <strong>Note:</strong> Station Admin can assign department (required) and unit (required if department has units). Role is optional.
+                        <strong>Note:</strong> Station Admin can assign department (required) and unit (optional). Role is optional.
                       </p>
                       <p className="text-xs text-red-700">
                         Station is automatically assigned to: <strong>{adminStationName}</strong>
