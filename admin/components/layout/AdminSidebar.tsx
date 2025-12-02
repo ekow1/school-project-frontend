@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
+import { useStationsStore, selectStations } from '@/lib/stores/stations';
 import {
   LayoutDashboard,
   BarChart3,
@@ -41,6 +42,19 @@ const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const logout = useStationAdminAuthStore((state) => state.logout);
+  const user = useStationAdminAuthStore((state) => state.user);
+  const stations = useStationsStore(selectStations);
+
+  // Get current station for Station Admin
+  const currentStationId = user?.stationId;
+  const currentStation = React.useMemo(() => {
+    if (!currentStationId || stations.length === 0) return null;
+    const station = stations.find(s => {
+      const stationId = s._id || s.id;
+      return stationId && String(stationId) === String(currentStationId);
+    });
+    return station || null;
+  }, [stations, currentStationId]);
 
   const menuItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
@@ -97,7 +111,7 @@ const AdminSidebar: React.FC = () => {
                 <Flame className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-bold">GNFS Admin</h2>
+                <h2 className="text-lg font-bold">{currentStation?.name || 'GNFS Admin'}</h2>
                 <p className="text-xs text-red-100">Station Admin</p>
               </div>
             </div>

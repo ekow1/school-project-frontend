@@ -846,201 +846,192 @@ const AdminDashboard: React.FC = () => {
 
       {/* Admin and Station Information */}
       <div className="mb-8">
-        <div className="bg-gradient-to-br from-red-600 via-red-500 to-red-600 rounded-2xl shadow-xl overflow-hidden border border-red-700/20">
-          {/* Decorative top border */}
-          <div className="h-1 bg-gradient-to-r from-white/20 via-white/40 to-white/20"></div>
-          
+        <div className="bg-white border-2 border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
               {/* Admin Info */}
-              <div className="flex-1 relative">
-                <div className="absolute top-0 left-0 w-1 h-full bg-white/20 rounded-full"></div>
-                <div className="pl-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-base font-bold text-white tracking-wide uppercase">Admin Information</h3>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <User className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="space-y-3">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                  <h3 className="text-lg font-bold text-gray-900">Admin Information</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {user?.stationAdminData?.name || 'Station Admin'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {user?.stationAdminData?.username && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                          <User className="w-4 h-4 text-gray-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Name</p>
-                          <p className="text-sm font-semibold text-white">
-                            {user?.stationAdminData?.name || 'Station Admin'}
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Username</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            @{user.stationAdminData.username}
                           </p>
                         </div>
                       </div>
                     </div>
-                    {user?.stationAdminData?.username && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                            <User className="w-4 h-4 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Username</p>
-                            <p className="text-sm font-semibold text-white">
-                              @{user.stationAdminData.username}
-                            </p>
-                          </div>
+                  )}
+                  {user?.stationAdminData?.email && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                          <Mail className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Email</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {user.stationAdminData.email}
+                          </p>
                         </div>
                       </div>
-                    )}
-                    {user?.stationAdminData?.email && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                            <Mail className="w-4 h-4 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Email</p>
-                            <p className="text-sm font-semibold text-white">
-                              {user.stationAdminData.email}
-                            </p>
-                          </div>
+                    </div>
+                  )}
+                  {user?.role && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Role</p>
+                          <span className="inline-block px-3 py-1 bg-gray-200 text-gray-800 text-xs font-semibold rounded-md">
+                            {user.role}
+                          </span>
                         </div>
                       </div>
-                    )}
-                    {user?.role && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                            <Shield className="w-4 h-4 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Role</p>
-                            <span className="inline-block px-3 py-1 bg-white/20 text-white text-xs font-semibold rounded-md border border-white/30">
-                              {user.role}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Divider */}
-              <div className="hidden lg:block w-px bg-white/20"></div>
+              <div className="hidden lg:block w-px bg-gray-200"></div>
 
               {/* Station Info */}
               {currentStation && (
-                <div className="flex-1 relative">
-                  <div className="absolute top-0 right-0 w-1 h-full bg-white/20 rounded-full"></div>
-                  <div className="pr-4">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <Building2 className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="text-base font-bold text-white tracking-wide uppercase">Station Information</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-gray-600" />
                     </div>
-                    <div className="space-y-3">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <h3 className="text-lg font-bold text-gray-900">Station Information</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                          <Building2 className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Station Name</p>
+                          <p className="text-sm font-semibold text-gray-900">{currentStation.name}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {currentStation.location && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                            <Building2 className="w-4 h-4 text-white" />
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-gray-600" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Station Name</p>
-                            <p className="text-sm font-semibold text-white">{currentStation.name}</p>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
+                            <p className="text-sm font-semibold text-gray-900">{currentStation.location}</p>
                           </div>
                         </div>
                       </div>
-                      {currentStation.location && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Location</p>
-                              <p className="text-sm font-semibold text-white">{currentStation.location}</p>
-                            </div>
+                    )}
+                    {currentStation.phone_number && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <Phone className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Phone Number</p>
+                            <a href={`tel:${currentStation.phone_number}`} className="text-sm text-gray-900 hover:text-blue-600 font-semibold transition-colors">
+                              {currentStation.phone_number}
+                            </a>
                           </div>
                         </div>
-                      )}
-                      {currentStation.phone_number && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <Phone className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Phone Number</p>
-                              <a href={`tel:${currentStation.phone_number}`} className="text-sm text-white hover:text-white/80 font-semibold transition-colors">
-                                {currentStation.phone_number}
-                              </a>
-                            </div>
+                      </div>
+                    )}
+                    {currentStation.call_sign && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Call Sign</p>
+                            <p className="text-sm font-semibold text-gray-900">{currentStation.call_sign}</p>
                           </div>
                         </div>
-                      )}
-                      {currentStation.call_sign && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <Shield className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Call Sign</p>
-                              <p className="text-sm font-semibold text-white">{currentStation.call_sign}</p>
-                            </div>
+                      </div>
+                    )}
+                    {currentStation.region && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Region</p>
+                            <p className="text-sm font-semibold text-gray-900">{currentStation.region}</p>
                           </div>
                         </div>
-                      )}
-                      {currentStation.region && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Region</p>
-                              <p className="text-sm font-semibold text-white">{currentStation.region}</p>
-                            </div>
+                      </div>
+                    )}
+                    {currentStation.location_url && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Map Location</p>
+                            <a
+                              href={currentStation.location_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors break-all"
+                            >
+                              {currentStation.location_url}
+                            </a>
                           </div>
                         </div>
-                      )}
-                      {currentStation.location_url && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Map Location</p>
-                              <a 
-                                href={currentStation.location_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-sm text-white hover:text-white/80 font-semibold transition-colors break-all"
-                              >
-                                {currentStation.location_url}
-                              </a>
-                            </div>
+                      </div>
+                    )}
+                    {(currentStation.lat && currentStation.lng) && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Coordinates</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {currentStation.lat.toFixed(6)}, {currentStation.lng.toFixed(6)}
+                            </p>
                           </div>
                         </div>
-                      )}
-                      {(currentStation.lat && currentStation.lng) && (
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs text-white/60 uppercase tracking-wider mb-1">Coordinates</p>
-                              <p className="text-sm font-semibold text-white">
-                                {currentStation.lat.toFixed(6)}, {currentStation.lng.toFixed(6)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -232,9 +232,8 @@ const ActiveIncidentNotification: React.FC<ActiveIncidentNotificationProps> = ({
 
   return (
     <>
-      {/* Main Modal */}
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 bg-opacity-90 backdrop-blur-sm">
-        <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl border-4 border-orange-500 flex flex-col">
+      {/* Floating Card at Top-Right */}
+      <div className="fixed top-4 right-4 z-[60] w-96 max-w-sm bg-white rounded-xl shadow-2xl border-4 border-orange-500 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-t-lg flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -260,153 +259,53 @@ const ActiveIncidentNotification: React.FC<ActiveIncidentNotificationProps> = ({
             </div>
           </div>
 
-          {/* Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* New Alert Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 border-b-2 border-blue-500 pb-2">
-                  New Alert
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Type</p>
-                    <p className="text-sm font-semibold text-gray-900 capitalize">
-                      {notification.alert.incidentType}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Name</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {notification.alert.incidentName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Location</p>
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-900">
-                          {notification.alert.locationName}
-                        </p>
-                        {notification.alert.locationUrl && (
-                          <a
-                            href={notification.alert.locationUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-xs mt-1 inline-flex items-center gap-1"
-                          >
-                            View on Map
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Priority</p>
-                    <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getPriorityColor(notification.alert.priority)} text-white`}>
-                      {notification.alert.priority.toUpperCase()}
-                    </span>
-                  </div>
-                  {notification.alert.userName && (
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">Reporter</p>
-                      <div className="flex items-start gap-2">
-                        <Phone className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm text-gray-900">
-                            {notification.alert.userName}
-                          </p>
-                          {notification.alert.userContact?.phone && (
-                            <p className="text-xs text-gray-600">
-                              {notification.alert.userContact.phone}
-                            </p>
-                          )}
-                          {notification.alert.userContact?.email && (
-                            <p className="text-xs text-gray-600">
-                              {notification.alert.userContact.email}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Reported At</p>
-                    <p className="text-sm text-gray-900">
-                      {formatDate(notification.alert.timestamps.reportedAt)}
-                    </p>
-                  </div>
+          {/* Content - Compact */}
+          <div className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 text-sm">
+                    {notification.alert.incidentName}
+                  </h4>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {notification.alert.locationName}
+                  </p>
                 </div>
               </div>
 
-              {/* Active Incident Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 border-b-2 border-red-500 pb-2">
-                  Active Incident
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Status</p>
-                    <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 capitalize">
-                      {notification.activeIncident.status}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Created At</p>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-600" />
-                      <p className="text-sm text-gray-900">
-                        {formatDate(notification.activeIncident.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Alert ID</p>
-                    <p className="text-sm font-mono text-gray-900">
-                      {notification.activeIncident.alertId}
-                    </p>
-                  </div>
-                  {notification.alert.stationInfo && (
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">Station</p>
-                      <div className="flex items-start gap-2">
-                        <Shield className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm text-gray-900">
-                            {notification.alert.stationInfo.name}
-                          </p>
-                          {notification.alert.stationInfo.location && (
-                            <p className="text-xs text-gray-600">
-                              {notification.alert.stationInfo.location}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(notification.alert.priority)} text-white`}>
+                  {notification.alert.priority.toUpperCase()}
+                </span>
+                <span className="text-gray-500">
+                  {formatDate(notification.alert.timestamps.reportedAt)}
+                </span>
+              </div>
+
+              <div className="text-xs text-gray-600 bg-orange-50 p-2 rounded">
+                ⚠️ Station already has an active incident. This alert requires special attention.
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-b-lg border-t flex-shrink-0">
+          {/* Action Buttons - Compact */}
+          <div className="flex items-center gap-2 p-3 bg-gray-50 border-t">
             <button
               onClick={() => setShowReferDialog(true)}
               disabled={isProcessing}
-              className="px-6 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="flex-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
             >
-              <ArrowRight className="w-5 h-5" />
-              Refer to Another Station
+              <ArrowRight className="w-4 h-4" />
+              Refer
             </button>
             <button
               onClick={handleAcceptClick}
               disabled={isProcessing}
-              className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
             >
-              <CheckCircle className="w-5 h-5" />
-              Accept Alert
+              <CheckCircle className="w-4 h-4" />
+              Accept
             </button>
           </div>
         </div>
