@@ -84,16 +84,9 @@ const EmergencyResponsePage: React.FC = () => {
   const updateAlert = useEmergencyAlertsStore((state) => state.updateAlert);
   const deleteAlert = useEmergencyAlertsStore((state) => state.deleteAlert);
   const clearError = useEmergencyAlertsStore((state) => state.clearError);
-  const connectSocket = useEmergencyAlertsStore((state) => state.connectSocket);
-  const disconnectSocket = useEmergencyAlertsStore((state) => state.disconnectSocket);
-  const joinStationRoom = useEmergencyAlertsStore((state) => state.joinStationRoom);
-  const leaveStationRoom = useEmergencyAlertsStore((state) => state.leaveStationRoom);
 
-  // Connect to WebSocket and fetch alerts on mount
+  // Fetch alerts on mount
   useEffect(() => {
-    // Connect to WebSocket for real-time updates
-    connectSocket();
-
     // Fetch initial alerts
     const loadAlerts = async () => {
       try {
@@ -108,54 +101,17 @@ const EmergencyResponsePage: React.FC = () => {
     };
     loadAlerts();
 
-    // Listen for new alerts from WebSocket
-    const handleNewAlert = (event: CustomEvent) => {
-      const newAlert = event.detail;
-      
-      // Only show notification if it's for this station or general alerts
-      const isRelevant = !stationId || 
-        newAlert.station?.id === stationId || 
-        newAlert.station?._id === stationId ||
-        newAlert.stationId === stationId;
-      
-      if (isRelevant) {
-        toast.success(
-          <div>
-            <div className="font-semibold">🚨 New Emergency Alert</div>
-            <div className="text-sm">{newAlert.title}</div>
-            <div className="text-xs text-gray-500">{newAlert.location.locationName}</div>
-          </div>,
-          {
-            duration: 5000,
-            icon: '🚨',
-            style: {
-              background: '#fee2e2',
-              border: '2px solid #ef4444',
-              color: '#991b1b',
-            },
-          }
-        );
-      }
-    };
-
-    window.addEventListener('newEmergencyAlert', handleNewAlert as EventListener);
+    // Note: Global emergency alerts are now handled by GlobalEmergencyAlertHandler
+    // No need for page-specific toast notifications
 
     // Cleanup on unmount
     return () => {
-      window.removeEventListener('newEmergencyAlert', handleNewAlert as EventListener);
-      if (stationId) {
-        leaveStationRoom(stationId);
-      }
-      disconnectSocket();
+      // Note: WebSocket is now managed globally by GlobalEmergencyAlertHandler
+      // No need to disconnect here as it should remain connected for global alerts
     };
-  }, [activeTab, stationId, fetchAlerts, fetchAlertsByStation, connectSocket, disconnectSocket, joinStationRoom, leaveStationRoom]);
+  }, [activeTab, stationId, fetchAlerts, fetchAlertsByStation]);
 
-  // Join station room when stationId is available and socket is connected
-  useEffect(() => {
-    if (isConnected && stationId && activeTab === 'station') {
-      joinStationRoom(stationId);
-    }
-  }, [isConnected, stationId, activeTab, joinStationRoom]);
+  // Note: Station room joining is now handled globally by GlobalEmergencyAlertHandler
 
   // Show error toast if there's an error
   useEffect(() => {

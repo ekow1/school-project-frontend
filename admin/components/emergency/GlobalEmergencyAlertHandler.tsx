@@ -26,37 +26,110 @@ const GlobalEmergencyAlertHandler: React.FC = () => {
     (stationAdminUser?.stationAdminData?.station?.id) ||
     (user as any)?.stationAdminData?.station?.id;
 
-  // Get alert actions from store
+  // Get alert actions and WebSocket from store
   const updateAlert = useEmergencyAlertsStore((state) => state.updateAlert);
+  const connectSocket = useEmergencyAlertsStore((state) => state.connectSocket);
+  const disconnectSocket = useEmergencyAlertsStore((state) => state.disconnectSocket);
+  const joinStationRoom = useEmergencyAlertsStore((state) => state.joinStationRoom);
+  const leaveStationRoom = useEmergencyAlertsStore((state) => state.leaveStationRoom);
+  const isConnected = useEmergencyAlertsStore((state) => state.isConnected);
+  const fetchAlerts = useEmergencyAlertsStore((state) => state.fetchAlerts);
+  const alerts = useEmergencyAlertsStore((state) => state.alerts);
+
+  // Connect to WebSocket and fetch alerts globally for authenticated users
+  useEffect(() => {
+    if (user) {
+      if (!isConnected) {
+        console.log('🔌 Connecting WebSocket globally for user:', userRole);
+        connectSocket();
+      }
+
+      // Fetch alerts to check for existing active alerts
+      const loadAlerts = async () => {
+        try {
+          await fetchAlerts();
+        } catch (error) {
+          console.error('Error fetching alerts globally:', error);
+        }
+      };
+      loadAlerts();
+    }
+  }, [user, isConnected, connectSocket, fetchAlerts]);
+
+  // Handle station room joining/leaving for Station Admins
+  useEffect(() => {
+    if (isConnected && userRole === 'Admin' && currentStationId) {
+      console.log('🏢 Joining station room globally:', currentStationId);
+      joinStationRoom(currentStationId);
+
+      // Return cleanup function to leave room when station changes
+      return () => {
+        console.log('🏢 Leaving station room globally:', currentStationId);
+        leaveStationRoom(currentStationId);
+      };
+    }
+  }, [isConnected, userRole, currentStationId, joinStationRoom, leaveStationRoom]);
+
+  // Cleanup WebSocket on unmount or user logout
+  useEffect(() => {
+    return () => {
+      if (!user && isConnected) {
+        console.log('🔌 Disconnecting WebSocket globally');
+        disconnectSocket();
+      }
+    };
+  }, [user, isConnected, disconnectSocket]);
+
+  // Show existing active alerts when user logs in
+  useEffect(() => {
+    if (user && alerts.length > 0) {
+      const activeAlerts = alerts.filter(alert =>
+        (alert.status === 'active' || alert.status === 'pending') &&
+        (!currentStationId || // SuperAdmin sees all
+         userRole !== 'Admin' || // Non-admin sees all
+         alert.station?.id === currentStationId ||
+         alert.station?._id === currentStationId ||
+         alert.stationId === currentStationId)
+      );
+
+      // Show the most recent active alert if any
+      if (activeAlerts.length > 0 && !currentAlert) {
+        const mostRecent = activeAlerts.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        setCurrentAlert(mostRecent);
+      }
+    }
+  }, [user, alerts, userRole, currentStationId, currentAlert]);
 
   // Listen for new alerts from WebSocket
   useEffect(() => {
     const handleNewAlert = (event: CustomEvent) => {
       const newAlert: EmergencyAlert = event.detail;
-      
+
       if (!newAlert) {
         return;
       }
-      
+
       // Only show if status is 'active' or 'pending'
       const shouldShowByStatus = newAlert.status === 'active' || newAlert.status === 'pending';
-      
+
       if (!shouldShowByStatus) {
         return;
       }
-      
+
       // For Admin users, check if alert is relevant to their station
       if (userRole === 'Admin' && currentStationId) {
-        const isRelevant = 
-          newAlert.station?.id === currentStationId || 
+        const isRelevant =
+          newAlert.station?.id === currentStationId ||
           newAlert.station?._id === currentStationId ||
           newAlert.stationId === currentStationId;
-        
+
         if (!isRelevant) {
           return;
         }
       }
-      
+
       // For SuperAdmin, show all active/pending alerts
       // For Admin, we've already filtered by station above
       // For other roles, show all active/pending alerts
