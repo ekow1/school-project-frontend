@@ -191,22 +191,48 @@ const UnitsPage: React.FC = () => {
     return dept?.name || '-';
   };
 
-  // Transform units to match table format
+  // Transform units to match table format and filter by station
   const transformedUnits = useMemo(() => {
-    return units.map((unit) => ({
-      ...unit,
-      id: unit.id || unit._id,
-      _id: unit._id || unit.id,
-      departmentId: typeof unit.department === 'string' 
-        ? unit.department 
-        : unit.department?._id || unit.department?.id || unit.departmentId,
-      departmentName: getDepartmentName(
-        typeof unit.department === 'string' 
-          ? unit.department 
-          : unit.department?._id || unit.department?.id || unit.departmentId
-      ),
-    }));
-  }, [units, departments]);
+    const adminStationId = user?.stationId;
+
+    if (!adminStationId) {
+      return [];
+    }
+
+    // Get department IDs that belong to the admin's station
+    const stationDepartmentIds = new Set(
+      departments
+        .filter((dept) => {
+          const deptStationId = typeof dept.stationId === 'string'
+            ? dept.stationId
+            : dept.stationId?._id || dept.stationId?.id || dept.station_id;
+          return deptStationId === adminStationId;
+        })
+        .map((dept) => dept.id || dept._id)
+    );
+
+    return units
+      .filter((unit) => {
+        const unitDepartmentId = typeof unit.department === 'string'
+          ? unit.department
+          : unit.department?._id || unit.department?.id || unit.departmentId;
+        // Only include units whose department belongs to the admin's station
+        return unitDepartmentId && stationDepartmentIds.has(unitDepartmentId);
+      })
+      .map((unit) => ({
+        ...unit,
+        id: unit.id || unit._id,
+        _id: unit._id || unit.id,
+        departmentId: typeof unit.department === 'string'
+          ? unit.department
+          : unit.department?._id || unit.department?.id || unit.departmentId,
+        departmentName: getDepartmentName(
+          typeof unit.department === 'string'
+            ? unit.department
+            : unit.department?._id || unit.department?.id || unit.departmentId
+        ),
+      }));
+  }, [units, departments, user?.stationId]);
 
   const columns: ColumnDef<Unit & { departmentName: string }>[] = useMemo(
     () => [
