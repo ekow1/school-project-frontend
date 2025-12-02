@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import WebSocketProvider from "@/components/providers/WebSocketProvider";
 import GlobalEmergencyAlertHandler from "@/components/emergency/GlobalEmergencyAlertHandler";
-import GlobalActiveIncidentHandler from "@/components/emergency/GlobalActiveIncidentHandler";
+import GlobalIncidentStatusMonitor from "@/components/emergency/GlobalIncidentStatusMonitor";
 import GlobalReferralNotificationHandler from "@/components/emergency/GlobalReferralNotificationHandler";
 
 const geistSans = Geist({
@@ -33,7 +33,7 @@ export default function RootLayout({
       >
               <WebSocketProvider>
                 <GlobalEmergencyAlertHandler />
-                <GlobalActiveIncidentHandler />
+                <GlobalIncidentStatusMonitor />
                 <GlobalReferralNotificationHandler />
                 {children}
               </WebSocketProvider>

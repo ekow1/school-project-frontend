@@ -2,16 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -30,15 +30,23 @@ const Colors = {
 };
 
 export default function OfficerLoginScreen() {
-  const [formData, setFormData] = useState({
-    serviceNumber: '',
-    password: '',
-  });
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+   const [formData, setFormData] = useState({
+     serviceNumber: '',
+     password: '',
+   });
+
+   const [showPassword, setShowPassword] = useState(false);
+   const [errors, setErrors] = useState<{[key: string]: string}>({});
+   const [focusedField, setFocusedField] = useState<string | null>(null);
+   const [isLoading, setIsLoading] = useState(false);
+
+   // Temporary password reset state
+   const [requiresPasswordReset, setRequiresPasswordReset] = useState(false);
+   const [officerData, setOfficerData] = useState<{id: string, serviceNumber: string} | null>(null);
+   const [newPassword, setNewPassword] = useState('');
+   const [confirmPassword, setConfirmPassword] = useState('');
+   const [showNewPassword, setShowNewPassword] = useState(false);
+   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateField = (field: string, value: string) => {
     const newErrors = { ...errors };
@@ -86,22 +94,126 @@ export default function OfficerLoginScreen() {
     if (!formData.serviceNumber || !formData.password) return;
 
     setIsLoading(true);
-    
+    setErrors({});
+
     try {
-      // TODO: Implement officer login API call
       console.log('Officer login:', { serviceNumber: formData.serviceNumber, password: '***' });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // TODO: Navigate to officer dashboard or main app
-      console.log('Officer login successful');
-      
+
+      const response = await axios.post(`${ENV.AUTH_API_URL}/fire/personnel/login`, {
+        serviceNumber: formData.serviceNumber,
+        password: formData.password,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Officer login response:', response.status, response.data);
+
+      const { token, user, requiresPasswordChange } = response.data;
+
+      if (requiresPasswordChange) {
+        // Temporary password detected, show password reset form
+        setRequiresPasswordReset(true);
+        setOfficerData({ id: user.id, serviceNumber: user.serviceNumber });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+
+      // TODO: Store token and navigate to officer dashboard
+      console.log('Officer login successful, token received');
+
+      // For now, just show success message
+      Alert.alert(
+        'Login Successful',
+        'Welcome to the Officer Portal!',
+        [{ text: 'OK', onPress: () => router.push('/(tabs)') }]
+      );
+
     } catch (error) {
       console.error('Officer login error:', error);
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'Login failed';
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!newPassword || !confirmPassword) {
+      setErrors({ passwordReset: 'Please fill in all password fields' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setErrors({ passwordReset: 'Password must be at least 6 characters' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrors({ passwordReset: 'Passwords do not match' });
+      return;
+    }
+
+    if (!officerData) {
+      setErrors({ passwordReset: 'Officer data not available' });
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      console.log('Changing password for officer:', officerData.id);
+
+      const response = await axios.post(`${ENV.AUTH_API_URL}/fire/personnel/${officerData.id}/change-password`, {
+        newPassword: newPassword,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Password change response:', response.status, response.data);
+
+      const { token, user } = response.data;
+
+      if (!token) {
+        throw new Error('No token received after password change');
+      }
+
+      // TODO: Store token and navigate to officer dashboard
+      console.log('Password changed successfully, token received');
+
+      Alert.alert(
+        'Password Updated',
+        'Your password has been changed successfully. Welcome to the Officer Portal!',
+        [{ text: 'OK', onPress: () => router.push('/(tabs)') }]
+      );
+
+    } catch (error) {
+      console.error('Password change error:', error);
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'Password change failed';
+      setErrors({ passwordReset: errorMessage });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setRequiresPasswordReset(false);
+    setOfficerData(null);
+    setNewPassword('');
+    setConfirmPassword('');
+    setErrors({});
   };
 
   return (
