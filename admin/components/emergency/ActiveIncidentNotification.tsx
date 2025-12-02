@@ -234,80 +234,79 @@ const ActiveIncidentNotification: React.FC<ActiveIncidentNotificationProps> = ({
     <>
       {/* Floating Card at Top-Right */}
       <div className="fixed top-4 right-4 z-[60] w-96 max-w-sm bg-white rounded-xl shadow-2xl border-4 border-orange-500 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-t-lg flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-7 h-7 animate-pulse" />
-                <div>
-                  <h2 className="text-xl font-black uppercase tracking-wide">
-                    ⚠️ Active Incident Detected
-                  </h2>
-                  <p className="text-sm opacity-90 mt-1">
-                    {notification.message}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                title="Close"
-                disabled={isProcessing}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content - Compact */}
-          <div className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 text-sm">
-                    {notification.alert.incidentName}
-                  </h4>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {notification.alert.locationName}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(notification.alert.priority)} text-white`}>
-                  {notification.alert.priority.toUpperCase()}
-                </span>
-                <span className="text-gray-500">
-                  {formatDate(notification.alert.timestamps.reportedAt)}
-                </span>
-              </div>
-
-              <div className="text-xs text-gray-600 bg-orange-50 p-2 rounded">
-                ⚠️ Station already has an active incident. This alert requires special attention.
+        {/* Header */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-t-lg flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-7 h-7 animate-pulse" />
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-wide">
+                  ⚠️ Active Incident Detected
+                </h2>
+                <p className="text-sm opacity-90 mt-1">
+                  {notification.message}
+                </p>
               </div>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              title="Close"
+              disabled={isProcessing}
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
+        </div>
 
-          {/* Action Buttons - Compact */}
-          <div className="flex items-center gap-2 p-3 bg-gray-50 border-t">
-            <button
-              onClick={() => setShowReferDialog(true)}
-              disabled={isProcessing}
-              className="flex-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              <ArrowRight className="w-4 h-4" />
-              Refer
-            </button>
-            <button
-              onClick={handleAcceptClick}
-              disabled={isProcessing}
-              className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Accept
-            </button>
+        {/* Content - Compact */}
+        <div className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-gray-900 text-sm">
+                  {notification.alert.incidentName}
+                </h4>
+                <p className="text-xs text-gray-600 mt-1">
+                  {notification.alert.locationName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(notification.alert.priority)} text-white`}>
+                {notification.alert.priority.toUpperCase()}
+              </span>
+              <span className="text-gray-500">
+                {formatDate(notification.alert.timestamps.reportedAt)}
+              </span>
+            </div>
+
+            <div className="text-xs text-gray-600 bg-orange-50 p-2 rounded">
+              ⚠️ Station already has an active incident. This alert requires special attention.
+            </div>
           </div>
+        </div>
+
+        {/* Action Buttons - Compact */}
+        <div className="flex items-center gap-2 p-3 bg-gray-50 border-t">
+          <button
+            onClick={() => setShowReferDialog(true)}
+            disabled={isProcessing}
+            className="flex-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+          >
+            <ArrowRight className="w-4 h-4" />
+            Refer
+          </button>
+          <button
+            onClick={handleAcceptClick}
+            disabled={isProcessing}
+            className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Accept
+          </button>
         </div>
       </div>
 
