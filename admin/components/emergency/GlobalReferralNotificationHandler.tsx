@@ -36,27 +36,46 @@ const GlobalReferralNotificationHandler: React.FC = () => {
     const handleReferredAlert = (event: CustomEvent) => {
         const notification = event.detail;
         
+        console.log('🔔 Referral notification received:', notification);
+        console.log('📍 Current station ID:', currentStationId);
+        console.log('👤 User role:', user?.role);
+        
         // For Admin users, check if notification is for their station
         if (user?.role === 'Admin' && currentStationId) {
           // Check if the notification is for this station (to_station_id)
           const toStationId = notification.referral?.toStation?.id ||
                              notification.referral?.toStation?._id ||
-                             notification.referral?.to_station_id;
+                             notification.referral?.to_station_id ||
+                             notification.toStationId;
           
           // Check if this station is the one that initiated the referral (from_station_id)
+          // Also check the alert's station field as it might be the originating station
           const fromStationId = notification.referral?.fromStation?.id ||
                                notification.referral?.fromStation?._id ||
-                               notification.referral?.from_station_id;
+                               notification.referral?.from_station_id ||
+                               notification.fromStationId ||
+                               notification.stationInfo?.id ||
+                               notification.stationInfo?._id;
           
-          const isForThisStation = toStationId === currentStationId ||
-                                  toStationId === String(currentStationId);
+          console.log('🎯 To Station ID:', toStationId);
+          console.log('📤 From Station ID:', fromStationId);
           
-          const isFromThisStation = fromStationId === currentStationId ||
-                                   fromStationId === String(currentStationId);
+          const isForThisStation = toStationId && (toStationId === currentStationId ||
+                                  toStationId === String(currentStationId));
+          
+          const isFromThisStation = fromStationId && (fromStationId === currentStationId ||
+                                   fromStationId === String(currentStationId));
+          
+          console.log('✅ Is for this station:', isForThisStation);
+          console.log('❌ Is from this station:', isFromThisStation);
+          console.log('🔔 Requires action:', notification.requiresAction);
           
           // Only show if it's for this station (not from this station) and requires action
           if (isForThisStation && !isFromThisStation && notification.requiresAction) {
+            console.log('✅ Showing referral notification');
             setReferredAlert(notification);
+          } else {
+            console.log('❌ Not showing referral notification');
           }
         } else if (user?.role === 'SuperAdmin') {
           // SuperAdmin sees all referrals
@@ -69,27 +88,43 @@ const GlobalReferralNotificationHandler: React.FC = () => {
       const handleReferredIncident = (event: CustomEvent) => {
         const notification = event.detail;
         
+        console.log('🔔 Incident referral notification received:', notification);
+        console.log('📍 Current station ID:', currentStationId);
+        
         // For Admin users, check if notification is for their station
         if (user?.role === 'Admin' && currentStationId) {
           // Check if the notification is for this station (to_station_id)
           const toStationId = notification.referral?.toStation?.id ||
                              notification.referral?.toStation?._id ||
-                             notification.referral?.to_station_id;
+                             notification.referral?.to_station_id ||
+                             notification.toStationId;
           
           // Check if this station is the one that initiated the referral (from_station_id)
           const fromStationId = notification.referral?.fromStation?.id ||
                                notification.referral?.fromStation?._id ||
-                               notification.referral?.from_station_id;
+                               notification.referral?.from_station_id ||
+                               notification.fromStationId ||
+                               notification.station?.id ||
+                               notification.station?._id;
           
-          const isForThisStation = toStationId === currentStationId ||
-                                  toStationId === String(currentStationId);
+          console.log('🎯 To Station ID:', toStationId);
+          console.log('📤 From Station ID:', fromStationId);
           
-          const isFromThisStation = fromStationId === currentStationId ||
-                                   fromStationId === String(currentStationId);
+          const isForThisStation = toStationId && (toStationId === currentStationId ||
+                                  toStationId === String(currentStationId));
+          
+          const isFromThisStation = fromStationId && (fromStationId === currentStationId ||
+                                   fromStationId === String(currentStationId));
+          
+          console.log('✅ Is for this station:', isForThisStation);
+          console.log('❌ Is from this station:', isFromThisStation);
           
           // Only show if it's for this station (not from this station) and requires action
           if (isForThisStation && !isFromThisStation && notification.requiresAction) {
+            console.log('✅ Showing incident referral notification');
             setReferredIncident(notification);
+          } else {
+            console.log('❌ Not showing incident referral notification');
           }
         } else if (user?.role === 'SuperAdmin') {
           // SuperAdmin sees all referrals
