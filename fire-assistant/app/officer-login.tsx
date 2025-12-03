@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -339,21 +340,121 @@ export default function OfficerLoginScreen() {
               </View>
 
               {/* Login Button */}
-              <TouchableOpacity
-                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-                onPress={handleOfficerLogin}
-                disabled={isLoading}
-              >
-                <Text style={styles.loginButtonText}>
-                  {isLoading ? 'Signing In...' : 'Sign In as Officer'}
-                </Text>
-                <Ionicons 
-                  name="arrow-forward" 
-                  size={20} 
-                  color="#FFFFFF" 
-                  style={styles.buttonIcon}
-                />
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                    onPress={handleOfficerLogin}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.loginButtonText}>
+                      {isLoading ? 'Signing In...' : 'Sign In as Officer'}
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={20}
+                      color="#FFFFFF"
+                      style={styles.buttonIcon}
+                    />
+                  </TouchableOpacity>
+   
+                  {/* Password Reset Form */}
+                  {requiresPasswordReset && (
+                    <View style={styles.passwordResetContainer}>
+                      <Text style={styles.passwordResetTitle}>Set New Password</Text>
+                      <Text style={styles.passwordResetSubtitle}>
+                        Your account uses a temporary password. Please create a new password to continue.
+                      </Text>
+   
+                      {/* New Password Input */}
+                      <View style={styles.inputContainer}>
+                        <View style={styles.inputWrapper}>
+                          <Ionicons
+                            name="lock-closed-outline"
+                            size={20}
+                            color={Colors.textSecondary}
+                            style={styles.inputIcon}
+                          />
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Enter new password"
+                            placeholderTextColor={Colors.textSecondary}
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            secureTextEntry={!showNewPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                          <TouchableOpacity
+                            style={styles.eyeButton}
+                            onPress={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            <Ionicons
+                              name={showNewPassword ? "eye-outline" : "eye-off-outline"}
+                              size={20}
+                              color={Colors.textSecondary}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+   
+                      {/* Confirm Password Input */}
+                      <View style={styles.inputContainer}>
+                        <View style={styles.inputWrapper}>
+                          <Ionicons
+                            name="lock-closed-outline"
+                            size={20}
+                            color={Colors.textSecondary}
+                            style={styles.inputIcon}
+                          />
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Confirm new password"
+                            placeholderTextColor={Colors.textSecondary}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry={!showConfirmPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                          <TouchableOpacity
+                            style={styles.eyeButton}
+                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            <Ionicons
+                              name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                              size={20}
+                              color={Colors.textSecondary}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+   
+                      {/* Password Reset Error */}
+                      {errors.passwordReset && (
+                        <Text style={styles.errorText}>{errors.passwordReset}</Text>
+                      )}
+   
+                      {/* Password Reset Buttons */}
+                      <View style={styles.passwordResetButtons}>
+                        <TouchableOpacity
+                          style={[styles.resetButton, isLoading && styles.loginButtonDisabled]}
+                          onPress={handlePasswordReset}
+                          disabled={isLoading}
+                        >
+                          <Text style={styles.resetButtonText}>
+                            {isLoading ? 'Updating...' : 'Update Password'}
+                          </Text>
+                        </TouchableOpacity>
+   
+                        <TouchableOpacity
+                          style={styles.backButton}
+                          onPress={handleBackToLogin}
+                          disabled={isLoading}
+                        >
+                          <Text style={styles.backButtonText}>Back to Login</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
 
               {/* Back to Regular Login */}
               <TouchableOpacity 
@@ -538,5 +639,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
     fontWeight: '500',
+  },
+  passwordResetContainer: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  passwordResetTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  passwordResetSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  passwordResetButtons: {
+    gap: 12,
+    marginTop: 20,
+  },
+  resetButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  backButton: {
+    backgroundColor: Colors.surface,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });
