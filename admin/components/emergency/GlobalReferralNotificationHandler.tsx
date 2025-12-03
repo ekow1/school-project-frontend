@@ -43,11 +43,19 @@ const GlobalReferralNotificationHandler: React.FC = () => {
                              notification.referral?.toStation?._id ||
                              notification.referral?.to_station_id;
           
+          // Check if this station is the one that initiated the referral (from_station_id)
+          const fromStationId = notification.referral?.fromStation?.id ||
+                               notification.referral?.fromStation?._id ||
+                               notification.referral?.from_station_id;
+          
           const isForThisStation = toStationId === currentStationId ||
                                   toStationId === String(currentStationId);
           
-          // Only show if it's for this station and requires action
-          if (isForThisStation && notification.requiresAction) {
+          const isFromThisStation = fromStationId === currentStationId ||
+                                   fromStationId === String(currentStationId);
+          
+          // Only show if it's for this station (not from this station) and requires action
+          if (isForThisStation && !isFromThisStation && notification.requiresAction) {
             setReferredAlert(notification);
           }
         } else if (user?.role === 'SuperAdmin') {
@@ -68,11 +76,19 @@ const GlobalReferralNotificationHandler: React.FC = () => {
                              notification.referral?.toStation?._id ||
                              notification.referral?.to_station_id;
           
+          // Check if this station is the one that initiated the referral (from_station_id)
+          const fromStationId = notification.referral?.fromStation?.id ||
+                               notification.referral?.fromStation?._id ||
+                               notification.referral?.from_station_id;
+          
           const isForThisStation = toStationId === currentStationId ||
                                   toStationId === String(currentStationId);
           
-          // Only show if it's for this station and requires action
-          if (isForThisStation && notification.requiresAction) {
+          const isFromThisStation = fromStationId === currentStationId ||
+                                   fromStationId === String(currentStationId);
+          
+          // Only show if it's for this station (not from this station) and requires action
+          if (isForThisStation && !isFromThisStation && notification.requiresAction) {
             setReferredIncident(notification);
           }
         } else if (user?.role === 'SuperAdmin') {
