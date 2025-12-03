@@ -34,39 +34,54 @@ const GlobalReferralNotificationHandler: React.FC = () => {
   // Listen for referral notification events
   useEffect(() => {
     const handleReferredAlert = (event: CustomEvent) => {
-      const notification = event.detail;
-      
-      // For Admin users, check if notification is for their station
-      if (user?.role === 'Admin' && currentStationId) {
-        // Check if the notification is for this station
-        // The notification should be for the current station (to_station_id)
-        // We'll show it if it requires action
-        if (notification.requiresAction) {
-          setReferredAlert(notification);
+        const notification = event.detail;
+        
+        // For Admin users, check if notification is for their station
+        if (user?.role === 'Admin' && currentStationId) {
+          // Check if the notification is for this station (to_station_id)
+          const toStationId = notification.referral?.toStation?.id ||
+                             notification.referral?.toStation?._id ||
+                             notification.referral?.to_station_id;
+          
+          const isForThisStation = toStationId === currentStationId ||
+                                  toStationId === String(currentStationId);
+          
+          // Only show if it's for this station and requires action
+          if (isForThisStation && notification.requiresAction) {
+            setReferredAlert(notification);
+          }
+        } else if (user?.role === 'SuperAdmin') {
+          // SuperAdmin sees all referrals
+          if (notification.requiresAction) {
+            setReferredAlert(notification);
+          }
         }
-      } else if (user?.role === 'SuperAdmin') {
-        // SuperAdmin sees all referrals
-        if (notification.requiresAction) {
-          setReferredAlert(notification);
+      };
+  
+      const handleReferredIncident = (event: CustomEvent) => {
+        const notification = event.detail;
+        
+        // For Admin users, check if notification is for their station
+        if (user?.role === 'Admin' && currentStationId) {
+          // Check if the notification is for this station (to_station_id)
+          const toStationId = notification.referral?.toStation?.id ||
+                             notification.referral?.toStation?._id ||
+                             notification.referral?.to_station_id;
+          
+          const isForThisStation = toStationId === currentStationId ||
+                                  toStationId === String(currentStationId);
+          
+          // Only show if it's for this station and requires action
+          if (isForThisStation && notification.requiresAction) {
+            setReferredIncident(notification);
+          }
+        } else if (user?.role === 'SuperAdmin') {
+          // SuperAdmin sees all referrals
+          if (notification.requiresAction) {
+            setReferredIncident(notification);
+          }
         }
-      }
-    };
-
-    const handleReferredIncident = (event: CustomEvent) => {
-      const notification = event.detail;
-      
-      // For Admin users, check if notification is for their station
-      if (user?.role === 'Admin' && currentStationId) {
-        if (notification.requiresAction) {
-          setReferredIncident(notification);
-        }
-      } else if (user?.role === 'SuperAdmin') {
-        // SuperAdmin sees all referrals
-        if (notification.requiresAction) {
-          setReferredIncident(notification);
-        }
-      }
-    };
+      };
 
     window.addEventListener('referredAlertReceived', handleReferredAlert as EventListener);
     window.addEventListener('referredIncidentReceived', handleReferredIncident as EventListener);

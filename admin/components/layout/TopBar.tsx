@@ -4,15 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth';
 import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
-import { useStationsStore, selectStations } from '@/lib/stores/stations';
 import {
   LogOut,
   Sun,
   Moon,
   ChevronRight,
   Clock,
-  User,
-  Building2
+  User
 } from 'lucide-react';
 
 interface TopBarProps {
@@ -26,7 +24,6 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
   const pathname = usePathname();
   const regularUser = useAuthStore((state) => state.user);
   const stationAdminUser = useStationAdminAuthStore((state) => state.user);
-  const stations = useStationsStore(selectStations);
 
   // Use station admin user if available, otherwise use regular user
   const user = stationAdminUser || regularUser;
@@ -80,17 +77,6 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
 
   const breadcrumbs = generateBreadcrumbs();
 
-  // Get current station for Station Admin
-  const currentStationId = user?.stationId;
-  const currentStation = React.useMemo(() => {
-    if (!currentStationId || stations.length === 0) return null;
-    const station = stations.find(s => {
-      const stationId = s._id || s.id;
-      return stationId && String(stationId) === String(currentStationId);
-    });
-    return station || null;
-  }, [stations, currentStationId]);
-
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     // You can implement actual dark mode logic here
@@ -121,35 +107,24 @@ const TopBar: React.FC<TopBarProps> = ({ onLogout }) => {
       <div className="flex items-center space-x-6">
         {/* Greeting */}
         <div className="flex items-center space-x-2">
-          {currentStation ? (
-            <>
-              <Building2 className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
-                {getGreeting()}, <span className="font-semibold text-gray-900">{currentStation.name}</span>
+          <User className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-600">
+            {getGreeting()}, <span className="font-semibold text-gray-900">{user?.role || 'Admin'}</span>
+            {user?.role === 'Operations' && user?.departmentId && (
+              <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
+                {(() => {
+                  const departments: Record<string, string> = {
+                    'dept-1': 'Fire Suppression',
+                    'dept-2': 'Emergency Medical Services',
+                    'dept-3': 'Rescue Operations',
+                    'dept-4': 'Prevention & Safety',
+                    'dept-5': 'Training & Development',
+                  };
+                  return departments[user.departmentId] || 'Operations';
+                })()}
               </span>
-            </>
-          ) : (
-            <>
-              <User className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
-                {getGreeting()}, <span className="font-semibold text-gray-900">{user?.role || 'Admin'}</span>
-                {user?.role === 'Operations' && user?.departmentId && (
-                  <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
-                    {(() => {
-                      const departments: Record<string, string> = {
-                        'dept-1': 'Fire Suppression',
-                        'dept-2': 'Emergency Medical Services',
-                        'dept-3': 'Rescue Operations',
-                        'dept-4': 'Prevention & Safety',
-                        'dept-5': 'Training & Development',
-                      };
-                      return departments[user.departmentId] || 'Operations';
-                    })()}
-                  </span>
-                )}
-              </span>
-            </>
-          )}
+            )}
+          </span>
         </div>
 
         {/* Time */}
