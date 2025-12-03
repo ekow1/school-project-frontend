@@ -557,7 +557,7 @@ const EmergencyResponsePage: React.FC = () => {
               columnFilters={columnFilters}
               onColumnFiltersChange={setColumnFilters}
               table={table}
-              headerClassName="bg-gradient-to-r from-gray-100 to-gray-200"
+              headerClassName="bg-gradient-to-r from-red-500 to-red-600 text-white"
             />
           )}
         </div>
