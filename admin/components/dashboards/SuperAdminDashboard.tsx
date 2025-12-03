@@ -709,13 +709,13 @@ const SuperAdminDashboard: React.FC = () => {
         </div>
         <div className="overflow-x-auto rounded-xl border-2 border-gray-200">
           <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+            <thead className="bg-gradient-to-r from-red-500 to-red-600">
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
                     <th
                       key={header.id}
-                      className="px-6 py-4 text-left text-sm font-black text-gray-900 uppercase tracking-wider"
+                      className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider"
                     >
                       {header.isPlaceholder
                         ? null
