@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
 import { useFirePersonnelStore, selectFirePersonnel, selectFirePersonnelIsLoading, selectFirePersonnelError, selectFirePersonnelCount } from '@/lib/stores/firePersonnel';
-import { useRanksStore, selectRanks, selectRanksIsLoading } from '@/lib/stores/ranks';
+import { useRanksStore, selectRanks } from '@/lib/stores/ranks';
 import { useUnitsStore, selectUnits } from '@/lib/stores/units';
 import { useDepartmentsStore, selectDepartments } from '@/lib/stores/departments';
 import { useStationsStore, selectStations } from '@/lib/stores/stations';
@@ -63,7 +63,6 @@ const FirePersonnelPage: React.FC = () => {
   const clearError = useFirePersonnelStore((state) => state.clearError);
 
   const ranks = useRanksStore(selectRanks);
-  const isLoadingRanks = useRanksStore(selectRanksIsLoading);
   const fetchRanks = useRanksStore((state) => state.fetchRanks);
   
   const units = useUnitsStore(selectUnits);
@@ -108,12 +107,6 @@ const FirePersonnelPage: React.FC = () => {
   // Fetch data on mount
   // Departments and units are fetched for the admin's assigned station only
   useEffect(() => {
-    // Fetch ranks (global, not station-specific)
-    fetchRanks().catch((err) => {
-      console.error('Failed to fetch ranks:', err);
-      toast.error('Failed to load ranks', { icon: '⚠️' });
-    });
-    
     if (adminStationId) {
       // Fetch fire personnel for admin's station
       fetchFirePersonnel(adminStationId).catch((err) => {
@@ -127,7 +120,7 @@ const FirePersonnelPage: React.FC = () => {
         toast.error('Failed to load departments', { icon: '⚠️' });
       });
       
-      // Fetch units for admin's station (explicitly pass stationId for proper filtering)
+      // Fetch units for admin's station (explicitly pass stationId)
       fetchUnits(undefined, adminStationId).catch((err) => {
         console.error('Failed to fetch units:', err);
         toast.error('Failed to load units', { icon: '⚠️' });
@@ -139,13 +132,18 @@ const FirePersonnelPage: React.FC = () => {
       });
     }
     
+    // Fetch ranks (global, not station-specific)
+    fetchRanks().catch((err) => {
+      console.error('Failed to fetch ranks:', err);
+    });
+    
     // Fetch stations if not already loaded
     if (stations.length === 0) {
       fetchStations().catch((err) => {
         console.error('Failed to fetch stations:', err);
       });
     }
-  }, [adminStationId, fetchFirePersonnel, fetchDepartments, fetchRanks, fetchStations, stations.length, fetchUnits, fetchRoles]);
+  }, [adminStationId, fetchFirePersonnel, fetchDepartments, fetchRanks, fetchStations, stations.length, fetchUnits]);
 
   // Show error toast for departments if there's an error
   useEffect(() => {
@@ -256,7 +254,7 @@ const FirePersonnelPage: React.FC = () => {
         await Promise.all([
           fetchFirePersonnel(adminStationId),
           fetchDepartments(adminStationId), // Refresh departments
-          fetchUnits(undefined, adminStationId) // Refresh units - explicitly pass stationId
+          fetchUnits(undefined, adminStationId) // Refresh units for admin's station
         ]);
       }
     } catch (err) {
@@ -295,11 +293,10 @@ const FirePersonnelPage: React.FC = () => {
     });
     setErrors({ ...errors, department: '', unit: '' });
     
-    // Refresh units when department changes - fetch units for the selected department and station
+    // Refresh units when department changes to get updated list for the selected department and station
     if (departmentId && adminStationId) {
       fetchUnits(departmentId, adminStationId).catch((err) => {
         console.error('Failed to refresh units after department change:', err);
-        toast.error('Failed to load units for selected department', { icon: '⚠️' });
       });
     }
   };
@@ -696,30 +693,17 @@ const FirePersonnelPage: React.FC = () => {
             </button>
             <button 
               onClick={() => {
-                // Refresh all form data when opening the modal
+                // Refresh ranks, departments, and units when opening the modal
                 if (adminStationId) {
-                  // Refresh ranks (global)
-                  fetchRanks().catch(err => {
-                    console.error('Failed to refresh ranks:', err);
-                    toast.error('Failed to load ranks', { icon: '⚠️' });
-                  });
-                  
-                  // Refresh departments for admin's station
-                  fetchDepartments(adminStationId).catch(err => {
-                    console.error('Failed to refresh departments:', err);
-                    toast.error('Failed to load departments', { icon: '⚠️' });
-                  });
-                  
-                  // Refresh units for admin's station
-                  fetchUnits(undefined, adminStationId).catch(err => {
-                    console.error('Failed to refresh units:', err);
-                    toast.error('Failed to load units', { icon: '⚠️' });
-                  });
-                  
-                  // Refresh roles (global)
-                  fetchRoles().catch(err => {
-                    console.error('Failed to refresh roles:', err);
-                  });
+                  // Fetch ranks (global, not station-specific)
+                  fetchRanks().catch(err => console.error('Failed to refresh ranks:', err));
+                  // Fetch departments for admin's station
+                  fetchDepartments(adminStationId).catch(err => console.error('Failed to refresh departments:', err));
+                  // Fetch units for admin's station
+                  fetchUnits(undefined, adminStationId).catch(err => console.error('Failed to refresh units:', err));
+                } else {
+                  // Still fetch ranks even if no stationId
+                  fetchRanks().catch(err => console.error('Failed to refresh ranks:', err));
                 }
                 setShowAddModal(true);
               }}
@@ -977,42 +961,29 @@ const FirePersonnelPage: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-900 mb-2.5">Rank *</label>
-                      {isLoadingRanks ? (
-                        <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                          <span className="text-sm text-gray-500">Loading ranks...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <select
-                            value={formData.rank}
-                            onChange={(e) => {
-                              setFormData({ ...formData, rank: e.target.value });
-                              setErrors({ ...errors, rank: '' });
-                            }}
-                            disabled={isSubmitting || ranks.length === 0}
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
-                              errors.rank ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
-                            } ${isSubmitting || ranks.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            <option value="">Select Rank</option>
-                            {ranks.length > 0 ? (
-                              ranks.map((rank) => (
-                                <option key={rank.id || rank._id} value={rank.id || rank._id}>
-                                  {rank.name || rank.initials || 'Unnamed Rank'}
-                                </option>
-                              ))
-                            ) : (
-                              <option value="" disabled>No ranks available</option>
-                            )}
-                          </select>
-                          {errors.rank && (
-                            <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              {errors.rank}
-                            </p>
-                          )}
-                        </>
+                      <select
+                        value={formData.rank}
+                        onChange={(e) => {
+                          setFormData({ ...formData, rank: e.target.value });
+                          setErrors({ ...errors, rank: '' });
+                        }}
+                        disabled={isSubmitting}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-200 ${
+                          errors.rank ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-red-400 focus:bg-red-50/30'
+                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">Select Rank</option>
+                        {ranks.map((rank) => (
+                          <option key={rank.id || rank._id} value={rank.id || rank._id}>
+                            {rank.name || rank.initials || 'Unnamed Rank'}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.rank && (
+                        <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {errors.rank}
+                        </p>
                       )}
                     </div>
 
