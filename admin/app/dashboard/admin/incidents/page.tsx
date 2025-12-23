@@ -36,7 +36,7 @@ import {
   ColumnFiltersState,
   getPaginationRowModel,
 } from '@tanstack/react-table';
-import { Incident } from '@/lib/types/incident';
+import { Incident, IncidentStatus } from '@/lib/types/incident';
 import { useIncidentsStore, selectIncidents, selectIncidentsIsLoading, selectIncidentsError } from '@/lib/stores/incidents';
 import toast, { Toaster } from 'react-hot-toast';
 import DataTable from '@/components/ui/DataTable';
@@ -67,12 +67,15 @@ const IncidentReportsPage: React.FC = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [editStatus, setEditStatus] = useState<IncidentStatus | ''>('');
+  const [isUpdatingIncident, setIsUpdatingIncident] = useState(false);
 
   // Incidents store
   const incidents = useIncidentsStore(selectIncidents);
   const isLoading = useIncidentsStore(selectIncidentsIsLoading);
   const error = useIncidentsStore(selectIncidentsError);
   const fetchIncidents = useIncidentsStore((state) => state.fetchIncidents);
+  const updateIncident = useIncidentsStore((state) => state.updateIncident);
   const clearError = useIncidentsStore((state) => state.clearError);
 
   // Fetch incidents on mount and listen for real-time updates
@@ -249,6 +252,7 @@ const IncidentReportsPage: React.FC = () => {
             <button
               onClick={() => {
                 setSelectedIncident(row.original);
+                setEditStatus(row.original.status);
                 setShowIncidentModal(true);
               }}
               className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:shadow-md"
@@ -325,6 +329,24 @@ const IncidentReportsPage: React.FC = () => {
   const activeIncidents = filteredIncidents.filter(incident => incident.status === 'active').length;
   const criticalIncidents = filteredIncidents.filter(incident => incident.alertId?.priority === 'critical').length;
   const completedIncidents = filteredIncidents.filter(incident => incident.status === 'completed').length;
+
+  const handleUpdateIncident = async () => {
+    if (!selectedIncident || !editStatus) return;
+    try {
+      setIsUpdatingIncident(true);
+      await updateIncident(selectedIncident.id || selectedIncident._id, {
+        status: editStatus,
+      });
+      toast.success('Incident updated successfully');
+      setShowIncidentModal(false);
+      setSelectedIncident(null);
+    } catch (error) {
+      console.error('Error updating incident:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update incident');
+    } finally {
+      setIsUpdatingIncident(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 px-6">
@@ -705,6 +727,42 @@ const IncidentReportsPage: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Update Incident Status */}
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Update Incident Status</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Change the current status of this incident. This will be reflected across the system.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Status
+                      </label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value as IncidentStatus)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+                      >
+                        <option value="">Select status</option>
+                        <option value="pending">Pending</option>
+                        <option value="dispatched">Dispatched</option>
+                        <option value="en_route">En Route</option>
+                        <option value="on_scene">On Scene</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleUpdateIncident}
+                      disabled={!editStatus || isUpdatingIncident}
+                      className="inline-flex items-center justify-center px  -4 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isUpdatingIncident ? 'Updating...' : 'Update Incident'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
