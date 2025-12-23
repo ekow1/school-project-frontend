@@ -109,6 +109,66 @@ const mockTips = [
   "Install smoke detectors on every floor and test them monthly.",
   "Keep fire extinguishers accessible and know how to use them.",
   "Plan and practice a fire escape route with your family.",
+  "Never leave cooking unattended, especially when frying or grilling.",
+  "Keep flammable materials at least 3 feet away from heat sources.",
+  "Replace or repair damaged electrical cords immediately.",
+  "Don't overload electrical outlets or extension cords.",
+  "Install carbon monoxide detectors in sleeping areas.",
+  "Keep matches and lighters out of children's reach.",
+  "Regularly clean lint traps in your dryer to prevent fires.",
+  "Never use extension cords with space heaters or air conditioners.",
+  "Keep a fire blanket in your kitchen for grease fires.",
+  "Test smoke alarms monthly by pressing the test button.",
+  "Have a family meeting place outside your home in case of fire.",
+  "Never smoke in bed or when drowsy.",
+  "Keep fire escape routes clear of clutter and obstacles.",
+  "Close doors at night to slow the spread of fire.",
+  "Store gasoline and other flammable liquids outside the home.",
+  "Keep a fire extinguisher in your kitchen and know how to use it.",
+  "Never throw water on a grease fire - use baking soda or a lid.",
+  "Check space heaters regularly and keep them away from curtains.",
+  "Don't leave candles burning unattended or near flammable materials.",
+  "Install fire-resistant roofing materials if possible.",
+  "Keep your chimney clean and inspected annually.",
+  "Don't store flammable items near your water heater or furnace.",
+  "Create a fire safety plan and practice it twice a year.",
+  "Teach children to never play with matches or lighters.",
+  "Keep fire department emergency numbers posted in visible locations.",
+  "Never run electrical cords under rugs or furniture.",
+  "Keep fire escape ladders on upper floors if needed.",
+  "Check your smoke detector batteries every six months.",
+  "Don't use candles during power outages - use flashlights instead.",
+  "Keep barbecue grills at least 10 feet from your home.",
+  "Never leave a fire in the fireplace unattended.",
+  "Keep a fire extinguisher rated for all fire types (ABC) in your home.",
+  "Install sprinkler systems if possible, especially in basements.",
+  "Don't use gasoline or flammable liquids to start fires.",
+  "Keep your garage clear of flammable materials and clutter.",
+  "Check your heating system annually before winter.",
+  "Never use an oven to heat your home.",
+  "Keep flammable decorations away from heat sources during holidays.",
+  "Install arc-fault circuit interrupters (AFCIs) in your home.",
+  "Don't leave portable heaters on when you leave the room.",
+  "Keep your address clearly visible for emergency responders.",
+  "Store important documents in a fireproof safe.",
+  "Never use water to extinguish an electrical fire.",
+  "Keep a working flashlight in each bedroom.",
+  "Don't pile trash or debris near your home.",
+  "Check that all windows can be opened easily for escape.",
+  "Keep garden hoses accessible for outdoor fires.",
+  "Install smoke detectors with 10-year batteries for less maintenance.",
+  "Never use extension cords as permanent wiring.",
+  "Keep barbecue ashes in a metal container until cold.",
+  "Don't block heating vents or radiators.",
+  "Check electrical appliances for frayed cords before use.",
+  "Keep a first aid kit accessible in case of fire injuries.",
+  "Never re-enter a burning building for any reason.",
+  "Keep your fire safety plan updated if you renovate.",
+  "Teach everyone in your home to crawl low under smoke.",
+  "Install door alarms for children's rooms if needed.",
+  "Keep your roof and gutters clear of debris.",
+  "Don't store flammable materials in attics or basements.",
+  "Test your smoke alarms when you change clocks for daylight saving.",
 ]
 
 const mockNews = [
@@ -155,10 +215,19 @@ const getStatusColors = (status: string) => {
   }
 }
 
+// Seeded random number generator for consistent daily tips
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
 const getDailyTip = () => {
   const today = new Date()
-  const idx = today.getDate() % mockTips.length
-  return mockTips[idx]
+  // Create a unique seed for each day: YYYY-MM-DD
+  const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
+  // Generate a random index based on the day seed
+  const randomIndex = Math.floor(seededRandom(daySeed) * mockTips.length)
+  return mockTips[randomIndex]
 }
 
 const customMapStyleLight = [

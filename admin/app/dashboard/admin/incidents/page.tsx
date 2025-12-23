@@ -68,6 +68,9 @@ const IncidentReportsPage: React.FC = () => {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [editStatus, setEditStatus] = useState<IncidentStatus | ''>('');
+  const [editResponseTime, setEditResponseTime] = useState<string>('');
+  const [editResolutionTime, setEditResolutionTime] = useState<string>('');
+  const [editTotalTime, setEditTotalTime] = useState<string>('');
   const [isUpdatingIncident, setIsUpdatingIncident] = useState(false);
 
   // Incidents store
@@ -253,6 +256,21 @@ const IncidentReportsPage: React.FC = () => {
               onClick={() => {
                 setSelectedIncident(row.original);
                 setEditStatus(row.original.status);
+                setEditResponseTime(
+                  row.original.responseTimeMinutes !== null
+                    ? String(row.original.responseTimeMinutes)
+                    : ''
+                );
+                setEditResolutionTime(
+                  row.original.resolutionTimeMinutes !== null
+                    ? String(row.original.resolutionTimeMinutes)
+                    : ''
+                );
+                setEditTotalTime(
+                  row.original.totalIncidentTimeMinutes !== null
+                    ? String(row.original.totalIncidentTimeMinutes)
+                    : ''
+                );
                 setShowIncidentModal(true);
               }}
               className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:shadow-md"
@@ -264,6 +282,21 @@ const IncidentReportsPage: React.FC = () => {
               onClick={() => {
                 setSelectedIncident(row.original);
                 setEditStatus(row.original.status);
+                setEditResponseTime(
+                  row.original.responseTimeMinutes !== null
+                    ? String(row.original.responseTimeMinutes)
+                    : ''
+                );
+                setEditResolutionTime(
+                  row.original.resolutionTimeMinutes !== null
+                    ? String(row.original.resolutionTimeMinutes)
+                    : ''
+                );
+                setEditTotalTime(
+                  row.original.totalIncidentTimeMinutes !== null
+                    ? String(row.original.totalIncidentTimeMinutes)
+                    : ''
+                );
                 setShowIncidentModal(true);
               }}
               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:shadow-md"
@@ -345,9 +378,19 @@ const IncidentReportsPage: React.FC = () => {
     if (!selectedIncident || !editStatus) return;
     try {
       setIsUpdatingIncident(true);
-      await updateIncident(selectedIncident.id || selectedIncident._id, {
+      const toNumberOrNull = (val: string) => {
+        const num = Number(val);
+        return Number.isFinite(num) ? num : null;
+      };
+
+      const payload: Partial<Incident> = {
         status: editStatus,
-      });
+      };
+      if (editResponseTime !== '') payload.responseTimeMinutes = toNumberOrNull(editResponseTime);
+      if (editResolutionTime !== '') payload.resolutionTimeMinutes = toNumberOrNull(editResolutionTime);
+      if (editTotalTime !== '') payload.totalIncidentTimeMinutes = toNumberOrNull(editTotalTime);
+
+      await updateIncident(selectedIncident.id || selectedIncident._id, payload);
       toast.success('Incident updated successfully');
       setShowIncidentModal(false);
       setSelectedIncident(null);
@@ -564,11 +607,11 @@ const IncidentReportsPage: React.FC = () => {
       {/* Incident Details Modal */}
       {showIncidentModal && selectedIncident && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setShowIncidentModal(false)}
         >
           <div
-            className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-8">
@@ -739,14 +782,14 @@ const IncidentReportsPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Update Incident Status */}
+                {/* Update Incident */}
                 <div className="mt-6 border-t border-gray-200 pt-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Update Incident Status</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Update Incident</h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Change the current status of this incident. This will be reflected across the system.
+                    Adjust status and timing fields. Values are prefilled from the incident.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                    <div className="flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
                       <label className="block text-sm font-semibold text-gray-600 mb-1">
                         Status
                       </label>
@@ -765,10 +808,54 @@ const IncidentReportsPage: React.FC = () => {
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Response Time (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={editResponseTime}
+                        onChange={(e) => setEditResponseTime(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+                        placeholder="e.g. 6.5"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Resolution Time (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={editResolutionTime}
+                        onChange={(e) => setEditResolutionTime(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+                        placeholder="e.g. 15"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Total Incident Time (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={editTotalTime}
+                        onChange={(e) => setEditTotalTime(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+                        placeholder="e.g. 22"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end">
                     <button
                       onClick={handleUpdateIncident}
                       disabled={!editStatus || isUpdatingIncident}
-                      className="inline-flex items-center justify-center px  -4 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center px-4 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {isUpdatingIncident ? 'Updating...' : 'Update Incident'}
                     </button>
