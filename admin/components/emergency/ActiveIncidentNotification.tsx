@@ -158,11 +158,11 @@ const ActiveIncidentNotification: React.FC<ActiveIncidentNotificationProps> = ({
   const handleReferClick = async () => {
     if (!notification) return;
     if (!selectedStationId) {
-      toast.error('Please select a station to refer this alert to.');
+      window.alert('Please select a station to refer this alert to.');
       return;
     }
     if (!referReason.trim()) {
-      toast.error('Please provide a reason for referring this alert.');
+      window.alert('Please provide a reason for referring this alert.');
       return;
     }
     setIsProcessing(true);
@@ -171,15 +171,15 @@ const ActiveIncidentNotification: React.FC<ActiveIncidentNotificationProps> = ({
       const fromStationId = notification.stationId;
       
       if (!fromStationId) {
-        toast.error('Unable to determine source station. Cannot create referral.');
+        window.alert('Unable to determine source station. Cannot create referral.');
         setIsProcessing(false);
         return;
       }
       
       // Create referral using the new referrals API
       await createReferral({
-        data_id: notification.activeIncident?._id || notification.alert._id,
-        data_type: 'Incident',
+        data_id: notification.alert._id,
+        data_type: 'EmergencyAlert',
         from_station_id: fromStationId,
         to_station_id: selectedStationId,
         reason: referReason.trim() || undefined,

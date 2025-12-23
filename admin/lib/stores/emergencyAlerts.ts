@@ -48,16 +48,26 @@ const setupReferralListeners = (socket: Socket) => {
   import('@/lib/stores/referrals').then(({ useReferralsStore }) => {
     const referralsStore = useReferralsStore.getState();
     
-    // Referred Alert Received - Notification removed, only tracking
+    // Referred Alert Received
     socket.on('referred_alert_received', (notification: any) => {
       console.log('📨 Referred alert received:', notification);
-      // Notification popup removed - only log for tracking
+      referralsStore.setReferredAlertNotification(notification);
+      
+      // Dispatch custom event for components to listen to
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('referredAlertReceived', { detail: notification }));
+      }
     });
 
-    // Referred Incident Received - Notification removed, only tracking
+    // Referred Incident Received
     socket.on('referred_incident_received', (notification: any) => {
       console.log('📨 Referred incident received:', notification);
-      // Notification popup removed - only log for tracking
+      referralsStore.setReferredIncidentNotification(notification);
+      
+      // Dispatch custom event for components to listen to
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('referredIncidentReceived', { detail: notification }));
+      }
     });
 
     // Referral Created (for tracking)

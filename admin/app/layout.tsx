@@ -4,6 +4,7 @@ import "./globals.css";
 import WebSocketProvider from "@/components/providers/WebSocketProvider";
 import GlobalEmergencyAlertHandler from "@/components/emergency/GlobalEmergencyAlertHandler";
 import GlobalActiveIncidentHandler from "@/components/emergency/GlobalActiveIncidentHandler";
+import GlobalReferralNotificationHandler from "@/components/emergency/GlobalReferralNotificationHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
               <WebSocketProvider>
                 <GlobalEmergencyAlertHandler />
                 <GlobalActiveIncidentHandler />
+                <GlobalReferralNotificationHandler />
                 {children}
               </WebSocketProvider>
       </body>
