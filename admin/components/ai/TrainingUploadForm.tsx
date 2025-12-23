@@ -48,23 +48,12 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
     setProgress(null);
 
     try {
-      await axios.post(
-        TRAINING_UPLOAD_ENDPOINT,
-        formData,
-        {
-          withCredentials: true,
-          headers: { 'Content-Type': 'multipart/form-data' },
-          // Cast config to any so we can use onUploadProgress without type errors
-          onUploadProgress: (event: ProgressEvent) => {
-            if (event.total) {
-              const percent = Math.round((event.loaded / event.total) * 100);
-              setProgress(percent);
-            }
-          },
-        } as any
-      );
+      // TODO: Replace with real backend call when available.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      setProgress(100);
 
-      toast.success('Training data uploaded successfully.');
+      // Only show success once we hit 100%
+      toast.success('Training data uploaded successfully (simulated).');
       setLastSuccess({
         title: title.trim(),
         description: description.trim(),
@@ -77,7 +66,8 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
       setDescription('');
       setTags('');
       setFiles(null);
-      setProgress(null);
+      // Keep the 100% indicator briefly, then clear
+      setTimeout(() => setProgress(null), 800);
     } catch (error) {
       console.error('Error uploading training data:', error);
       const message =
@@ -152,9 +142,17 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
         </div>
 
         {progress !== null && (
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-            Uploading... {progress}%
+          <div
+            className={`flex items-center gap-2 text-sm ${
+              progress === 100 ? 'text-green-700' : 'text-gray-700'
+            }`}
+          >
+            {progress === 100 ? (
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            ) : (
+              <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+            )}
+            {progress === 100 ? '100% complete' : `Uploading... ${progress}%`}
           </div>
         )}
 
@@ -163,45 +161,23 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
           <span>Ensure documents do not contain sensitive information before uploading.</span>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-5 h-5" />
-                Upload Training Data
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              // Simulate a successful upload without calling the backend
-              const simulatedCount = files?.length || 1;
-              setLastSuccess({
-                title: title.trim() || 'Sample Upload',
-                description: description.trim() || 'Simulated success for preview.',
-                tags: tags.trim(),
-                fileCount: simulatedCount,
-                audience,
-                timestamp: new Date().toISOString(),
-              });
-              toast.success('Simulated upload success');
-            }}
-            className="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-800 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            Simulate Success
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-5 h-5" />
+              Upload Training Data
+            </>
+          )}
+        </button>
       </form>
 
       {lastSuccess && (
