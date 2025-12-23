@@ -6,6 +6,8 @@ import { useEmergencyAlertsStore } from '@/lib/stores/emergencyAlerts';
 import { useAuthStore } from '@/lib/stores/auth';
 import { useStationAdminAuthStore } from '@/lib/stores/stationAdminAuth';
 import EmergencyAlertPopup from './EmergencyAlertPopup';
+import { useIncidentsStore } from '@/lib/stores/incidents';
+import toast from 'react-hot-toast';
 
 /**
  * Global component that listens to WebSocket events for emergency alerts
@@ -35,6 +37,8 @@ const GlobalEmergencyAlertHandler: React.FC = () => {
   const isConnected = useEmergencyAlertsStore((state) => state.isConnected);
   const fetchAlerts = useEmergencyAlertsStore((state) => state.fetchAlerts);
   const alerts = useEmergencyAlertsStore((state) => state.alerts);
+  const incidents = useIncidentsStore((state) => state.incidents);
+  const createIncident = useIncidentsStore((state) => state.createIncident);
 
   // Connect to WebSocket and fetch alerts globally for authenticated users
   useEffect(() => {
@@ -147,9 +151,22 @@ const GlobalEmergencyAlertHandler: React.FC = () => {
   const handleAcknowledge = async (alertId: string) => {
     try {
       await updateAlert(alertId, { status: 'accepted' });
+      // Create incident if it doesn't already exist for this alert
+      const alreadyHasIncident = incidents.some((incident) => {
+        const incidentAlertId =
+          typeof incident.alertId === 'object' && incident.alertId !== null
+            ? incident.alertId._id || incident.alertId.id
+            : incident.alertId;
+        return incidentAlertId === alertId;
+      });
+      if (!alreadyHasIncident) {
+        await createIncident(alertId);
+      }
+      toast.success('Alert accepted and incident created');
       setCurrentAlert(null);
     } catch (error) {
       console.error('Error acknowledging alert:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to accept alert');
     }
   };
 

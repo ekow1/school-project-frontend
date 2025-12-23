@@ -7,6 +7,7 @@ import { Incident, IncidentResponse } from "@/lib/types/incident";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const INCIDENTS_ENDPOINT = `${API_BASE_URL}/incidents`;
+const INCIDENTS_CREATE_ENDPOINT = `${API_BASE_URL}/api/incidents/create`;
 
 interface WebSocketIncidentData {
   _id?: string;
@@ -30,6 +31,7 @@ interface IncidentsStore {
   error: string | null;
   count: number;
 
+  createIncident: (alertId: string) => Promise<Incident>;
   fetchIncidents: () => Promise<void>;
   fetchIncidentById: (id: string) => Promise<Incident | null>;
   updateIncident: (id: string, incidentData: Partial<Incident>) => Promise<Incident>;
@@ -119,6 +121,23 @@ const apiUpdateIncident = async (id: string, incidentData: Partial<Incident>): P
   }
 };
 
+// API function to create incident from alert
+const apiCreateIncident = async (alertId: string): Promise<{ success: boolean; data: Incident }> => {
+  try {
+    const { data } = await axios.post<{ success: boolean; data: Incident }>(
+      INCIDENTS_CREATE_ENDPOINT,
+      { alertId },
+      { withCredentials: true }
+    );
+    return data;
+  } catch (error) {
+    const message = axios.isAxiosError(error)
+      ? error.response?.data?.message || error.message || "Failed to create incident"
+      : "Failed to create incident";
+    throw new Error(message);
+  }
+};
+
 // API function to fetch incident by ID
 const apiFetchIncidentById = async (id: string): Promise<IncidentResponse> => {
   try {
@@ -183,6 +202,41 @@ export const useIncidentsStore = create<IncidentsStore>()(
       isLoading: false,
       error: null,
       count: 0,
+
+      createIncident: async (alertId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await apiCreateIncident(alertId);
+          const normalizedIncident = normalizeIncident(response.data);
+
+          set((state) => {
+            const exists = state.incidents.some((incident) => {
+              const incidentAlertId =
+                typeof incident.alertId === 'object' && incident.alertId !== null
+                  ? incident.alertId._id || incident.alertId.id
+                  : incident.alertId;
+              return incidentAlertId === alertId;
+            });
+
+            return {
+              incidents: exists
+                ? state.incidents
+                : [normalizedIncident, ...state.incidents],
+              count: exists ? state.count : state.count + 1,
+              isLoading: false,
+              error: null,
+            };
+          });
+
+          return normalizedIncident;
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to create incident",
+          });
+          throw error;
+        }
+      },
 
       fetchIncidents: async () => {
         set({ isLoading: true, error: null });

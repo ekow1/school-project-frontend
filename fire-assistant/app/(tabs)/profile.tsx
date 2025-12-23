@@ -37,6 +37,7 @@ interface ProfileData {
   dob: string
   image: string
   ghanaPost: string
+  serviceNumber?: string
 }
 
 export default function ProfileScreen() {
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
     dob: "",
     image: "",
     ghanaPost: "",
+    serviceNumber: "",
   })
   const [tempData, setTempData] = useState({ ...profileData })
   const [imageError, setImageError] = useState(false)
@@ -109,6 +111,7 @@ export default function ProfileScreen() {
         dob: user.dob || "",
         image: user.image || "",
         ghanaPost: user.ghanaPost || "",
+        serviceNumber: user.serviceNumber || "",
       }
       setProfileData(syncedData)
       setTempData(syncedData)
@@ -144,6 +147,7 @@ export default function ProfileScreen() {
           dob: data.dob || "",
           image: data.image || "",
           ghanaPost: data.ghanaPost || "",
+          serviceNumber: data.serviceNumber || (data as any)?.service_number || "",
         }
         setProfileData(syncedData)
         setTempData(syncedData)
@@ -417,6 +421,16 @@ export default function ProfileScreen() {
                 </View>
               )}
             </View>
+
+            {user?.userType === 'fire_officer' && (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Service Number</Text>
+                <View style={styles.displayValue}>
+                  <Ionicons name="id-card" size={18} color={Colors.primary} />
+                  <Text style={styles.displayText}>{profileData.serviceNumber || 'Not set'}</Text>
+                </View>
+              </View>
+            )}
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Date of Birth</Text>

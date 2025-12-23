@@ -366,16 +366,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   getProfile: async (): Promise<User | null> => {
     const token = get().token
+    const currentUser = get().user
     
     if (!token) {
       console.error('No token available')
       return null
     }
 
+    const mapOfficerProfile = (data: any): User => {
+      return {
+        id: data.id || data._id || currentUser?.id || '',
+        name: data.name || data.fullName || currentUser?.name || '',
+        phone: data.phone || data.contactNumber || currentUser?.phone || '',
+        email: data.email || currentUser?.email || '',
+        address: data.address || data.station?.name || currentUser?.address || '',
+        country: data.country || currentUser?.country,
+        dob: data.dob || currentUser?.dob,
+        image: data.image || data.photo || currentUser?.image,
+        ghanaPost: data.ghanaPost || currentUser?.ghanaPost,
+        serviceNumber: data.serviceNumber || data.service_number || currentUser?.serviceNumber,
+        userType: 'fire_officer',
+      }
+    }
+
     try {
       console.log('Fetching profile...')
       
-      const response = await axios.get(`${API_BASE_URL}/profile`, {
+      const isOfficer = currentUser?.userType === 'fire_officer'
+      const url = isOfficer 
+        ? `${API_BASE_URL}/fire/personnel/me`
+        : `${API_BASE_URL}/profile`
+
+      const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -383,7 +405,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true,
       })
 
-      const userData: User = response.data
+      const userData: User = isOfficer ? mapOfficerProfile(response.data) : response.data
       console.log('Profile fetched:', userData)
       
       // Update user in state and AsyncStorage
