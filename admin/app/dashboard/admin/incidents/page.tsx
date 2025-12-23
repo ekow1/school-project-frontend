@@ -527,6 +527,189 @@ const IncidentReportsPage: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Incident Details Modal */}
+      {showIncidentModal && selectedIncident && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowIncidentModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-black text-gray-900">Incident Details</h2>
+                <button
+                  onClick={() => setShowIncidentModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {selectedIncident.alertId?.incidentName || 'Incident (No Alert Assigned)'}
+                  </h3>
+                  {selectedIncident.alertId && (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          selectedIncident.alertId.incidentType === 'fire'
+                            ? 'bg-red-100 text-red-800'
+                            : selectedIncident.alertId.incidentType === 'medical'
+                            ? 'bg-blue-100 text-blue-800'
+                            : selectedIncident.alertId.incidentType === 'rescue'
+                            ? 'bg-green-100 text-green-800'
+                            : selectedIncident.alertId.incidentType === 'flood'
+                            ? 'bg-cyan-100 text-cyan-800'
+                            : selectedIncident.alertId.incidentType === 'hazardous'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {capitalize(selectedIncident.alertId.incidentType)}
+                      </span>
+                      <span
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          selectedIncident.alertId.priority === 'critical'
+                            ? 'bg-red-100 text-red-800'
+                            : selectedIncident.alertId.priority === 'high'
+                            ? 'bg-orange-100 text-orange-800'
+                            : selectedIncident.alertId.priority === 'medium'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {capitalize(selectedIncident.alertId.priority)} Priority
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-semibold text-gray-600">Status:</span>
+                    <span
+                      className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${
+                        selectedIncident.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : selectedIncident.status === 'active'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {capitalize(selectedIncident.status)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-600">Department:</span>
+                    <span className="ml-2 text-gray-900">{selectedIncident.departmentOnDuty?.name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-600">Unit:</span>
+                    <span className="ml-2 text-gray-900">{selectedIncident.unitOnDuty?.name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-600">Created:</span>
+                    <span className="ml-2 text-gray-900">{formatDate(selectedIncident.createdAt)}</span>
+                  </div>
+                </div>
+
+                {selectedIncident.alertId && (
+                  <div>
+                    <span className="text-sm font-semibold text-gray-600">Location:</span>
+                    <p className="text-gray-900 mt-1">{selectedIncident.alertId.location?.locationName || 'No Location'}</p>
+                    {selectedIncident.alertId.location?.locationUrl && (
+                      <a
+                        href={selectedIncident.alertId.location.locationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm mt-1 inline-flex items-center gap-1"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        View on Map
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {!selectedIncident.alertId && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800 text-sm font-semibold">⚠️ No Alert Assigned</p>
+                    <p className="text-yellow-700 text-sm mt-1">This incident does not have an associated alert.</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600 font-semibold">Response Time:</span>
+                    <p className="text-gray-900 mt-1">
+                      {selectedIncident.responseTimeMinutes !== null
+                        ? `${selectedIncident.responseTimeMinutes} minutes`
+                        : 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 font-semibold">Resolution Time:</span>
+                    <p className="text-gray-900 mt-1">
+                      {selectedIncident.resolutionTimeMinutes !== null
+                        ? `${selectedIncident.resolutionTimeMinutes} minutes`
+                        : 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 font-semibold">Total Incident Time:</span>
+                    <p className="text-gray-900 mt-1">
+                      {selectedIncident.totalIncidentTimeMinutes !== null
+                        ? `${selectedIncident.totalIncidentTimeMinutes} minutes`
+                        : 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 font-semibold">Last Updated:</span>
+                    <p className="text-gray-900 mt-1">{formatDate(selectedIncident.updatedAt)}</p>
+                  </div>
+                </div>
+
+                {selectedIncident.alertId && (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600 font-semibold">Alert Status:</span>
+                      <span
+                        className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${
+                          selectedIncident.alertId.status === 'accepted'
+                            ? 'bg-green-100 text-green-800'
+                            : selectedIncident.alertId.status === 'active'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : selectedIncident.alertId.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : selectedIncident.alertId.status === 'rejected'
+                            ? 'bg-red-100 text-red-800'
+                            : selectedIncident.alertId.status === 'referred'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {capitalize(selectedIncident.alertId.status)}
+                      </span>
+                    </div>
+                    {selectedIncident.alertId.responseTimeMinutes !== null && (
+                      <div>
+                        <span className="text-gray-600 font-semibold">Alert Response Time:</span>
+                        <p className="text-gray-900 mt-1">{selectedIncident.alertId.responseTimeMinutes} minutes</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

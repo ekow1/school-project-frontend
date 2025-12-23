@@ -7,6 +7,7 @@ import { useStationsStore, selectStations } from '@/lib/stores/stations';
 import { useEmergencyAlertsStore } from '@/lib/stores/emergencyAlerts';
 import { useIncidentsStore } from '@/lib/stores/incidents';
 import { useReferralsStore } from '@/lib/stores/referrals';
+import toast from 'react-hot-toast';
 
 interface EmergencyAlertPopupProps {
   alert: EmergencyAlert | null;
@@ -282,27 +283,29 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
 
   const handleRefer = async () => {
     if (!selectedStationId) {
-      window.alert('Please select a station to refer this alert to.');
+      toast.error('Please select a station to refer this alert to.');
       return;
     }
     if (!referReason.trim()) {
-      window.alert('Please provide a reason for referring this alert.');
+      toast.error('Please provide a reason for referring this alert.');
       return;
     }
     setIsProcessing(true);
     try {
-      // Get the current station ID if available (from alert.station)
-      const fromStationId = typeof alert.station === 'string' 
-        ? alert.station 
-        : alert.station?._id || alert.station?.id;
+      // Determine source station from alert or fallback ids
+      const fromStationId =
+        (typeof alert.station === 'string' && alert.station) ||
+        alert.station?._id ||
+        alert.station?.id ||
+        alert.stationId;
       
       if (!fromStationId) {
-        window.alert('Unable to determine source station. Cannot create referral.');
+        toast.error('Unable to determine source station. Cannot create referral.');
         setIsProcessing(false);
         return;
       }
       
-      // Create referral using the new referrals API
+      // Create referral using the referrals API
       await createReferral({
         data_id: alert.id || alert._id,
         data_type: 'EmergencyAlert',
@@ -311,11 +314,12 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
         reason: referReason.trim() || undefined,
       });
       
-      // Call the onRefer callback if provided (for updating alert status)
+      // Update alert status if callback provided
       if (onRefer) {
         await onRefer(alert.id || alert._id, selectedStationId, referReason);
       }
       
+      toast.success('Referral sent successfully');
       setShowReferDialog(false);
       setReferReason('');
       setSelectedStationId('');
@@ -323,7 +327,7 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
       onClose();
     } catch (error) {
       console.error('Error referring alert:', error);
-      window.alert(error instanceof Error ? error.message : 'Failed to refer alert');
+      toast.error(error instanceof Error ? error.message : 'Failed to refer alert');
     } finally {
       setIsProcessing(false);
     }
