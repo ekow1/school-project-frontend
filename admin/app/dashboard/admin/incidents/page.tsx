@@ -260,6 +260,17 @@ const IncidentReportsPage: React.FC = () => {
             >
               <Eye className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => {
+                setSelectedIncident(row.original);
+                setEditStatus(row.original.status);
+                setShowIncidentModal(true);
+              }}
+              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:shadow-md"
+              title="Update Incident"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
           </div>
         ),
       },
