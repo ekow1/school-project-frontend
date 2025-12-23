@@ -83,6 +83,48 @@ const AnalyticsPage: React.FC = () => {
 
   const metrics = getMetrics();
 
+  const handleDownloadReport = () => {
+    const m = getMetrics();
+
+    const rows = [
+      { Metric: 'Time Range', Value: timeRange },
+      { Metric: 'Total Calls', Value: m.calls },
+      { Metric: 'Average Response Time (min)', Value: m.responseTime },
+      { Metric: 'Resolved Incidents', Value: m.resolved },
+      { Metric: 'Efficiency (%)', Value: m.efficiency },
+      {} as any,
+      { Metric: 'Day', Value: 'Calls / Resolved (last 7 days)' },
+      ...emergencyCallsData.map((d) => ({
+        Metric: d.name,
+        Value: `${d.calls} / ${d.resolved}`,
+      })),
+    ];
+
+    const headers = Object.keys(rows[0]).filter(Boolean);
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((row) =>
+        headers
+          .map((h) => {
+            const v = (row as any)[h] ?? '';
+            const s = String(v);
+            return `"${s.replace(/"/g, '""')}"`;
+          })
+          .join(',')
+      ),
+    ];
+
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `superadmin-analytics-${timeRange}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -104,9 +146,18 @@ const AnalyticsPage: React.FC = () => {
             <div className="bg-red-100 p-3 rounded-xl">
               <BarChart3 className="w-10 h-10 text-red-600" />
             </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-gray-900">Live</span>
-              <p className="text-gray-500 text-sm">Analytics</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-2xl font-bold text-gray-900">Live</span>
+                <p className="text-gray-500 text-sm">Analytics</p>
+              </div>
+              <button
+                onClick={handleDownloadReport}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 hover:shadow-sm transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Download Report
+              </button>
             </div>
           </div>
         </div>
