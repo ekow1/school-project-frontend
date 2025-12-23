@@ -48,16 +48,21 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
     setProgress(null);
 
     try {
-      await axios.post(TRAINING_UPLOAD_ENDPOINT, formData, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (event) => {
-          if (event.total) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setProgress(percent);
-          }
-        },
-      });
+      await axios.post(
+        TRAINING_UPLOAD_ENDPOINT,
+        formData,
+        {
+          withCredentials: true,
+          headers: { 'Content-Type': 'multipart/form-data' },
+          // Cast config to any so we can use onUploadProgress without type errors
+          onUploadProgress: (event) => {
+            if (event.total) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setProgress(percent);
+            }
+          },
+        } as any
+      );
 
       toast.success('Training data uploaded successfully.');
       setLastSuccess({
@@ -219,27 +224,6 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
           </div>
         </div>
       )}
-
-      <form className="space-y-5">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-5 h-5" />
-              Upload Training Data
-            </>
-          )}
-        </button>
-      </form>
-
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border-2 border-gray-100 rounded-lg p-4">
           <div className="flex items-center gap-2 text-gray-800 font-semibold">
