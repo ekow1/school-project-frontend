@@ -632,6 +632,19 @@ export default function ProfileScreen() {
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={Colors.tertiary} />
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={() => router.push('/feedback')}
+            >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIconBg}>
+                      <Ionicons name="chatbubble-ellipses" size={18} color={Colors.accent} />
+                    </View>
+                    <Text style={styles.settingText}>Send Feedback</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.tertiary} />
+            </TouchableOpacity>
           </View>
 
               {/* Sign Out & Delete Account */}

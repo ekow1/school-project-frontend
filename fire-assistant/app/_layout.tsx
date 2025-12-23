@@ -119,6 +119,7 @@ function RootNavigator() {
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="reset" options={{ headerShown: false }} />
       <Stack.Screen name="new-password" options={{ headerShown: false }} />
+      <Stack.Screen name="feedback" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>
