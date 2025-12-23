@@ -44,6 +44,33 @@ const AuditLogsPage: React.FC = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  const downloadCsv = (rows: AuditLog[], filename: string) => {
+    const headers = ['Timestamp', 'User', 'Action', 'Resource', 'IP Address', 'Status', 'Details'];
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((row) =>
+        [
+          row.timestamp,
+          row.user,
+          row.action,
+          row.resource,
+          row.ipAddress,
+          row.status,
+          `"${row.details.replace(/"/g, '""')}"`,
+        ].join(',')
+      ),
+    ];
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Mock data
   const auditLogs: AuditLog[] = [
     {
@@ -216,8 +243,22 @@ const AuditLogsPage: React.FC = () => {
     []
   );
 
+  const filteredLogs = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    return auditLogs.filter((log) => {
+      const matchesSearch =
+        log.user.toLowerCase().includes(searchLower) ||
+        log.action.toLowerCase().includes(searchLower) ||
+        log.resource.toLowerCase().includes(searchLower) ||
+        log.details.toLowerCase().includes(searchLower);
+      const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
+      const matchesAction = filterAction === 'all' || log.action === filterAction;
+      return matchesSearch && matchesStatus && matchesAction;
+    });
+  }, [auditLogs, searchTerm, filterStatus, filterAction]);
+
   const table = useReactTable({
-    data: auditLogs,
+    data: filteredLogs,
     columns,
     state: {
       sorting,
@@ -230,11 +271,20 @@ const AuditLogsPage: React.FC = () => {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  // Calculate metrics
-  const successLogs = auditLogs.filter(log => log.status === 'success').length;
-  const failedLogs = auditLogs.filter(log => log.status === 'failed').length;
-  const warningLogs = auditLogs.filter(log => log.status === 'warning').length;
-  const totalLogs = auditLogs.length;
+  // Calculate metrics (filtered)
+  const successLogs = filteredLogs.filter(log => log.status === 'success').length;
+  const failedLogs = filteredLogs.filter(log => log.status === 'failed').length;
+  const warningLogs = filteredLogs.filter(log => log.status === 'warning').length;
+  const totalLogs = filteredLogs.length || 1;
+
+  const handleGenerateReport = () => {
+    const rows = filteredLogs.length ? filteredLogs : auditLogs;
+    if (!rows.length) {
+      alert('No audit logs to include in the report.');
+      return;
+    }
+    downloadCsv(rows, 'superadmin-audit-report.csv');
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">

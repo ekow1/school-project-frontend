@@ -216,17 +216,49 @@ const AdminAuditLogsPage: React.FC = () => {
     []
   );
 
-  const filteredData = useMemo(() => {
-    return auditLogs.filter(log => {
-      const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.resource.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.details.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
-      const matchesAction = filterAction === 'all' || log.action === filterAction;
-      return matchesSearch && matchesStatus && matchesAction;
-    });
-  }, [searchTerm, filterStatus, filterAction]);
+const filteredData = useMemo(() => {
+  return auditLogs.filter(log => {
+    const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.resource.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.details.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
+    const matchesAction = filterAction === 'all' || log.action === filterAction;
+    return matchesSearch && matchesStatus && matchesAction;
+  });
+}, [searchTerm, filterStatus, filterAction]);
+
+const handleGenerateReport = () => {
+  const rows = filteredData.length ? filteredData : auditLogs;
+  if (!rows.length) {
+    alert('No audit logs to include in the report.');
+    return;
+  }
+  const headers = ['Timestamp', 'User', 'Action', 'Resource', 'IP Address', 'Status', 'Details'];
+  const csvLines = [
+    headers.join(','),
+    ...rows.map((row) =>
+      [
+        row.timestamp,
+        row.user,
+        row.action,
+        row.resource,
+        row.ipAddress || '',
+        row.status,
+        `"${row.details.replace(/"/g, '""')}"`,
+      ].join(',')
+    ),
+  ];
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'station-audit-report.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
   const table = useReactTable({
     data: filteredData,
@@ -398,9 +430,12 @@ const AdminAuditLogsPage: React.FC = () => {
           </div>
           
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm">
+            <button
+              onClick={handleGenerateReport}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm"
+            >
               <Download className="w-5 h-5" />
-              Export Logs
+              Generate Report
             </button>
           </div>
         </div>
