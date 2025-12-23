@@ -55,7 +55,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
           withCredentials: true,
           headers: { 'Content-Type': 'multipart/form-data' },
           // Cast config to any so we can use onUploadProgress without type errors
-          onUploadProgress: (event) => {
+          onUploadProgress: (event: ProgressEvent) => {
             if (event.total) {
               const percent = Math.round((event.loaded / event.total) * 100);
               setProgress(percent);
