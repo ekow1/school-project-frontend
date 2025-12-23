@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Image, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
+import { useFireReportsStore } from '../../store/fireReportsStore';
 
 const Colors = {
   primary: "#D32F2F",
@@ -21,6 +22,16 @@ const Colors = {
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
+  const isFireOfficer = user?.userType === 'fire_officer';
+  const { reports } = useFireReportsStore();
+  
+  // Count pending/accepted incidents (new ones that need attention)
+  const pendingIncidentsCount = reports.filter(
+    (report: any) => {
+      const status = report.status?.toLowerCase();
+      return status === 'pending' || status === 'accepted';
+    }
+  ).length;
   
   return (
     <Tabs
@@ -48,6 +59,10 @@ export default function TabLayout() {
           marginBottom: 2,
         },
         tabBarButton: (props) => {
+          // If href is null, hide the tab
+          if (props.to === null || props.href === null) {
+            return null;
+          }
           const filteredProps = Object.fromEntries(Object.entries(props).filter(([_, v]) => v !== null));
           return (
             <TouchableOpacity
@@ -75,6 +90,46 @@ export default function TabLayout() {
               size={24} 
               color={color} 
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="turnout-slip"
+        options={{
+          title: 'Turnout',
+          href: isFireOfficer ? '/turnout-slip' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ position: 'relative' }}>
+              <Ionicons 
+                name={focused ? "clipboard" : "clipboard-outline"} 
+                size={24} 
+                color={color} 
+              />
+              {isFireOfficer && pendingIncidentsCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -8,
+                  backgroundColor: Colors.danger,
+                  borderRadius: 10,
+                  minWidth: 20,
+                  height: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 6,
+                  borderWidth: 2,
+                  borderColor: Colors.background,
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 11,
+                    fontWeight: '700',
+                  }}>
+                    {pendingIncidentsCount > 9 ? '9+' : pendingIncidentsCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
@@ -134,6 +189,7 @@ export default function TabLayout() {
         name="fire-stations"
         options={{
           title: 'Stations',
+          href: isFireOfficer ? '/fire-stations' : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? "business" : "business-outline"} 

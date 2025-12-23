@@ -314,6 +314,21 @@ export default function LoginScreen() {
                 />
               </TouchableOpacity>
 
+              {/* Officer Login Button */}
+              <TouchableOpacity
+                style={styles.officerLoginButton}
+                onPress={() => router.push('/officer-login')}
+              >
+                <Ionicons 
+                  name="shield-outline" 
+                  size={20} 
+                  color={Colors.primary}
+                />
+                <Text style={styles.officerLoginButtonText}>
+                  Officer Login
+                </Text>
+              </TouchableOpacity>
+
               {/* Forgot Password */}
               <TouchableOpacity 
                 style={styles.forgotPasswordContainer}
@@ -493,6 +508,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginRight: 8,
+  },
+  officerLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  officerLoginButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginLeft: 8,
   },
   buttonIcon: {
     marginLeft: 4,

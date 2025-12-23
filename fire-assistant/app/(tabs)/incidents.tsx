@@ -59,30 +59,26 @@ export default function IncidentsScreen() {
     reports, 
     isLoading, 
     error, 
-    getFireReportsByUser, 
+    getAllFireReports, 
     clearError 
   } = useFireReportsStore();
   
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch user's fire reports on component mount
+  // Fetch all incidents on component mount
   useEffect(() => {
-    if (user?.id) {
-      fetchUserReports();
-    }
-  }, [user?.id]);
+    fetchIncidents();
+  }, []);
 
-  const fetchUserReports = async () => {
-    if (!user?.id) return;
-    
+  const fetchIncidents = async () => {
     try {
-      console.log('📋 Fetching fire reports for user:', user.id);
-      await getFireReportsByUser(user.id);
+      console.log('📋 Fetching all incidents');
+      await getAllFireReports();
     } catch (error) {
-      console.error('❌ Error fetching user reports:', error);
+      console.error('❌ Error fetching incidents:', error);
       Alert.alert(
         'Error', 
-        'Failed to load your fire reports. Please try again.',
+        'Failed to load incidents. Please try again.',
         [{ text: 'OK', onPress: clearError }]
       );
     }
@@ -90,7 +86,7 @@ export default function IncidentsScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchUserReports();
+    await fetchIncidents();
     setRefreshing(false);
   };
 
@@ -153,7 +149,7 @@ export default function IncidentsScreen() {
       <AnimatedScreen direction="up" delay={100}>
         <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Fire Reports</Text>
+          <Text style={styles.headerTitle}>All Incidents</Text>
           <TouchableOpacity 
             style={[styles.refreshButton, refreshing && styles.refreshButtonDisabled]} 
             onPress={handleRefresh}
@@ -171,15 +167,14 @@ export default function IncidentsScreen() {
         {isLoading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#D32F2F" />
-            <Text style={styles.loadingText}>Loading your reports...</Text>
+            <Text style={styles.loadingText}>Loading incidents...</Text>
           </View>
         ) : reports.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-outline" size={64} color="#9CA3AF" />
-            <Text style={styles.emptyTitle}>No Reports Found</Text>
+            <Text style={styles.emptyTitle}>No Incidents Found</Text>
             <Text style={styles.emptyMessage}>
-              You haven't submitted any fire reports yet.{'\n'}
-              Use the emergency reporting feature to submit your first report.
+              No incidents reported at this time.
             </Text>
           </View>
         ) : (
@@ -345,11 +340,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   reportHeader: {
     flexDirection: 'row',

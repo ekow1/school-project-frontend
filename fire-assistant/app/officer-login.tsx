@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -15,6 +16,8 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ENV } from '../config/env';
+import { useAuthStore } from '../store/authStore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -125,15 +128,24 @@ export default function OfficerLoginScreen() {
         throw new Error('No token received from server');
       }
 
-      // TODO: Store token and navigate to officer dashboard
-      console.log('Officer login successful, token received');
+      // Store token and user data manually (avoid duplicate API call)
+      const userData = user ? { ...user, userType: 'fire_officer' as const } : { 
+        id: '', 
+        name: '', 
+        serviceNumber: formData.serviceNumber, 
+        userType: 'fire_officer' as const 
+      };
+      
+      await AsyncStorage.setItem('@auth_token', token);
+      await AsyncStorage.setItem('@auth_user', JSON.stringify(userData));
+      
+      // Update auth store state
+      useAuthStore.setState({ user: userData, token, isLoading: false, error: null });
+      
+      console.log('Officer login successful, navigating to turnout slip');
 
-      // For now, just show success message
-      Alert.alert(
-        'Login Successful',
-        'Welcome to the Officer Portal!',
-        [{ text: 'OK', onPress: () => router.push('/(tabs)') }]
-      );
+      // Navigate directly to turnout slip screen (second screen after login)
+      router.replace('/(tabs)/turnout-slip');
 
     } catch (error) {
       console.error('Officer login error:', error);
@@ -141,7 +153,6 @@ export default function OfficerLoginScreen() {
         ? error.response?.data?.message || error.message
         : 'Login failed';
       setErrors({ general: errorMessage });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -189,14 +200,25 @@ export default function OfficerLoginScreen() {
         throw new Error('No token received after password change');
       }
 
-      // TODO: Store token and navigate to officer dashboard
-      console.log('Password changed successfully, token received');
+      // Store token and user data using authStore
+      const userData = user ? { ...user, userType: 'fire_officer' as const } : { 
+        id: officerData.id, 
+        name: '', 
+        serviceNumber: officerData.serviceNumber, 
+        userType: 'fire_officer' as const 
+      };
+      
+      // Store in AsyncStorage
+      await AsyncStorage.setItem('@auth_token', token);
+      await AsyncStorage.setItem('@auth_user', JSON.stringify(userData));
+      
+      // Update auth store state
+      useAuthStore.setState({ user: userData, token, isLoading: false, error: null });
+      
+      console.log('Password changed successfully, navigating to turnout slip');
 
-      Alert.alert(
-        'Password Updated',
-        'Your password has been changed successfully. Welcome to the Officer Portal!',
-        [{ text: 'OK', onPress: () => router.push('/(tabs)') }]
-      );
+      // Navigate directly to turnout slip screen (second screen after login)
+      router.replace('/(tabs)/turnout-slip');
 
     } catch (error) {
       console.error('Password change error:', error);
@@ -204,7 +226,6 @@ export default function OfficerLoginScreen() {
         ? error.response?.data?.message || error.message
         : 'Password change failed';
       setErrors({ passwordReset: errorMessage });
-    } finally {
       setIsLoading(false);
     }
   };

@@ -13,6 +13,8 @@ interface User {
   dob?: string
   image?: string
   ghanaPost?: string
+  serviceNumber?: string
+  userType?: 'fire_officer' | 'regular'
 }
 
 interface ProfileData {
@@ -37,6 +39,7 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>
   verifyPhone: (phone: string, otp: string) => Promise<void>
   login: (phone: string, password: string) => Promise<void>
+  officerLogin: (serviceNumber: string, password: string) => Promise<void>
   forgotPassword: (phone: string) => Promise<void>
   resetPassword: (phone: string, otp: string, newPassword: string) => Promise<void>
   logout: () => Promise<void>
@@ -214,7 +217,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem(TOKEN_KEY, token)
       
       // If user data is provided, save it; otherwise create a minimal user object
-      const userData = user || { id: '', name: '', phone }
+      const userData = user || { id: '', name: '', phone, userType: 'regular' as const }
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
       
       set({ 
@@ -229,6 +232,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const errorMessage = axios.isAxiosError(error)
         ? error.response?.data?.message || error.message
         : 'Login failed'
+      set({ isLoading: false, error: errorMessage })
+      throw error
+    }
+  },
+
+  officerLogin: async (serviceNumber: string, password: string) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      console.log('Logging in officer:', serviceNumber)
+      
+      const response = await axios.post(`${API_BASE_URL}/fire/personnel/login`, 
+        { serviceNumber, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      console.log('Officer login response:', response.status, response.data)
+
+      // Get token from response
+      const { token, user } = response.data
+      
+      if (!token) {
+        throw new Error('No token received from server')
+      }
+      
+      // Save token to AsyncStorage
+      await AsyncStorage.setItem(TOKEN_KEY, token)
+      
+      // Mark user as fire officer and save
+      const userData = user ? { ...user, userType: 'fire_officer' as const } : { 
+        id: '', 
+        name: '', 
+        serviceNumber, 
+        userType: 'fire_officer' as const 
+      }
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
+      
+      set({ 
+        user: userData, 
+        token,
+        isLoading: false, 
+        error: null 
+      })
+      
+    } catch (error) {
+      console.error('Officer login error:', error)
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'Officer login failed'
       set({ isLoading: false, error: errorMessage })
       throw error
     }

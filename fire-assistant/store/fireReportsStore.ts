@@ -202,12 +202,12 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
     }
   },
 
-  // Get all fire reports
+  // Get all fire reports (incidents)
   getAllFireReports: async (): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
     
     try {
-      console.log('Fetching all fire reports');
+      console.log('Fetching all incidents');
       
       const token = useAuthStore.getState().token;
       
@@ -216,7 +216,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/emergency/alerts`, {
+      const response = await fetch(`${API_BASE_URL}/incidents`, {
         method: 'GET',
         headers,
       });
@@ -227,10 +227,44 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
       }
 
       const result = await response.json();
-      console.log('Fire reports fetched successfully:', result);
+      console.log('Incidents fetched successfully:', result);
       
       if (result.success && result.data) {
-        set({ reports: result.data, isLoading: false, error: null });
+        // Transform API response to match FireReport interface
+        const transformedReports: FireReport[] = result.data.map((incident: any) => {
+          const alert = incident.alertId || {};
+          return {
+            _id: incident._id || alert._id,
+            userId: alert.userId || '',
+            incidentType: alert.incidentType || '',
+            incidentName: alert.incidentName || '',
+            location: {
+              coordinates: {
+                latitude: alert.location?.coordinates?.latitude || 0,
+                longitude: alert.location?.coordinates?.longitude || 0,
+              },
+              locationUrl: alert.location?.locationUrl || '',
+              locationName: alert.location?.locationName || '',
+            },
+            station: {
+              name: incident.station?.name || '',
+              address: incident.station?.address || '',
+              latitude: incident.station?.latitude || 0,
+              longitude: incident.station?.longitude || 0,
+              phone: incident.station?.phone,
+            },
+            reportedAt: alert.reportedAt || incident.createdAt,
+            status: incident.status as any || alert.status || 'pending',
+            priority: alert.priority || 'medium',
+            createdAt: incident.createdAt,
+            updatedAt: incident.updatedAt,
+            // Store additional data for access
+            reporterName: alert.reporterName,
+            reporterPhone: alert.reporterPhone,
+          } as FireReport & { reporterName?: string; reporterPhone?: string };
+        });
+        
+        set({ reports: transformedReports, isLoading: false, error: null });
       } else {
         set({ isLoading: false, error: null });
       }
@@ -238,8 +272,8 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
       return result;
       
     } catch (error) {
-      console.error('Error fetching fire reports:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch fire reports';
+      console.error('Error fetching incidents:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch incidents';
       set({ isLoading: false, error: errorMessage });
       throw error;
     }

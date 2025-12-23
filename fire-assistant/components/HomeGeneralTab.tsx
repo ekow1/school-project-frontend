@@ -686,7 +686,7 @@ export default function HomeGeneralTab() {
   const { 
     reports: fireReports, 
     isLoading: reportsLoading, 
-    getFireReportsByUser 
+    getAllFireReports 
   } = useFireReportsStore()
   const [manualLocation, setManualLocation] = useState("")
   const [useManual, setUseManual] = useState(false)
@@ -853,21 +853,17 @@ export default function HomeGeneralTab() {
       })
   }, [location])
 
-  // Fetch user's fire reports on mount
+  // Fetch all incidents on mount
   useEffect(() => {
-    if (user?._id) {
-      fetchUserReports()
-    }
-  }, [user?._id])
+    fetchAllIncidents()
+  }, [])
 
-  const fetchUserReports = async () => {
-    if (!user?._id) return
-    
+  const fetchAllIncidents = async () => {
     try {
-      console.log('📋 Fetching recent fire reports for home screen:', user._id)
-      await getFireReportsByUser(user._id)
+      console.log('📋 Fetching all incidents for home screen')
+      await getAllFireReports()
     } catch (error) {
-      console.error('❌ Error fetching user reports for home:', error)
+      console.error('❌ Error fetching incidents for home:', error)
     }
   }
 
@@ -1246,9 +1242,9 @@ export default function HomeGeneralTab() {
       ) : getRecentReports().length === 0 ? (
         <View style={styles.emptyReportsContainer}>
           <Ionicons name="document-outline" size={48} color={Colors.tertiary} />
-          <Text style={styles.emptyReportsTitle}>No Recent Reports</Text>
+          <Text style={styles.emptyReportsTitle}>No Recent Emergencies</Text>
           <Text style={styles.emptyReportsMessage}>
-            You haven't submitted any emergency reports yet.
+            No emergency incidents reported at this time.
           </Text>
         </View>
       ) : (
