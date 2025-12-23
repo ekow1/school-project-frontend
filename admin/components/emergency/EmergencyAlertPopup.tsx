@@ -7,6 +7,7 @@ import { useStationsStore, selectStations } from '@/lib/stores/stations';
 import { useEmergencyAlertsStore } from '@/lib/stores/emergencyAlerts';
 import { useIncidentsStore } from '@/lib/stores/incidents';
 import { useReferralsStore } from '@/lib/stores/referrals';
+import toast from 'react-hot-toast';
 
 interface EmergencyAlertPopupProps {
   alert: EmergencyAlert | null;
@@ -282,11 +283,11 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
 
   const handleRefer = async () => {
     if (!selectedStationId) {
-      window.alert('Please select a station to refer this alert to.');
+      toast.error('Please select a station to refer this alert to.');
       return;
     }
     if (!referReason.trim()) {
-      window.alert('Please provide a reason for referring this alert.');
+      toast.error('Please provide a reason for referring this alert.');
       return;
     }
     setIsProcessing(true);
@@ -297,7 +298,7 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
         : alert.station?._id || alert.station?.id;
       
       if (!fromStationId) {
-        window.alert('Unable to determine source station. Cannot create referral.');
+        toast.error('Unable to determine source station. Cannot create referral.');
         setIsProcessing(false);
         return;
       }
@@ -316,6 +317,7 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
         await onRefer(alert.id || alert._id, selectedStationId, referReason);
       }
       
+      toast.success('Referral created successfully');
       setShowReferDialog(false);
       setReferReason('');
       setSelectedStationId('');
@@ -323,7 +325,7 @@ const EmergencyAlertPopup: React.FC<EmergencyAlertPopupProps> = ({
       onClose();
     } catch (error) {
       console.error('Error referring alert:', error);
-      window.alert(error instanceof Error ? error.message : 'Failed to refer alert');
+      toast.error(error instanceof Error ? error.message : 'Failed to refer alert');
     } finally {
       setIsProcessing(false);
     }
