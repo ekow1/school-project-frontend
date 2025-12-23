@@ -25,6 +25,7 @@ import {
   UserCog,
   Badge,
   Award,
+  BookOpen,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -54,6 +55,7 @@ const SuperAdminSidebar: React.FC = () => {
     { name: 'Incidents', href: '/dashboard/superadmin/incidents', icon: AlertTriangle },
     { name: 'Emergency', href: '/dashboard/superadmin/emergency', icon: Ambulance },
     { name: 'Equipment', href: '/dashboard/superadmin/equipment', icon: Wrench },
+  { name: 'AI Education', href: '/dashboard/superadmin/ai-education', icon: BookOpen },
     { name: 'System', href: '/dashboard/superadmin/system', icon: Settings },
     { name: 'Audit', href: '/dashboard/superadmin/audit', icon: Database },
   ];

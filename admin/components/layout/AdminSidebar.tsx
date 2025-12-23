@@ -27,6 +27,7 @@ import {
   UserCheck,
   Badge,
   UserCog,
+  BookOpen,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -71,6 +72,7 @@ const AdminSidebar: React.FC = () => {
     { name: 'Emergency', href: '/dashboard/admin/emergency', icon: Ambulance },
     { name: 'Equipment', href: '/dashboard/admin/equipment', icon: Wrench },
     { name: 'Outlook', href: '/dashboard/admin/outlook', icon: Eye },
+  { name: 'AI Education', href: '/dashboard/admin/ai-education', icon: BookOpen },
     { name: 'Audit', href: '/dashboard/admin/audit', icon: Database },
   ];
 
