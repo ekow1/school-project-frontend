@@ -60,6 +60,7 @@ export interface CreateFireReportData {
 }
 
 export interface UpdateFireReportData {
+  incidentName?: string;
   status?: 'pending' | 'in-progress' | 'resolved' | 'cancelled';
   priority?: 'low' | 'medium' | 'high';
   description?: string;
@@ -422,7 +423,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
       
-      const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/incidents/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updateData),

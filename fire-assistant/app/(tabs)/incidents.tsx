@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedScreen } from '../../components/AnimatedScreen';
+import UpdateIncidentModal from '../../components/UpdateIncidentModal';
 import { useAuthStore } from '../../store/authStore';
 import { FireReport, useFireReportsStore } from '../../store/fireReportsStore';
 
@@ -64,6 +65,9 @@ export default function IncidentsScreen() {
   } = useFireReportsStore();
   
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState<FireReport | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const isFireOfficer = user?.userType === 'fire_officer';
 
   // Fetch all incidents on component mount
   useEffect(() => {
@@ -106,6 +110,13 @@ export default function IncidentsScreen() {
       `Status: ${report.status}\nPriority: ${report.priority}\nLocation: ${report.location?.locationName || 'Unknown location'}\nStation: ${report.station?.name || 'Unknown station'}\nReported: ${formatDate(report.reportedAt)}\n\n${report.description || 'No additional description provided.'}`,
       [
         { text: 'OK' },
+        ...(isFireOfficer ? [{
+          text: 'Update',
+          onPress: () => {
+            setSelectedIncident(report);
+            setShowUpdateModal(true);
+          }
+        }] : []),
         { 
           text: 'View Location', 
           onPress: () => {
@@ -115,6 +126,10 @@ export default function IncidentsScreen() {
         }
       ]
     );
+  };
+
+  const handleUpdateSuccess = () => {
+    fetchIncidents();
   };
 
   const getStatusIcon = (status: string) => {
@@ -253,6 +268,19 @@ export default function IncidentsScreen() {
                   <Ionicons name="business" size={14} color="#6B7280" />
                   <Text style={styles.stationText}>{report.station?.name || 'Unknown Station'}</Text>
                 </View>
+                {isFireOfficer && (
+                  <TouchableOpacity
+                    style={styles.updateButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedIncident(report);
+                      setShowUpdateModal(true);
+                    }}
+                  >
+                    <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+                    <Text style={styles.updateButtonText}>Update</Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             ))}
           </>
@@ -260,6 +288,16 @@ export default function IncidentsScreen() {
         </ScrollView>
         </View>
       </AnimatedScreen>
+      
+      <UpdateIncidentModal
+        visible={showUpdateModal}
+        incident={selectedIncident}
+        onClose={() => {
+          setShowUpdateModal(false);
+          setSelectedIncident(null);
+        }}
+        onUpdateSuccess={handleUpdateSuccess}
+      />
     </SafeAreaView>
   );
 }
@@ -424,5 +462,21 @@ const styles = StyleSheet.create({
   stationText: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  updateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D32F2F',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 12,
+    gap: 6,
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 
