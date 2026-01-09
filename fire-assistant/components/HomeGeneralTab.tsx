@@ -106,69 +106,131 @@ const mockFireStations = [
 ]
 
 const mockTips = [
-  "Install smoke detectors on every floor and test them monthly.",
-  "Keep fire extinguishers accessible and know how to use them.",
-  "Plan and practice a fire escape route with your family.",
-  "Never leave cooking unattended, especially when frying or grilling.",
-  "Keep flammable materials at least 3 feet away from heat sources.",
-  "Replace or repair damaged electrical cords immediately.",
-  "Don't overload electrical outlets or extension cords.",
-  "Install carbon monoxide detectors in sleeping areas.",
-  "Keep matches and lighters out of children's reach.",
-  "Regularly clean lint traps in your dryer to prevent fires.",
-  "Never use extension cords with space heaters or air conditioners.",
-  "Keep a fire blanket in your kitchen for grease fires.",
-  "Test smoke alarms monthly by pressing the test button.",
-  "Have a family meeting place outside your home in case of fire.",
-  "Never smoke in bed or when drowsy.",
-  "Keep fire escape routes clear of clutter and obstacles.",
-  "Close doors at night to slow the spread of fire.",
-  "Store gasoline and other flammable liquids outside the home.",
-  "Keep a fire extinguisher in your kitchen and know how to use it.",
-  "Never throw water on a grease fire - use baking soda or a lid.",
-  "Check space heaters regularly and keep them away from curtains.",
-  "Don't leave candles burning unattended or near flammable materials.",
-  "Install fire-resistant roofing materials if possible.",
-  "Keep your chimney clean and inspected annually.",
-  "Don't store flammable items near your water heater or furnace.",
-  "Create a fire safety plan and practice it twice a year.",
-  "Teach children to never play with matches or lighters.",
-  "Keep fire department emergency numbers posted in visible locations.",
-  "Never run electrical cords under rugs or furniture.",
-  "Keep fire escape ladders on upper floors if needed.",
-  "Check your smoke detector batteries every six months.",
-  "Don't use candles during power outages - use flashlights instead.",
-  "Keep barbecue grills at least 10 feet from your home.",
-  "Never leave a fire in the fireplace unattended.",
-  "Keep a fire extinguisher rated for all fire types (ABC) in your home.",
-  "Install sprinkler systems if possible, especially in basements.",
-  "Don't use gasoline or flammable liquids to start fires.",
-  "Keep your garage clear of flammable materials and clutter.",
-  "Check your heating system annually before winter.",
-  "Never use an oven to heat your home.",
-  "Keep flammable decorations away from heat sources during holidays.",
-  "Install arc-fault circuit interrupters (AFCIs) in your home.",
-  "Don't leave portable heaters on when you leave the room.",
-  "Keep your address clearly visible for emergency responders.",
-  "Store important documents in a fireproof safe.",
-  "Never use water to extinguish an electrical fire.",
-  "Keep a working flashlight in each bedroom.",
-  "Don't pile trash or debris near your home.",
-  "Check that all windows can be opened easily for escape.",
-  "Keep garden hoses accessible for outdoor fires.",
-  "Install smoke detectors with 10-year batteries for less maintenance.",
-  "Never use extension cords as permanent wiring.",
-  "Keep barbecue ashes in a metal container until cold.",
-  "Don't block heating vents or radiators.",
-  "Check electrical appliances for frayed cords before use.",
-  "Keep a first aid kit accessible in case of fire injuries.",
-  "Never re-enter a burning building for any reason.",
-  "Keep your fire safety plan updated if you renovate.",
-  "Teach everyone in your home to crawl low under smoke.",
-  "Install door alarms for children's rooms if needed.",
-  "Keep your roof and gutters clear of debris.",
-  "Don't store flammable materials in attics or basements.",
-  "Test your smoke alarms when you change clocks for daylight saving.",
+  "Install smoke detectors on every floor and test them monthly. Replace batteries annually and replace detectors every 10 years.",
+  
+  "Keep fire extinguishers accessible and learn the PASS method: Pull, Aim, Squeeze, and Sweep. Check expiration dates regularly.",
+  
+  "Plan and practice a fire escape route with your family twice a year. Identify two exits per room and a meeting place outside.",
+  
+  "Never leave cooking unattended, especially when frying or grilling. Most home fires start in the kitchen.",
+  
+  "Keep flammable materials at least 3 feet away from heat sources like stoves, heaters, and fireplaces.",
+  
+  "Replace damaged electrical cords immediately. Never use cords that are frayed, cracked, or show signs of damage.",
+  
+  "Don't overload electrical outlets or extension cords. Use power strips with circuit breakers for multiple devices.",
+  
+  "Install carbon monoxide detectors in sleeping areas and on every level of your home. Test them monthly.",
+  
+  "Keep matches and lighters locked away and out of children's reach. Teach children that fire is not a toy.",
+  
+  "Clean lint traps in your dryer after each use. Clean the vent pipe annually to prevent fires.",
+  
+  "Never use extension cords with space heaters or air conditioners. Plug them directly into wall outlets.",
+  
+  "Keep a fire blanket in your kitchen for grease fires. Fire blankets smother flames by cutting off oxygen.",
+  
+  "Test smoke alarms monthly by pressing the test button. Clean them regularly and replace every 10 years.",
+  
+  "Have a family meeting place outside your home, like a neighbor's house or mailbox. Practice getting there during drills.",
+  
+  "Never smoke in bed or when drowsy. Always use deep ashtrays and completely extinguish cigarettes.",
+  
+  "Keep fire escape routes clear of clutter. Ensure windows can be opened easily for emergency exit.",
+  
+  "Close bedroom doors at night to slow the spread of fire and smoke. This provides valuable escape time.",
+  
+  "Store gasoline and flammable liquids outside in approved containers, away from heat sources.",
+  
+  "Keep a kitchen fire extinguisher and ensure everyone knows how to use it. Kitchens are where most fires start.",
+  
+  "Never throw water on a grease fire. Use baking soda, a lid, or fire blanket instead. Turn off the heat source.",
+  
+  "Keep space heaters 3 feet away from flammable materials. Turn them off when leaving the room or sleeping.",
+  
+  "Don't leave candles burning unattended. Extinguish them before leaving the room and keep them away from flammables.",
+  
+  "Install fire-resistant roofing materials if possible. This helps prevent fires from spreading to your roof.",
+  
+  "Have your chimney cleaned and inspected annually by a professional. Creosote buildup is highly flammable.",
+  
+  "Don't store flammable items near water heaters or furnaces. Maintain 3 feet of clearance around these appliances.",
+  
+  "Create a fire safety plan and practice it twice a year. Include escape routes, meeting place, and emergency contacts.",
+  
+  "Teach children never to play with matches or lighters. Supervise them around any fire sources.",
+  
+  "Keep fire department emergency numbers posted visibly throughout your home. Teach children how to call for help.",
+  
+  "Never run electrical cords under rugs or furniture. This can cause overheating and fires.",
+  
+  "Keep fire escape ladders on upper floors if needed. Practice using them and store them near windows.",
+  
+  "Check smoke detector batteries every six months. A good reminder is when changing clocks for daylight saving.",
+  
+  "Don't use candles during power outages. Use flashlights or battery-powered lanterns instead.",
+  
+  "Keep barbecue grills at least 10 feet from your home and never use them indoors or on porches.",
+  
+  "Never leave a fire in the fireplace unattended. Extinguish it completely before bed or leaving.",
+  
+  "Keep an ABC-rated fire extinguisher in your home. These handle ordinary combustibles, liquids, and electrical fires.",
+  
+  "Install sprinkler systems if possible, especially in basements. They can significantly reduce fire damage.",
+  
+  "Don't use gasoline to start fires. Use proper fire starters or kindling for fireplaces and grills.",
+  
+  "Keep your garage clear of flammable materials and clutter. Never store propane tanks in attached garages.",
+  
+  "Have your heating system inspected annually before winter. Clean or replace filters regularly.",
+  
+  "Never use an oven to heat your home. This can cause fires or carbon monoxide poisoning.",
+  
+  "Keep flammable holiday decorations away from heat sources. Water live trees and check lights for damage.",
+  
+  "Install arc-fault circuit interrupters (AFCIs) in your home. They detect dangerous electrical conditions.",
+  
+  "Turn off portable heaters when leaving the room or going to sleep. Never leave them unattended.",
+  
+  "Keep your address clearly visible for emergency responders. Use large, reflective numbers visible day and night.",
+  
+  "Store important documents in a fireproof safe. Keep digital backups in cloud storage as well.",
+  
+  "Never use water on electrical fires. Use a Class C extinguisher or shut off power at the circuit breaker.",
+  
+  "Keep working flashlights in each bedroom. Power outages often accompany fires, making flashlights essential.",
+  
+  "Don't pile trash or debris near your home. Keep at least 30 feet of defensible space around your property.",
+  
+  "Ensure all windows can open easily for escape. Never nail or bolt windows shut.",
+  
+  "Keep garden hoses accessible for outdoor fires. Check them for leaks before use.",
+  
+  "Install smoke detectors with 10-year batteries for less maintenance. Test them monthly.",
+  
+  "Never use extension cords as permanent wiring. Have additional outlets installed by a licensed electrician.",
+  
+  "Keep barbecue ashes in a metal container until completely cold. Wait 48 hours before disposing.",
+  
+  "Don't block heating vents or radiators. Maintain 12 inches of clearance for safety and efficiency.",
+  
+  "Check electrical appliances for frayed cords before use. Replace damaged appliances immediately.",
+  
+  "Keep a first aid kit accessible for fire injuries. Learn basic first aid for burns.",
+  
+  "Never re-enter a burning building. Your life is more valuable than any possession.",
+  
+  "Update your fire safety plan after home renovations. Practice the updated plan with all family members.",
+  
+  "Teach everyone to crawl low under smoke. The cleanest air is near the floor during a fire.",
+  
+  "Install door alarms for children's rooms if needed. Ensure children understand what alarms mean.",
+  
+  "Keep your roof and gutters clear of debris. Trim tree branches hanging over your roof.",
+  
+  "Don't store flammable materials in attics or basements near electrical equipment or heat sources.",
+  
+  "Test smoke alarms when changing clocks for daylight saving time. This ensures you check them twice yearly.",
 ]
 
 const mockNews = [
@@ -1277,7 +1339,6 @@ export default function HomeGeneralTab() {
       {/* Daily Tip Card */}
       <DailyTipCard 
         tip={dailyTip}
-        onPress={() => console.log("Learn more about fire safety")}
       />
 
       {/* Weather Card */}

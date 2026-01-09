@@ -4,7 +4,6 @@ import React from "react"
 import {
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native"
 
@@ -27,12 +26,10 @@ const Colors = {
 
 interface DailyTipCardProps {
   tip: string
-  onPress?: () => void
 }
 
 export const DailyTipCard: React.FC<DailyTipCardProps> = ({
   tip,
-  onPress,
 }) => {
   return (
     <View style={styles.dailyTipCard}>
@@ -48,13 +45,6 @@ export const DailyTipCard: React.FC<DailyTipCardProps> = ({
         </View>
 
         <Text style={styles.dailyTipText}>{tip}</Text>
-
-        {onPress && (
-          <TouchableOpacity style={styles.tipActionButton} onPress={onPress}>
-            <Text style={styles.tipActionText}>Learn More</Text>
-            <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
-          </TouchableOpacity>
-        )}
       </LinearGradient>
     </View>
   )
@@ -73,7 +63,7 @@ const styles = StyleSheet.create({
   },
   tipGradient: {
     borderRadius: 20,
-    padding: 24,
+    padding: 28,
   },
   tipHeader: {
     marginBottom: 16,
@@ -91,29 +81,17 @@ const styles = StyleSheet.create({
   tipBadgeText: {
     color: Colors.surface,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   dailyTipText: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.surface,
-    fontWeight: "500",
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  tipActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  tipActionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.primary,
+    fontWeight: "400",
+    lineHeight: 28,
+    letterSpacing: 0.3,
+    fontStyle: "italic",
   },
 })
 
