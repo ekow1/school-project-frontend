@@ -456,10 +456,10 @@ const IncidentReportsPage: React.FC = () => {
               <option value="active">Active</option>
               <option value="pending">Pending</option>
               <option value="dispatched">Dispatched</option>
-              <option value="en_route">En Route</option>
+              <option value="referred">Referred</option>
               <option value="on_scene">On Scene</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
             </select>
 
             {/* Type Filter */}
