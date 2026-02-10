@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Shield, 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
+import {
+  Shield,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
   FileText,
   MapPin,
   Clock,
@@ -152,14 +152,13 @@ const IncidentReportsPage: React.FC = () => {
           }
           const type = capitalize(row.original.alertId.incidentType);
           return (
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-              row.original.alertId.incidentType === 'fire' ? 'bg-red-100 text-red-800' :
+            <span className={`px-3 py-1 text-sm font-medium rounded-full ${row.original.alertId.incidentType === 'fire' ? 'bg-red-100 text-red-800' :
               row.original.alertId.incidentType === 'medical' ? 'bg-blue-100 text-blue-800' :
-              row.original.alertId.incidentType === 'rescue' ? 'bg-green-100 text-green-800' :
-              row.original.alertId.incidentType === 'flood' ? 'bg-cyan-100 text-cyan-800' :
-              row.original.alertId.incidentType === 'hazardous' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+                row.original.alertId.incidentType === 'rescue' ? 'bg-green-100 text-green-800' :
+                  row.original.alertId.incidentType === 'flood' ? 'bg-cyan-100 text-cyan-800' :
+                    row.original.alertId.incidentType === 'hazardous' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+              }`}>
               {type}
             </span>
           );
@@ -178,13 +177,12 @@ const IncidentReportsPage: React.FC = () => {
           }
           const priority = capitalize(row.original.alertId.priority);
           return (
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-              row.original.alertId.priority === 'critical' ? 'bg-red-100 text-red-800' :
+            <span className={`px-3 py-1 text-sm font-medium rounded-full ${row.original.alertId.priority === 'critical' ? 'bg-red-100 text-red-800' :
               row.original.alertId.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-              row.original.alertId.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-              row.original.alertId.priority === 'low' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+                row.original.alertId.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                  row.original.alertId.priority === 'low' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+              }`}>
               {priority}
             </span>
           );
@@ -196,15 +194,12 @@ const IncidentReportsPage: React.FC = () => {
         cell: ({ row }) => {
           const status = capitalize(row.original.status);
           return (
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-              row.original.status === 'completed' ? 'bg-green-100 text-green-800' :
+            <span className={`px-3 py-1 text-sm font-medium rounded-full ${row.original.status === 'completed' ? 'bg-green-100 text-green-800' :
               row.original.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
-              row.original.status === 'on_scene' ? 'bg-blue-100 text-blue-800' :
-              row.original.status === 'en_route' ? 'bg-purple-100 text-purple-800' :
-              row.original.status === 'dispatched' ? 'bg-indigo-100 text-indigo-800' :
-              row.original.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+                row.original.status === 'on_scene' ? 'bg-blue-100 text-blue-800' :
+                  row.original.status === 'dispatched' ? 'bg-indigo-100 text-indigo-800' :
+                    'bg-gray-100 text-gray-800'
+              }`}>
               {status}
             </span>
           );
@@ -328,7 +323,7 @@ const IncidentReportsPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8 px-6">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
       <div className="bg-white border-2 border-gray-200 rounded-xl p-8">
         <div className="flex items-center justify-between">
@@ -450,7 +445,7 @@ const IncidentReportsPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-red-300 focus:outline-none transition-colors"
               />
             </div>
-            
+
             {/* Status Filter */}
             <select
               value={filterStatus}
@@ -482,7 +477,7 @@ const IncidentReportsPage: React.FC = () => {
               <option value="Other">Other</option>
             </select>
           </div>
-          
+
           <div className="flex gap-3">
             <button
               onClick={() => fetchIncidents()}
@@ -550,22 +545,20 @@ const IncidentReportsPage: React.FC = () => {
                   </h3>
                   {selectedIncident.alertId && (
                     <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        selectedIncident.alertId.incidentType === 'fire' ? 'bg-red-100 text-red-800' :
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${selectedIncident.alertId.incidentType === 'fire' ? 'bg-red-100 text-red-800' :
                         selectedIncident.alertId.incidentType === 'medical' ? 'bg-blue-100 text-blue-800' :
-                        selectedIncident.alertId.incidentType === 'rescue' ? 'bg-green-100 text-green-800' :
-                        selectedIncident.alertId.incidentType === 'flood' ? 'bg-cyan-100 text-cyan-800' :
-                        selectedIncident.alertId.incidentType === 'hazardous' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          selectedIncident.alertId.incidentType === 'rescue' ? 'bg-green-100 text-green-800' :
+                            selectedIncident.alertId.incidentType === 'flood' ? 'bg-cyan-100 text-cyan-800' :
+                              selectedIncident.alertId.incidentType === 'hazardous' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                        }`}>
                         {capitalize(selectedIncident.alertId.incidentType)}
                       </span>
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        selectedIncident.alertId.priority === 'critical' ? 'bg-red-100 text-red-800' :
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${selectedIncident.alertId.priority === 'critical' ? 'bg-red-100 text-red-800' :
                         selectedIncident.alertId.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                        selectedIncident.alertId.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
+                          selectedIncident.alertId.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                        }`}>
                         {capitalize(selectedIncident.alertId.priority)} Priority
                       </span>
                     </div>
@@ -575,11 +568,10 @@ const IncidentReportsPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-semibold text-gray-600">Status:</span>
-                    <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${
-                      selectedIncident.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${selectedIncident.status === 'completed' ? 'bg-green-100 text-green-800' :
                       selectedIncident.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                       {capitalize(selectedIncident.status)}
                     </span>
                   </div>
@@ -614,7 +606,7 @@ const IncidentReportsPage: React.FC = () => {
                     )}
                   </div>
                 )}
-                
+
                 {!selectedIncident.alertId && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p className="text-yellow-800 text-sm font-semibold">⚠️ No Alert Assigned</p>
@@ -626,24 +618,24 @@ const IncidentReportsPage: React.FC = () => {
                   <div>
                     <span className="text-gray-600 font-semibold">Response Time:</span>
                     <p className="text-gray-900 mt-1">
-                      {selectedIncident.responseTimeMinutes !== null 
-                        ? `${selectedIncident.responseTimeMinutes} minutes` 
+                      {selectedIncident.responseTimeMinutes !== null
+                        ? `${selectedIncident.responseTimeMinutes} minutes`
                         : 'Not available'}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-600 font-semibold">Resolution Time:</span>
                     <p className="text-gray-900 mt-1">
-                      {selectedIncident.resolutionTimeMinutes !== null 
-                        ? `${selectedIncident.resolutionTimeMinutes} minutes` 
+                      {selectedIncident.resolutionTimeMinutes !== null
+                        ? `${selectedIncident.resolutionTimeMinutes} minutes`
                         : 'Not available'}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-600 font-semibold">Total Incident Time:</span>
                     <p className="text-gray-900 mt-1">
-                      {selectedIncident.totalIncidentTimeMinutes !== null 
-                        ? `${selectedIncident.totalIncidentTimeMinutes} minutes` 
+                      {selectedIncident.totalIncidentTimeMinutes !== null
+                        ? `${selectedIncident.totalIncidentTimeMinutes} minutes`
                         : 'Not available'}
                     </p>
                   </div>
@@ -657,14 +649,13 @@ const IncidentReportsPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600 font-semibold">Alert Status:</span>
-                      <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${
-                        selectedIncident.alertId.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                      <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full ${selectedIncident.alertId.status === 'accepted' ? 'bg-green-100 text-green-800' :
                         selectedIncident.alertId.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedIncident.alertId.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedIncident.alertId.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        selectedIncident.alertId.status === 'referred' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          selectedIncident.alertId.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedIncident.alertId.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              selectedIncident.alertId.status === 'referred' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                        }`}>
                         {capitalize(selectedIncident.alertId.status)}
                       </span>
                     </div>
