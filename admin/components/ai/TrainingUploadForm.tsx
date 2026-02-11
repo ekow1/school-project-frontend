@@ -5,8 +5,7 @@ import axios from 'axios';
 import { Upload, FileText, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const TRAINING_UPLOAD_ENDPOINT = `${API_BASE_URL}/ai/training/upload`;
+const API_URL = 'https://rag.ekowlabs.space/api/v1/upload';
 
 interface TrainingUploadFormProps {
   audience: 'Admin' | 'SuperAdmin';
@@ -28,10 +27,32 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
     timestamp: string;
   } | null>(null);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles) {
+      // Filter to only PDF files
+      const pdfFiles = Array.from(selectedFiles).filter(
+        (file) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      );
+
+      if (pdfFiles.length !== selectedFiles.length) {
+        toast.error('Only PDF files are allowed. Non-PDF files were removed.');
+      }
+
+      if (pdfFiles.length > 0) {
+        const dataTransfer = new DataTransfer();
+        pdfFiles.forEach((file) => dataTransfer.items.add(file));
+        setFiles(dataTransfer.files);
+      } else {
+        setFiles(null);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!files || files.length === 0) {
-      toast.error('Please attach at least one file.');
+      toast.error('Please attach at least one PDF file.');
       return;
     }
 
@@ -45,15 +66,25 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
     Array.from(files).forEach((file) => formData.append('files', file));
 
     setIsSubmitting(true);
-    setProgress(null);
+    setProgress(0);
 
     try {
-      // TODO: Replace with real backend call when available.
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setProgress(100);
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent: { total?: number; loaded?: number }) => {
+          if (progressEvent.total && progressEvent.loaded) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(Math.min(percent, 95));
+          }
+        },
+      };
 
-      // Only show success once we hit 100%
-      toast.success('Training data uploaded successfully (simulated).');
+      const response = await axios.post(API_URL, formData, config);
+
+      setProgress(100);
+      toast.success('Training data uploaded successfully.');
       setLastSuccess({
         title: title.trim(),
         description: description.trim(),
@@ -66,7 +97,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
       setDescription('');
       setTags('');
       setFiles(null);
-      // Keep the 100% indicator briefly, then clear
+
       setTimeout(() => setProgress(null), 800);
     } catch (error) {
       console.error('Error uploading training data:', error);
@@ -75,6 +106,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
           ? error.response.data.message
           : 'Failed to upload training data';
       toast.error(message);
+      setProgress(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +120,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
         </div>
         <div>
           <h1 className="text-3xl font-black text-gray-900">AI Education Upload</h1>
-          <p className="text-gray-600">Upload documents and data to improve the AI knowledge base.</p>
+          <p className="text-gray-600">Upload PDF documents to improve the AI knowledge base.</p>
           <p className="text-xs text-gray-500 mt-1">Audience: {audience}</p>
         </div>
       </div>
@@ -128,24 +160,28 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Files</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">PDF Files Only</label>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-red-300 transition-colors">
             <input
               type="file"
               multiple
-              onChange={(e) => setFiles(e.target.files)}
+              accept=".pdf"
+              onChange={handleFileChange}
               className="w-full"
-              accept=".pdf,.doc,.docx,.txt,.csv,.json"
             />
-            <p className="text-gray-500 text-sm mt-2">Supported: PDF, DOC/DOCX, TXT, CSV, JSON</p>
+            <p className="text-gray-500 text-sm mt-2">Only PDF files are accepted</p>
           </div>
+          {files && files.length > 0 && (
+            <div className="mt-2 text-sm text-green-600">
+              {files.length} file(s) selected
+            </div>
+          )}
         </div>
 
         {progress !== null && (
           <div
-            className={`flex items-center gap-2 text-sm ${
-              progress === 100 ? 'text-green-700' : 'text-gray-700'
-            }`}
+            className={`flex items-center gap-2 text-sm ${progress === 100 ? 'text-green-700' : 'text-gray-700'
+              }`}
           >
             {progress === 100 ? (
               <CheckCircle className="w-4 h-4 text-green-600" />
@@ -163,7 +199,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !files}
           className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
@@ -219,7 +255,7 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
             Tips
           </div>
           <ul className="mt-2 text-sm text-gray-600 space-y-1 list-disc list-inside">
-            <li>Prefer structured text (PDF/TXT/CSV/JSON) over images.</li>
+            <li>Ensure files are in PDF format.</li>
             <li>Group related files with clear titles and tags.</li>
             <li>Keep descriptions concise so the AI can classify content.</li>
           </ul>
@@ -230,4 +266,3 @@ const TrainingUploadForm: React.FC<TrainingUploadFormProps> = ({ audience }) => 
 };
 
 export default TrainingUploadForm;
-

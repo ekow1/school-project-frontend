@@ -53,7 +53,7 @@ class RoleBasedAPIClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
@@ -115,31 +115,31 @@ export const roleBasedAPI = {
     getStationReports: (stationId: string) => apiClient.get(`/admin/station/${stationId}/reports`),
     getStationAnalytics: (stationId: string) => apiClient.get(`/admin/station/${stationId}/analytics`),
     getDepartments: (stationId: string) => apiClient.get(`/admin/station/${stationId}/departments`),
-    updatePersonnel: (stationId: string, personnelId: string, data: unknown) => 
+    updatePersonnel: (stationId: string, personnelId: string, data: unknown) =>
       apiClient.put(`/admin/station/${stationId}/personnel/${personnelId}`, data),
-    updateStationConfig: (stationId: string, config: unknown) => 
+    updateStationConfig: (stationId: string, config: unknown) =>
       apiClient.put(`/admin/station/${stationId}/config`, config),
   },
 
   // Operations endpoints
   operations: {
-    getMainDashboard: (stationId: string) => 
+    getMainDashboard: (stationId: string) =>
       apiClient.get(`/operations/${stationId}/main/dashboard`),
-    getWatchroomDashboard: (stationId: string) => 
+    getWatchroomDashboard: (stationId: string) =>
       apiClient.get(`/operations/${stationId}/watchroom/dashboard`),
-    getCrewDashboard: (stationId: string, departmentId: string) => 
+    getCrewDashboard: (stationId: string, departmentId: string) =>
       apiClient.get(`/operations/${stationId}/crew/${departmentId}/dashboard`),
-    getActiveIncidents: (stationId: string) => 
+    getActiveIncidents: (stationId: string) =>
       apiClient.get(`/operations/${stationId}/incidents`),
-    getPersonnelStatus: (stationId: string) => 
+    getPersonnelStatus: (stationId: string) =>
       apiClient.get(`/operations/${stationId}/personnel/status`),
-    getDispatchQueue: (stationId: string) => 
+    getDispatchQueue: (stationId: string) =>
       apiClient.get(`/operations/${stationId}/dispatch/queue`),
-    assignPersonnel: (stationId: string, incidentId: string, personnelIds: string[]) => 
+    assignPersonnel: (stationId: string, incidentId: string, personnelIds: string[]) =>
       apiClient.post(`/operations/${stationId}/incidents/${incidentId}/assign`, { personnelIds }),
-    updateIncidentStatus: (stationId: string, incidentId: string, status: string) => 
+    updateIncidentStatus: (stationId: string, incidentId: string, status: string) =>
       apiClient.put(`/operations/${stationId}/incidents/${incidentId}/status`, { status }),
-    dispatchUnit: (stationId: string, unitId: string, incidentId: string) => 
+    dispatchUnit: (stationId: string, unitId: string, incidentId: string) =>
       apiClient.post(`/operations/${stationId}/dispatch/${unitId}`, { incidentId }),
   },
 
@@ -151,7 +151,7 @@ export const roleBasedAPI = {
     getSafetyPersonnel: () => apiClient.get('/safety/personnel'),
     getSafetyAnalytics: () => apiClient.get('/safety/analytics'),
     reportIncident: (incident: unknown) => apiClient.post('/safety/incidents', incident),
-    updateCompliance: (complianceId: string, data: unknown) => 
+    updateCompliance: (complianceId: string, data: unknown) =>
       apiClient.put(`/safety/compliance/${complianceId}`, data),
     scheduleAudit: (audit: unknown) => apiClient.post('/safety/audits', audit),
   },
@@ -166,19 +166,30 @@ export const roleBasedAPI = {
     createPressRelease: (release: unknown) => apiClient.post('/pr/press-releases', release),
     createAnnouncement: (announcement: unknown) => apiClient.post('/pr/announcements', announcement),
     launchCampaign: (campaign: unknown) => apiClient.post('/pr/campaigns', campaign),
-    updateMediaCoverage: (coverageId: string, data: unknown) => 
+    updateMediaCoverage: (coverageId: string, data: unknown) =>
       apiClient.put(`/pr/media/${coverageId}`, data),
   },
 
   // Common endpoints
   common: {
-    login: (credentials: { email: string; password: string }) => 
+    login: (credentials: { email: string; password: string }) =>
       apiClient.post('/auth/login', credentials),
     register: (userData: unknown) => apiClient.post('/auth/register', userData),
     logout: () => apiClient.post('/auth/logout'),
     refreshToken: () => apiClient.post('/auth/refresh'),
     getProfile: () => apiClient.get('/auth/profile'),
     updateProfile: (data: unknown) => apiClient.put('/auth/profile', data),
+  },
+
+  // Fire Safety Tips endpoints
+  fireSafetyTips: {
+    getAll: () => apiClient.get('/fire-safety-tips'),
+    getById: (id: string) => apiClient.get(`/fire-safety-tips/${id}`),
+    create: (data: { title: string; content: string }) =>
+      apiClient.post('/fire-safety-tips', data),
+    update: (id: string, data: { title?: string; content?: string }) =>
+      apiClient.put(`/fire-safety-tips/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/fire-safety-tips/${id}`),
   },
 };
 
