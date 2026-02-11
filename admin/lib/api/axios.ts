@@ -1,6 +1,6 @@
 // Axios client for API calls
-// Uses NEXT_PUBLIC_API_URL from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Uses NEXT_PUBLIC_API_BASE_URL from environment variables
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://auth.ekowlabs.space/api';
 
 // Interface for API responses
 export interface ApiResponse<T> {
