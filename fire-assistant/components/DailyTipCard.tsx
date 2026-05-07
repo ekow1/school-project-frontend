@@ -1,98 +1,80 @@
 import { Ionicons } from "@expo/vector-icons"
-import { LinearGradient } from "expo-linear-gradient"
 import React from "react"
-import {
-    StyleSheet,
-    Text,
-    View,
-} from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
-const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+const C = {
+  primary: "#C41230",
   secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
   surface: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
-  success: "#10B981",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-  accent: "#8B5CF6",
-  shadow: "rgba(0, 0, 0, 0.1)",
 }
 
 interface DailyTipCardProps {
-  tip: string
+  title: string
+  content: string
 }
 
-export const DailyTipCard: React.FC<DailyTipCardProps> = ({
-  tip,
-}) => {
+export const DailyTipCard: React.FC<DailyTipCardProps> = ({ title, content }) => {
   return (
-    <View style={styles.dailyTipCard}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark]}
-        style={styles.tipGradient}
-      >
-        <View style={styles.tipHeader}>
-          <View style={styles.tipBadge}>
-            <Ionicons name="bulb" size={16} color={Colors.surface} />
-            <Text style={styles.tipBadgeText}>Daily Safety Tip</Text>
-          </View>
+    <View style={styles.card}>
+      {/* header strip */}
+      <View style={styles.header}>
+        <View style={styles.badge}>
+          <Ionicons name="bulb" size={14} color={C.surface} />
+          <Text style={styles.badgeText}>SAFETY TIP</Text>
         </View>
+      </View>
 
-        <Text style={styles.dailyTipText}>{tip}</Text>
-      </LinearGradient>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.body}>{content}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  dailyTipCard: {
-    borderRadius: 20,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  tipGradient: {
-    borderRadius: 20,
-    padding: 28,
-  },
-  tipHeader: {
+  card: {
+    marginHorizontal: 16,
     marginBottom: 16,
+    backgroundColor: C.primary,
+    borderWidth: 2,
+    borderColor: C.secondary,
+    padding: 20,
+    shadowColor: C.secondary,
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
   },
-  tipBadge: {
+  header: { marginBottom: 14 },
+  badge: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
-  tipBadgeText: {
-    color: Colors.surface,
-    fontWeight: "700",
-    fontSize: 13,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+  badgeText: {
+    color: C.surface,
+    fontWeight: "800",
+    fontSize: 11,
+    letterSpacing: 1.5,
   },
-  dailyTipText: {
+  title: {
     fontSize: 17,
-    color: Colors.surface,
-    fontWeight: "400",
-    lineHeight: 28,
-    letterSpacing: 0.3,
-    fontStyle: "italic",
+    fontWeight: "800",
+    color: C.surface,
+    marginBottom: 10,
+    letterSpacing: 0.2,
+  },
+  body: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.92)",
+    lineHeight: 22,
+    fontWeight: "500",
   },
 })
 
-export default DailyTipCard 
+export default DailyTipCard

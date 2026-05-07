@@ -1,161 +1,310 @@
 "use client"
 
 import { Ionicons } from "@expo/vector-icons"
-import { marked } from 'marked'
 import { useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native"
-import RenderHTML from 'react-native-render-html'
+import Markdown from 'react-native-markdown-display'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { AnimatedScreen } from "../../components/AnimatedScreen"
 import { useChatStore } from "../../store/chatStore"
 
-const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
-  secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#FFFFFF",
-  surface: "#F8FAFC",
-  border: "#E2E8F0",
-  success: "#10B981",
-  danger: "#EF4444",
-  warning: "#F59E0B",
-}
+const NB = {
+  border: '#1A1A1A',
+  primary: '#C41230',
+  bg: '#FFF8EF',
+  surface: '#FFFFFF',
+  muted: '#78716C',
+  success: '#10B981',
+  danger: '#EF4444',
+  warning: '#E8A020',
+  secondary: '#1A1A1A',
+  tertiary: '#78716C',
+};
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
 
-
-// Configure marked options
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-})
-
-// HTML renderer styles
-const htmlStyles = {
+// Markdown Styles for react-native-markdown-display
+const markdownStyles = StyleSheet.create({
   body: {
     fontSize: 15,
-    lineHeight: 22,
-    color: Colors.secondary,
-  },
-  h1: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: Colors.secondary,
-    marginBottom: 12,
-    marginTop: 16,
     lineHeight: 24,
+    color: NB.secondary,
   },
-  h2: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.secondary,
-    marginBottom: 10,
+  heading1: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: NB.secondary,
     marginTop: 12,
-    lineHeight: 22,
-  },
-  h3: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: Colors.secondary,
     marginBottom: 8,
+  },
+  heading2: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: NB.secondary,
     marginTop: 10,
-    lineHeight: 20,
-  },
-  p: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.secondary,
-    marginBottom: 12,
-  },
-  strong: {
-    fontWeight: '700' as const,
-    color: Colors.secondary,
-  },
-  em: {
-    fontStyle: 'italic' as const,
-    color: Colors.secondary,
-  },
-  li: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.secondary,
     marginBottom: 6,
   },
-  ul: {
-    marginBottom: 12,
-    paddingLeft: 16,
+  heading3: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: NB.secondary,
+    marginTop: 8,
+    marginBottom: 4,
   },
-  ol: {
-    marginBottom: 12,
-    paddingLeft: 16,
+  paragraph: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: NB.secondary,
+    marginBottom: 8,
+  },
+  strong: {
+    fontWeight: '700',
+    color: NB.secondary,
+  },
+  em: {
+    fontStyle: 'italic',
+    color: NB.secondary,
+  },
+  link: {
+    color: NB.primary,
+  },
+  blockquote: {
+    backgroundColor: NB.surface,
+    borderLeftWidth: 4,
+    borderLeftColor: NB.primary,
+    paddingLeft: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
   code: {
-    backgroundColor: Colors.surface,
-    color: Colors.primary,
+    backgroundColor: 'rgba(211, 47, 47, 0.1)',
+    color: NB.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 0,
+    fontSize: 13,
+  },
+  code_block: {
+    backgroundColor: '#1A1A1A',
+    color: '#D4C4B5',
+    padding: 12,
+    borderRadius: 0,
+    marginBottom: 8,
+    fontSize: 13,
+  },
+  bullet_list: {
+    marginBottom: 8,
+    paddingLeft: 20,
+  },
+  ordered_list: {
+    marginBottom: 8,
+    paddingLeft: 20,
+  },
+  list_item: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: NB.secondary,
+    marginBottom: 4,
+  },
+  hr: {
+    borderBottomWidth: 1,
+    borderBottomColor: NB.border,
+    marginVertical: 12,
+  },
+  table: {
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: NB.border,
+    borderRadius: 0,
+  },
+  th: {
+    backgroundColor: NB.surface,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontWeight: '700',
+    fontSize: 13,
+    color: NB.secondary,
+  },
+  td: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: NB.secondary,
+  },
+})
+
+// History Markdown Styles - Lighter style for chat history previews
+const historyMarkdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: NB.tertiary,
+  },
+  heading1: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: NB.secondary,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  heading2: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: NB.secondary,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  heading3: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: NB.secondary,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  paragraph: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: NB.tertiary,
+    marginBottom: 4,
+  },
+  strong: {
+    fontWeight: '600',
+    color: NB.secondary,
+  },
+  em: {
+    fontStyle: 'italic',
+    color: NB.tertiary,
+  },
+  link: {
+    color: NB.primary,
+  },
+  blockquote: {
+    backgroundColor: NB.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: NB.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  code: {
+    backgroundColor: NB.surface,
+    color: NB.primary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    fontSize: 14,
-    fontFamily: 'monospace',
+    fontSize: 11,
   },
-  pre: {
-    backgroundColor: Colors.surface,
-    color: Colors.secondary,
+  fence: {
+    backgroundColor: '#1A1A1A',
+    color: '#D4C4B5',
     padding: 12,
     borderRadius: 8,
-    marginVertical: 12,
-    fontSize: 14,
+    marginBottom: 8,
+    fontSize: 13,
     fontFamily: 'monospace',
   },
-  blockquote: {
-    backgroundColor: Colors.surface,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+  code_block: {
+    backgroundColor: '#1A1A1A',
+    color: '#D4C4B5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  bullet_list: {
+    marginBottom: 4,
     paddingLeft: 16,
-    paddingVertical: 12,
-    marginVertical: 12,
-    fontStyle: 'italic' as const,
   },
-  a: {
-    color: Colors.primary,
-    textDecorationLine: 'underline' as const,
+  ordered_list: {
+    marginBottom: 4,
+    paddingLeft: 16,
   },
-} as any
+  list_item: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: NB.tertiary,
+    marginBottom: 2,
+  },
+  image: {
+    marginVertical: 4,
+    borderRadius: 6,
+  },
+})
+
+// Normalize markdown - fix common issues before rendering
+function normalizeMarkdown(md: string): string {
+  if (!md) return ""
+  return md
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/---/g, "\n\n---\n\n")
+    .replace(/([^\n])\n(#{1,6}\s)/g, "$1\n\n$2")
+    .trim()
+}
+
+// Helper function to clean markdown for history preview
+function cleanMarkdownForHistory(text: string): string {
+  if (!text) return ''
+  // Remove excessive whitespace and newlines
+  let cleaned = text.replace(/\n{3,}/g, '\n\n').trim()
+  // Limit to reasonable length for preview
+  const words = cleaned.split(/\s+/)
+  if (words.length > 20) {
+    cleaned = words.slice(0, 20).join(' ') + '...'
+  }
+  return cleaned
+}
 
 // Markdown Renderer Component
 interface MarkdownRendererProps {
   text: string
+  style?: any
 }
 
-function MarkdownRenderer({ text }: MarkdownRendererProps) {
-  const { width } = useWindowDimensions()
-  
-  // Convert markdown to HTML synchronously
-  const htmlContent = text ? marked.parse(text) as string : ''
-  
-  if (!htmlContent) {
-    return <Text style={styles.assistantText}>No content</Text>
+function MarkdownRenderer({ text, style }: MarkdownRendererProps) {
+  if (!text) {
+    return <Text style={[styles.assistantText, style]}>No content</Text>
   }
-  
+
+  // Normalize markdown before rendering to fix common issues
+  const normalizedText = normalizeMarkdown(text)
+
   return (
-    <RenderHTML
-      contentWidth={width * 0.8}
-      source={{ html: htmlContent }}
-      baseStyle={htmlStyles.body}
-      tagsStyles={htmlStyles}
+    <Markdown
+      style={markdownStyles}
+      children={normalizedText}
+    />
+  )
+}
+
+// History Markdown Renderer - Lighter style for chat history previews
+interface HistoryMarkdownRendererProps {
+  text: string
+  style?: any
+}
+
+function HistoryMarkdownRenderer({ text, style }: HistoryMarkdownRendererProps) {
+  if (!text) return null
+
+  const cleanedText = cleanMarkdownForHistory(text)
+
+  return (
+    <Markdown
+      style={historyMarkdownStyles}
+      children={cleanedText}
     />
   )
 }
@@ -163,7 +312,7 @@ function MarkdownRenderer({ text }: MarkdownRendererProps) {
 // Typewriter Markdown Component
 interface TypewriterMarkdownProps {
   text: string
-  style: any
+  style?: any
   speed?: number
   onComplete?: () => void
 }
@@ -172,20 +321,20 @@ function TypewriterMarkdown({ text, style, speed = 8, onComplete }: TypewriterMa
   const [displayText, setDisplayText] = useState("")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
-  
+
   // Reset when text changes
   useEffect(() => {
     setDisplayText("")
     setCurrentIndex(0)
     setIsComplete(false)
   }, [text])
-  
+
   useEffect(() => {
     if (isComplete || !text) return
 
     if (currentIndex < text.length) {
       const timer = setTimeout(() => {
-        // Show chunks of 3-5 characters at once for streaming effect
+        // Show chunks of 4 characters at once for streaming effect
         const chunkSize = Math.min(4, text.length - currentIndex)
         setDisplayText(text.substring(0, currentIndex + chunkSize))
         setCurrentIndex(currentIndex + chunkSize)
@@ -198,23 +347,21 @@ function TypewriterMarkdown({ text, style, speed = 8, onComplete }: TypewriterMa
     }
   }, [currentIndex, text, speed, isComplete, onComplete])
 
-  const { width } = useWindowDimensions()
-  
-  // Convert markdown to HTML synchronously
-  const htmlContent = displayText ? marked.parse(displayText) as string : ''
-  
+  if (!displayText) {
+    return null
+  }
+
   return (
     <View style={style}>
-      {htmlContent ? (
-        <RenderHTML
-          contentWidth={width * 0.8}
-          source={{ html: htmlContent }}
-          baseStyle={htmlStyles.body}
-          tagsStyles={htmlStyles}
-        />
-      ) : null}
-      {!isComplete && (
-        <Text style={{ opacity: 0.5, fontSize: 15, color: Colors.secondary }}>|</Text>
+      {/* ✅ While typing: show plain text (prevents broken markdown parsing) */}
+      {!isComplete ? (
+        <Text style={{ fontSize: 15, lineHeight: 22, color: NB.secondary }}>
+          {displayText}
+          <Text style={{ opacity: 0.5 }}>|</Text>
+        </Text>
+      ) : (
+        /* ✅ When complete: render markdown */
+        <MarkdownRenderer text={displayText} />
       )}
     </View>
   )
@@ -295,17 +442,6 @@ export default function AIChatScreen() {
   const handleOpenSession = (session: any) => {
     // Clear input when opening a session
     setInputText("")
-    
-    // Suggest continuing the conversation based on the session
-    const suggestions = [
-      "Tell me more about this",
-      "Can you explain further?",
-      "What else should I know?",
-      "Continue the discussion"
-    ]
-    
-    console.log('Suggested prompts:', suggestions)
-    
     openSession(session)
   }
 
@@ -355,12 +491,7 @@ export default function AIChatScreen() {
     )
   }
 
-
   const handleUpdatePrompt = async (sessionId: string, messageId: string, newPrompt: string) => {
-    console.log('=== HANDLE UPDATE PROMPT ===')
-    console.log('Session:', sessionId)
-    console.log('Message:', messageId)
-    console.log('New Prompt:', newPrompt)
     await updatePrompt(sessionId, messageId, newPrompt)
   }
 
@@ -371,7 +502,6 @@ export default function AIChatScreen() {
   const handleCopyMessage = async (messageId: string) => {
     try {
       await copyMessage(messageId)
-      // You could show a toast notification here
       Alert.alert("Copied", "Message copied to clipboard")
     } catch (error) {
       Alert.alert("Error", "Failed to copy message")
@@ -379,31 +509,15 @@ export default function AIChatScreen() {
   }
 
   const handleToggleLike = (messageId: string) => {
-    console.log('=== TOGGLE LIKE ===')
-    console.log('Message ID:', messageId)
-    
     if (currentSession) {
-      // Get current feedback state
       const message = messages.find(msg => msg.id === messageId)
-      const currentFeedback = message?.userFeedback
-      
-      console.log('Current feedback:', currentFeedback)
-      console.log('Message backendId:', message?.backendId)
-      
-      // Determine next action
-      let action: 'like' | 'dislike'
-      if (currentFeedback === 'like') {
-        action = 'dislike' // Toggle to dislike
-      } else {
-        action = 'like' // Toggle to like
-      }
-      
-      console.log('Action:', action)
-      
-      // Use backendId for API call, fallback to local ID
       const apiMessageId = message?.backendId || messageId
-      console.log('API Message ID:', apiMessageId)
-      
+      let action: 'like' | 'dislike'
+      if (message?.userFeedback === 'like') {
+        action = 'dislike'
+      } else {
+        action = 'like'
+      }
       likeMessage(currentSession.id, apiMessageId, action)
     }
   }
@@ -422,19 +536,19 @@ export default function AIChatScreen() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "safety":
-        return Colors.success
+        return NB.success
       case "emergency":
-        return Colors.danger
+        return NB.danger
       default:
-        return Colors.primary
+        return NB.primary
     }
   }
 
   const quickPrompts = [
-    { text: "What are basic fire safety rules?", icon: "shield-checkmark", color: Colors.success },
-    { text: "How do I use a fire extinguisher?", icon: "school", color: Colors.warning },
-    { text: "What to do in a fire emergency?", icon: "warning", color: Colors.danger },
-    { text: "How to prevent kitchen fires?", icon: "restaurant", color: Colors.primary },
+    { text: "What are basic fire safety rules?", icon: "shield-checkmark", color: NB.success },
+    { text: "How do I use a fire extinguisher?", icon: "school", color: NB.warning },
+    { text: "What to do in a fire emergency?", icon: "warning", color: NB.danger },
+    { text: "How to prevent kitchen fires?", icon: "restaurant", color: NB.primary },
   ]
 
   if (isInSession) {
@@ -506,116 +620,117 @@ function ChatHistoryScreen({
 }: ChatHistoryScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
+      <StatusBar backgroundColor={NB.primary} barStyle="light-content" />
       <AnimatedScreen direction="fade" delay={100}>
         <View style={styles.container}>
-        {/* Enhanced Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerGradient} />
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <View style={styles.assistantIcon}>
-                <Ionicons name="flame" size={24} color={Colors.background} />
-              </View>
-              <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Fire Safety Assistant</Text>
-                <Text style={styles.headerSubtitle}>AI-powered emergency guidance</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.newChatButton} onPress={onStartNewSession}>
-              <Ionicons name="add" size={20} color={Colors.background} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* New Quick Actions / Conversation Starters */}
-        <View style={styles.conversationStartersSection}>
-          <Text style={styles.sectionTitle}>Start a new conversation</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.conversationStartersScroll}>
-            <View style={styles.conversationStartersContainer}>
-              {quickPrompts.map((prompt, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.starterButton}
-                  onPress={() => onQuickPrompt(prompt.text)}
-                  activeOpacity={0.7}
-                  disabled={isLoading}
-                >
-                  <View style={[styles.starterIconContainer, { backgroundColor: `${prompt.color}15` }]}>
-                    <Ionicons name={prompt.icon as any} size={20} color={prompt.color} />
-                  </View>
-                  <Text style={styles.starterText}>{prompt.text}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* Chat History */}
-        <View style={styles.chatHistorySection}>
-          <Text style={styles.sectionTitle}>Recent Conversations</Text>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading conversations...</Text>
-            </View>
-          ) : (
-            <ScrollView style={styles.chatHistory} showsVerticalScrollIndicator={false}>
-              {chatHistory.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="chatbubbles-outline" size={48} color={Colors.tertiary} />
-                  <Text style={styles.emptyStateTitle}>No conversations yet</Text>
-                  <Text style={styles.emptyStateSubtitle}>Start your first conversation with the Fire Safety Assistant</Text>
+          {/* Enhanced Header */}
+          <View style={styles.headerContainer}>
+            <View style={styles.headerGradient} />
+            <View style={styles.header}>
+              <View style={styles.headerContent}>
+                <View style={styles.assistantIcon}>
+                  <Ionicons name="flame" size={24} color={NB.surface} />
                 </View>
-              ) : (
-                chatHistory.map((session) => (
+                <View style={styles.headerText}>
+                  <Text style={styles.headerTitle}>Fire Safety Assistant</Text>
+                  <Text style={styles.headerSubtitle}>AI-powered emergency guidance</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.newChatButton} onPress={onStartNewSession}>
+                <Ionicons name="add" size={20} color={NB.border} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Quick Actions */}
+          <View style={styles.conversationStartersSection}>
+            <Text style={styles.sectionTitle}>Start a new conversation</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.conversationStartersScroll}>
+              <View style={styles.conversationStartersContainer}>
+                {quickPrompts.map((prompt, index) => (
                   <TouchableOpacity
-                    key={session.id}
-                    style={styles.chatItem}
-                    onPress={() => onOpenSession(session)}
+                    key={index}
+                    style={styles.starterButton}
+                    onPress={() => onQuickPrompt(prompt.text)}
                     activeOpacity={0.7}
+                    disabled={isLoading}
                   >
-                    <View style={styles.chatItemIcon}>
-                      <View style={[styles.categoryIcon, { backgroundColor: `${getCategoryColor(session.category)}15` }]}>
-                        <Ionicons
-                          name={getCategoryIcon(session.category) as any}
-                          size={18}
-                          color={getCategoryColor(session.category)}
-                        />
-                      </View>
+                    <View style={[styles.starterIconContainer, { backgroundColor: `${prompt.color}15` }]}>
+                      <Ionicons name={prompt.icon as any} size={20} color={prompt.color} />
                     </View>
-                    <View style={styles.chatItemContent}>
-                      <View style={styles.chatItemHeader}>
-                        <Text style={styles.chatItemTitle}>{session.title}</Text>
-                        <Text style={styles.chatItemTime}>{formatTime(session.timestamp)}</Text>
-                      </View>
-                      <Text style={styles.chatItemMessage} numberOfLines={2}>
-                        {session.lastMessage ? session.lastMessage.split(' ').slice(0, 10).join(' ') + (session.lastMessage.split(' ').length > 10 ? '...' : '') : ''}
-                      </Text>
-                      <View style={styles.chatItemFooter}>
-                        <Text style={styles.chatItemCount}>{session.messageCount} messages</Text>
-                        <View style={styles.chatItemArrow}>
-                          <Ionicons name="chevron-forward" size={16} color={Colors.tertiary} />
+                    <Text style={styles.starterText}>{prompt.text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Chat History */}
+          <View style={styles.chatHistorySection}>
+            <Text style={styles.sectionTitle}>Recent Conversations</Text>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={NB.primary} />
+                <Text style={styles.loadingText}>Loading conversations...</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.chatHistory} showsVerticalScrollIndicator={false}>
+                {chatHistory.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="chatbubbles-outline" size={48} color={NB.tertiary} />
+                    <Text style={styles.emptyStateTitle}>No conversations yet</Text>
+                    <Text style={styles.emptyStateSubtitle}>Start your first conversation with the Fire Safety Assistant</Text>
+                  </View>
+                ) : (
+                  chatHistory.map((session) => (
+                    <TouchableOpacity
+                      key={session.id}
+                      style={styles.chatItem}
+                      onPress={() => onOpenSession(session)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.chatItemIcon}>
+                        <View style={[styles.categoryIcon, { backgroundColor: `${getCategoryColor(session.category)}15` }]}>
+                          <Ionicons
+                            name={getCategoryIcon(session.category) as any}
+                            size={18}
+                            color={getCategoryColor(session.category)}
+                          />
                         </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          )}
-        </View>
+                      <View style={styles.chatItemContent}>
+                        <View style={styles.chatItemHeader}>
+                          <Text style={styles.chatItemTitle}>{session.title}</Text>
+                          <Text style={styles.chatItemTime}>{formatTime(session.timestamp)}</Text>
+                        </View>
+                        <HistoryMarkdownRenderer
+                          text={session.lastMessage}
+                          style={styles.chatItemMessage}
+                        />
+                        <View style={styles.chatItemFooter}>
+                          <Text style={styles.chatItemCount}>{session.messageCount} messages</Text>
+                          <View style={styles.chatItemArrow}>
+                            <Ionicons name="chevron-forward" size={16} color={NB.tertiary} />
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            )}
+          </View>
 
-        {/* Enhanced Input Section */}
-        <ChatInput
-          inputText={inputText}
-          setInputText={setInputText}
-          onSendMessage={onSendMessage}
-          placeholder="Ask about fire safety, emergency procedures..."
-          disabled={isLoading}
-          isInSession={false}
-          onQuickPrompt={onQuickPrompt}
-        />
+          {/* Input Section */}
+          <ChatInput
+            inputText={inputText}
+            setInputText={setInputText}
+            onSendMessage={onSendMessage}
+            placeholder="Ask about fire safety, emergency procedures..."
+            disabled={isLoading}
+            isInSession={false}
+            onQuickPrompt={onQuickPrompt}
+          />
         </View>
       </AnimatedScreen>
     </SafeAreaView>
@@ -660,61 +775,45 @@ function ChatSessionScreen({
   scrollViewRef,
 }: ChatSessionScreenProps) {
   const [showSessionMenu, setShowSessionMenu] = useState(false)
-  // Add debugging
-  console.log('ChatSessionScreen render:', {
-    messagesCount: messages?.length || 0,
-    messages: messages,
-    session: session,
-    isLoading: isLoading,
-    newMessageIds: newMessageIds
-  })
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
+      <StatusBar backgroundColor={NB.primary} barStyle="light-content" />
       <AnimatedScreen direction="fade" delay={100}>
         <View style={styles.container}>
-        {/* Red Header with Notch Extension */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerGradient} />
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={onBack}>
-              <Ionicons name="document-text" size={20} color={Colors.background} />
-            </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle} numberOfLines={1}>
-                {session?.title || 'Chat Session'}
-              </Text>
+          {/* Red Header */}
+          <View style={styles.headerContainer}>
+            <View style={styles.headerGradient} />
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.backButton} onPress={onBack}>
+                <Ionicons name="arrow-back" size={24} color={NB.secondary} />
+              </TouchableOpacity>
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                  {session?.title || 'Chat Session'}
+                </Text>
               </View>
-            <View style={styles.headerAvatar}>
-              <Ionicons name="person" size={16} color={Colors.background} />
+              <View style={styles.headerAvatar}>
+                <Ionicons name="person" size={16} color={NB.surface} />
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Messages */}
-        <ScrollView ref={scrollViewRef} style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.messagesContent}>
-            {!messages || messages.length === 0 ? (
-              <View style={styles.emptyMessagesState}>
-                <Ionicons name="chatbubbles-outline" size={48} color={Colors.tertiary} />
-                <Text style={styles.emptyMessagesTitle}>No messages yet</Text>
-                <Text style={styles.emptyMessagesSubtitle}>Start the conversation by sending a message</Text>
-              </View>
-            ) : (
-              messages.map((message, index) => {
-                console.log('=== MESSAGE BUBBLE DEBUG ===')
-                console.log('Session object:', session)
-                console.log('Session ID:', session?.id)
-                console.log('Message:', message)
-                console.log('Message ID:', message?.id)
-                console.log('Message isUser:', message?.isUser)
-                
-                return (
-                <MessageBubble
-                  key={message?.id || index}
-                  message={message}
-                  isNewMessage={newMessageIds?.includes(message?.id) || false}
+          {/* Messages */}
+          <ScrollView ref={scrollViewRef} style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+            <View style={styles.messagesContent}>
+              {!messages || messages.length === 0 ? (
+                <View style={styles.emptyMessagesState}>
+                  <Ionicons name="chatbubbles-outline" size={48} color={NB.tertiary} />
+                  <Text style={styles.emptyMessagesTitle}>No messages yet</Text>
+                  <Text style={styles.emptyMessagesSubtitle}>Start the conversation by sending a message</Text>
+                </View>
+              ) : (
+                messages.map((message, index) => (
+                  <MessageBubble
+                    key={message?.id || index}
+                    message={message}
+                    isNewMessage={newMessageIds?.includes(message?.id) || false}
                     onEditMessage={onEditMessage}
                     onUpdatePrompt={onUpdatePrompt}
                     onCopyMessage={onCopyMessage}
@@ -722,73 +821,72 @@ function ChatSessionScreen({
                     sessionId={session?.id}
                     messages={messages}
                   />
-                )
-              })
-            )}
-            {isLoading && (
-              <View style={styles.typingIndicator}>
-                <View style={styles.typingBubble}>
-                  <View style={styles.typingDots}>
-                    <View style={[styles.typingDot, styles.typingDot1]} />
-                    <View style={[styles.typingDot, styles.typingDot2]} />
-                    <View style={[styles.typingDot, styles.typingDot3]} />
+                ))
+              )}
+              {isLoading && (
+                <View style={styles.typingIndicator}>
+                  <View style={styles.typingBubble}>
+                    <View style={styles.typingDots}>
+                      <View style={[styles.typingDot, styles.typingDot1]} />
+                      <View style={[styles.typingDot, styles.typingDot2]} />
+                      <View style={[styles.typingDot, styles.typingDot3]} />
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Input Section */}
-        <ChatInput
-          inputText={inputText}
-          setInputText={setInputText}
-          onSendMessage={onSendMessage}
-          placeholder="Ask anything"
-          disabled={isLoading}
-          isInSession={true}
-        />
-
-        {/* Session Menu Modal */}
-        <Modal
-          visible={showSessionMenu}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowSessionMenu(false)}
-        >
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowSessionMenu(false)}
-          >
-            <View style={styles.sessionMenu}>
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowSessionMenu(false)
-                  onDeleteSession(session?.id)
-                }}
-              >
-                <Ionicons name="trash" size={20} color={Colors.danger} />
-                <Text style={[styles.menuItemText, { color: Colors.danger }]}>Delete Conversation</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => setShowSessionMenu(false)}
-              >
-                <Ionicons name="share" size={20} color={Colors.primary} />
-                <Text style={styles.menuItemText}>Share Conversation</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => setShowSessionMenu(false)}
-              >
-                <Ionicons name="copy" size={20} color={Colors.primary} />
-                <Text style={styles.menuItemText}>Copy Session ID</Text>
-              </TouchableOpacity>
+              )}
             </View>
-          </TouchableOpacity>
-        </Modal>
+          </ScrollView>
+
+          {/* Input Section */}
+          <ChatInput
+            inputText={inputText}
+            setInputText={setInputText}
+            onSendMessage={onSendMessage}
+            placeholder="Ask anything"
+            disabled={isLoading}
+            isInSession={true}
+          />
+
+          {/* Session Menu Modal */}
+          <Modal
+            visible={showSessionMenu}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowSessionMenu(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowSessionMenu(false)}
+            >
+              <View style={styles.sessionMenu}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setShowSessionMenu(false)
+                    onDeleteSession(session?.id)
+                  }}
+                >
+                  <Ionicons name="trash" size={20} color={NB.danger} />
+                  <Text style={[styles.menuItemText, { color: NB.danger }]}>Delete Conversation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => setShowSessionMenu(false)}
+                >
+                  <Ionicons name="share" size={20} color={NB.primary} />
+                  <Text style={styles.menuItemText}>Share Conversation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => setShowSessionMenu(false)}
+                >
+                  <Ionicons name="copy" size={20} color={NB.primary} />
+                  <Text style={styles.menuItemText}>Copy Session ID</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
       </AnimatedScreen>
     </SafeAreaView>
@@ -806,73 +904,48 @@ interface MessageBubbleProps {
   messages?: any[]
 }
 
-function MessageBubble({ 
-  message, 
-  isNewMessage = false, 
-  onEditMessage, 
+function MessageBubble({
+  message,
+  isNewMessage = false,
+  onEditMessage,
   onUpdatePrompt,
-  onCopyMessage, 
+  onCopyMessage,
   onToggleLike,
   sessionId,
   messages
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(message?.text || '')
-  
-  // Handle edit actions
+
   const handleStartEdit = () => {
-    console.log('=== START EDIT ===')
-    console.log('Message:', message?.id)
-    console.log('Current Text:', message?.text)
     setIsEditing(true)
     setEditText(message?.text || '')
   }
-  
+
   const handleSaveEdit = async () => {
-    console.log('=== SAVE EDIT ===')
-    console.log('Session:', sessionId)
-    console.log('Message:', message?.id)
-    console.log('New Text:', editText.trim())
-    
     if (editText.trim() !== '' && editText.trim() !== message?.text && sessionId) {
-      // Find the AI message that follows this user message
       const messageList = messages || []
       const currentIndex = messageList.findIndex(msg => msg.id === message.id)
-      
+
       if (currentIndex !== -1 && currentIndex + 1 < messageList.length) {
         const aiMessage = messageList[currentIndex + 1]
-        
         if (!aiMessage.isUser) {
-          // Use backendId if available, otherwise fall back to local ID
           const messageIdToUse = aiMessage.backendId || aiMessage.id
-          console.log('AI Message ID:', messageIdToUse)
-          // Use updatePrompt API to update the prompt and generate new AI response
           await onUpdatePrompt?.(sessionId, messageIdToUse, editText.trim())
         } else {
-          console.log('No AI message found, using local edit')
           onEditMessage?.(message.id, editText.trim())
         }
       } else {
-        console.log('No AI message found, using local edit')
         onEditMessage?.(message.id, editText.trim())
       }
     }
     setIsEditing(false)
   }
-  
+
   const handleCancelEdit = () => {
     setEditText(message?.text || '')
     setIsEditing(false)
   }
-  
-  // Add debugging
-  console.log('MessageBubble render:', {
-    id: message?.id,
-    text: message?.text,
-    isUser: message?.isUser,
-    timestamp: message?.timestamp,
-    isNewMessage: isNewMessage
-  })
 
   // Early return if message is undefined
   if (!message) {
@@ -881,7 +954,6 @@ function MessageBubble({
 
   return (
     <View style={[styles.messageWrapper, message.isUser ? styles.userMessageWrapper : styles.assistantMessageWrapper]}>
-      {/* Clean Message Bubble - No Avatars, No Action Buttons */}
       <View style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.assistantBubble]}>
         {message.isUser ? (
           isEditing ? (
@@ -896,17 +968,17 @@ function MessageBubble({
               />
               <View style={styles.inlineEditButtons}>
                 <TouchableOpacity style={styles.inlineCancelButton} onPress={handleCancelEdit}>
-                  <Ionicons name="close" size={14} color={Colors.danger} />
+                  <Ionicons name="close" size={14} color={NB.danger} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.inlineSubmitButton} onPress={handleSaveEdit}>
-                  <Ionicons name="checkmark" size={14} color={Colors.success} />
+                  <Ionicons name="checkmark" size={14} color={NB.success} />
                 </TouchableOpacity>
               </View>
             </>
           ) : (
             <Text style={styles.userText}>
-            {message.text || ''}
-          </Text>
+              {message.text || ''}
+            </Text>
           )
         ) : (
           isNewMessage ? (
@@ -924,46 +996,41 @@ function MessageBubble({
           )
         )}
       </View>
-      
+
       {/* Action Buttons */}
       <View style={styles.messageActions}>
         {message.isUser ? (
-          // User message actions: Edit and Copy
           <>
-            <TouchableOpacity 
-              style={styles.actionButton} 
-              onPress={() => {
-                console.log('Edit button clicked for message:', message?.id)
-                handleStartEdit()
-              }}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleStartEdit}
             >
-              <Ionicons name="create-outline" size={16} color={Colors.tertiary} />
+              <Ionicons name="create-outline" size={16} color={NB.tertiary} />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.actionButton} 
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => onCopyMessage?.(message.id)}
             >
-              <Ionicons name="copy-outline" size={16} color={Colors.tertiary} />
+              <Ionicons name="copy-outline" size={16} color={NB.tertiary} />
             </TouchableOpacity>
           </>
         ) : (
-          // AI response actions: Copy and Like
           <>
-            <TouchableOpacity 
-              style={styles.actionButton} 
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => onCopyMessage?.(message.id)}
             >
-              <Ionicons name="copy-outline" size={16} color={Colors.tertiary} />
+              <Ionicons name="copy-outline" size={16} color={NB.tertiary} />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.actionButton} 
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => onToggleLike?.(message.id)}
             >
               <View style={styles.likeButtonContainer}>
-                <Ionicons 
-                  name={message.userFeedback === 'like' ? "heart" : "heart-outline"} 
-                  size={16} 
-                  color={message.userFeedback === 'like' ? Colors.primary : Colors.tertiary} 
+                <Ionicons
+                  name={message.userFeedback === 'like' ? "heart" : "heart-outline"}
+                  size={16}
+                  color={message.userFeedback === 'like' ? NB.primary : NB.tertiary}
                 />
                 {(message.likeCount || 0) > 0 && (
                   <Text style={styles.likeCount}>{message.likeCount || 0}</Text>
@@ -987,69 +1054,55 @@ interface ChatInputProps {
   onQuickPrompt?: (prompt: string) => void
 }
 
-function ChatInput({ inputText, setInputText, onSendMessage, placeholder, disabled, isInSession, onQuickPrompt }: ChatInputProps) {
-  const handleIconPress = (iconName: string) => {
-    console.log('=== CHAT INPUT ICON PRESSED ===')
-    console.log('Icon:', iconName)
-    console.log('Is in session:', isInSession)
-    
-    if (iconName === 'mic' && !isInSession) {
-      // In chat history, mic could suggest voice input or quick prompts
-      console.log('Voice input suggested')
-    } else if (iconName === 'globe' && !isInSession) {
-      // In chat history, globe could suggest web search
-      console.log('Web search suggested')
-    }
-  }
-
+function ChatInput({ inputText, setInputText, onSendMessage, placeholder, disabled, isInSession }: ChatInputProps) {
   return (
     <View style={styles.inputSection}>
       <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder={placeholder}
-            placeholderTextColor={Colors.tertiary}
-            multiline
-            maxLength={500}
-            editable={!disabled}
-          />
+        <TextInput
+          style={styles.textInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder={placeholder}
+          placeholderTextColor={NB.tertiary}
+          multiline
+          maxLength={500}
+          editable={!disabled}
+        />
         <View style={styles.inputIcons}>
-          <TouchableOpacity style={styles.inputIcon} onPress={() => handleIconPress('attach')}>
-            <Ionicons name="attach" size={16} color={Colors.tertiary} />
+          <TouchableOpacity style={styles.inputIcon} onPress={() => { }}>
+            <Ionicons name="attach" size={16} color={NB.tertiary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.inputIcon} onPress={() => handleIconPress('globe')}>
-            <Ionicons name="globe" size={16} color={Colors.tertiary} />
+          <TouchableOpacity style={styles.inputIcon} onPress={() => { }}>
+            <Ionicons name="globe" size={16} color={NB.tertiary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.inputIcon} onPress={() => handleIconPress('mic')}>
-            <Ionicons name="mic" size={16} color={Colors.tertiary} />
+          <TouchableOpacity style={styles.inputIcon} onPress={() => { }}>
+            <Ionicons name="mic" size={16} color={NB.tertiary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.inputIcon} onPress={() => handleIconPress('ellipsis')}>
-            <Ionicons name="ellipsis-horizontal" size={16} color={Colors.tertiary} />
-          </TouchableOpacity>
-        </View>
-          <TouchableOpacity
-            style={[styles.sendButton, (inputText.trim() === "" || disabled) && styles.sendButtonDisabled]}
-            onPress={onSendMessage}
-            disabled={inputText.trim() === "" || disabled}
-          >
-          <Ionicons name="arrow-up" size={18} color={Colors.background} />
+          <TouchableOpacity style={styles.inputIcon} onPress={() => { }}>
+            <Ionicons name="ellipsis-horizontal" size={16} color={NB.tertiary} />
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={[styles.sendButton, (inputText.trim() === "" || disabled) && styles.sendButtonDisabled]}
+          onPress={onSendMessage}
+          disabled={inputText.trim() === "" || disabled}
+        >
+          <Ionicons name="arrow-up" size={18} color={NB.surface} />
+        </TouchableOpacity>
+      </View>
       <Text style={styles.disclaimerText}>
-        {isInSession 
+        {isInSession
           ? "AI can make mistakes. Please double-check responses."
           : "Start a new conversation or continue an existing one"
         }
       </Text>
-      </View>
+    </View>
   )
 }
 
 function formatTime(date: Date | undefined): string {
   if (!date) return "Just now"
-  
+
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const minutes = Math.floor(diff / (1000 * 60))
@@ -1066,22 +1119,17 @@ function formatTime(date: Date | undefined): string {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: NB.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
   },
   headerContainer: {
     position: "relative",
   },
   headerGradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.primary,
+    display: 'none',
   },
   header: {
     flexDirection: "row",
@@ -1089,7 +1137,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    paddingTop: 30, // Extend into notch area
+    paddingTop: 30,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
+    backgroundColor: NB.surface,
   },
   headerContent: {
     flexDirection: "row",
@@ -1099,11 +1150,13 @@ const styles = StyleSheet.create({
   assistantIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
+    ...nbShadow,
   },
   headerText: {
     flex: 1,
@@ -1111,28 +1164,29 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: Colors.background,
+    color: NB.secondary,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: Colors.background,
-    opacity: 0.8,
+    color: NB.tertiary,
     marginTop: 1,
   },
   newChatButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: NB.bg,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
+    ...nbShadow,
   },
   conversationStartersSection: {
     paddingVertical: 20,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
   },
   conversationStartersScroll: {
     paddingLeft: 20,
@@ -1143,18 +1197,20 @@ const styles = StyleSheet.create({
   },
   starterButton: {
     width: 140,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: NB.surface,
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 2,
+    borderColor: NB.border,
+    ...nbShadow,
   },
   starterIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
@@ -1162,18 +1218,18 @@ const styles = StyleSheet.create({
   starterText: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.secondary,
+    color: NB.secondary,
     textAlign: "center",
   },
   chatHistorySection: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
     marginTop: 8,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.secondary,
+    color: NB.secondary,
     paddingHorizontal: 20,
     paddingVertical: 16,
     letterSpacing: -0.3,
@@ -1187,7 +1243,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: Colors.tertiary,
+    color: NB.tertiary,
   },
   emptyState: {
     flex: 1,
@@ -1199,13 +1255,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: Colors.secondary,
+    color: NB.secondary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateSubtitle: {
     fontSize: 14,
-    color: Colors.tertiary,
+    color: NB.tertiary,
     textAlign: "center",
     lineHeight: 20,
   },
@@ -1214,10 +1270,18 @@ const styles = StyleSheet.create({
   },
   chatItem: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.surface,
+    marginHorizontal: 20,
+    marginVertical: 10,
+    padding: 16,
+    borderWidth: 2.5,
+    borderColor: NB.border,
+    borderRadius: 0,
+    backgroundColor: NB.surface,
+    shadowColor: NB.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   chatItemIcon: {
     marginRight: 12,
@@ -1225,7 +1289,9 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1236,24 +1302,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   chatItemTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.secondary,
+    fontSize: 14,
+    fontWeight: "900",
+    color: NB.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
     flex: 1,
   },
   chatItemTime: {
-    fontSize: 12,
-    color: Colors.tertiary,
-    fontWeight: "500",
+    fontSize: 10,
+    color: NB.tertiary,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    marginLeft: 8,
   },
   chatItemMessage: {
-    fontSize: 14,
-    color: Colors.tertiary,
+    fontSize: 13,
+    color: NB.tertiary,
     marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   chatItemFooter: {
     flexDirection: "row",
@@ -1261,12 +1331,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   chatItemCount: {
-    fontSize: 12,
-    color: Colors.tertiary,
-    fontWeight: "500",
+    fontSize: 11,
+    color: NB.primary,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   chatItemArrow: {
-    opacity: 0.6,
+    opacity: 0.8,
   },
   backButton: {
     padding: 8,
@@ -1274,10 +1346,12 @@ const styles = StyleSheet.create({
   headerAvatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
+    ...nbShadow,
   },
   headerTitleContainer: {
     flex: 1,
@@ -1287,60 +1361,62 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
   },
   messagesContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
   },
   messageWrapper: {
-    marginBottom: 8,
-    paddingHorizontal: 20,
+    marginBottom: 16,
+    paddingHorizontal: 0,
   },
   userMessageWrapper: {
-    alignItems: "flex-end",
+    alignItems: 'flex-end',
+    marginLeft: 40,
   },
   assistantMessageWrapper: {
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
+    marginRight: 40,
   },
   messageBubble: {
-    maxWidth: "80%",
+    maxWidth: '85%',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 18,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderColor: NB.border,
+    ...nbShadow,
   },
   userBubble: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
+    backgroundColor: NB.primary,
   },
   assistantBubble: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderBottomLeftRadius: 4,
+    backgroundColor: NB.surface,
   },
   userText: {
     fontSize: 15,
     lineHeight: 20,
-    color: Colors.background,
+    color: NB.surface,
   },
   assistantText: {
     fontSize: 15,
     lineHeight: 20,
-    color: Colors.secondary,
+    color: NB.secondary,
   },
   messageActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 12,
     paddingHorizontal: 4,
   },
   actionButton: {
     padding: 8,
     marginLeft: 8,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1355,7 +1431,7 @@ const styles = StyleSheet.create({
   likeCount: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.tertiary,
+    color: NB.tertiary,
     marginLeft: 4,
   },
   inlineEditButtons: {
@@ -1367,21 +1443,21 @@ const styles = StyleSheet.create({
   },
   inlineCancelButton: {
     backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.danger,
+    borderWidth: 2,
+    borderColor: NB.danger,
   },
   inlineSubmitButton: {
     backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.success,
+    borderWidth: 2,
+    borderColor: NB.success,
   },
   typingIndicator: {
     flexDirection: "row",
@@ -1390,11 +1466,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   typingBubble: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
+    backgroundColor: NB.surface,
+    borderWidth: 2,
+    borderColor: NB.border,
+    borderRadius: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginLeft: 20,
@@ -1407,8 +1482,8 @@ const styles = StyleSheet.create({
   typingDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.tertiary,
+    borderRadius: 0,
+    backgroundColor: NB.tertiary,
   },
   typingDot1: {
     opacity: 0.4,
@@ -1420,27 +1495,27 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   inputSection: {
-    backgroundColor: Colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderTopWidth: 3,
+    borderTopColor: NB.border,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 8,
+    ...nbShadow,
   },
   textInput: {
     flex: 1,
     fontSize: 16,
-    color: Colors.secondary,
+    color: NB.secondary,
     paddingVertical: 4,
     paddingRight: 8,
   },
@@ -1456,17 +1531,18 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: "center",
     justifyContent: "center",
   },
   sendButtonDisabled: {
-    backgroundColor: Colors.border,
+    backgroundColor: NB.border,
   },
   disclaimerText: {
     fontSize: 12,
-    color: Colors.tertiary,
+    color: NB.tertiary,
     textAlign: "center",
     marginTop: 4,
   },
@@ -1480,13 +1556,13 @@ const styles = StyleSheet.create({
   emptyMessagesTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: Colors.secondary,
+    color: NB.secondary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyMessagesSubtitle: {
     fontSize: 14,
-    color: Colors.tertiary,
+    color: NB.tertiary,
     textAlign: "center",
     lineHeight: 20,
   },
@@ -1497,18 +1573,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sessionMenu: {
-    backgroundColor: Colors.background,
-    borderRadius: 12,
+    backgroundColor: NB.surface,
     paddingVertical: 8,
     minWidth: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderWidth: 3,
+    borderColor: NB.border,
+    ...nbShadow,
   },
   menuItem: {
     flexDirection: "row",
@@ -1518,7 +1588,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: NB.secondary,
     marginLeft: 12,
     fontWeight: "500",
   },

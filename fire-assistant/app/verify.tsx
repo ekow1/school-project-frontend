@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Animated,
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     StatusBar,
@@ -15,24 +14,11 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
-const { width, height } = Dimensions.get('window');
-
-const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#D32F2F",
-  surface: "#FFFFFF",
-  border: "#E2E8F0",
-  success: "#10B981",
-  error: "#EF4444",
-  text: "#FFFFFF",
-  textSecondary: "#F5F5F5",
-  accent: "#3B82F6",
-};
+const NB = { border: '#1A1A1A', primary: '#C41230', bg: '#FFF8EF', surface: '#FFFFFF', muted: '#78716C', danger: '#EF4444' };
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
 
 export default function VerifyScreen() {
   const insets = useSafeAreaInsets();
@@ -50,22 +36,9 @@ export default function VerifyScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -148,7 +121,7 @@ export default function VerifyScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={NB.bg} />
       
       <KeyboardAvoidingView 
         style={styles.keyboardView}
@@ -161,7 +134,7 @@ export default function VerifyScreen() {
               style={styles.backButton}
               onPress={() => router.back()}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.text} />
+              <Ionicons name="arrow-back" size={24} color={NB.border} />
             </TouchableOpacity>
             <Text style={styles.title}>Verify Phone</Text>
             <View style={styles.placeholder} />
@@ -172,18 +145,12 @@ export default function VerifyScreen() {
             {/* Icon Section */}
             <Animated.View style={[
               styles.iconSection,
-              { 
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: scaleAnim }
-                ]
-              }
+              { transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }
             ]}>
               <View style={styles.iconContainer}>
                 <View style={styles.iconWrapper}>
-                  <Ionicons name="shield-checkmark" size={48} color={Colors.primary} />
+                  <Ionicons name="shield-checkmark" size={40} color={NB.primary} />
                 </View>
-                <View style={styles.iconGlow} />
               </View>
             </Animated.View>
 
@@ -214,7 +181,7 @@ export default function VerifyScreen() {
                     style={[
                       styles.otpInputWrapper,
                       digit && styles.otpInputFilled,
-                      { transform: [{ scale: digit ? 1.1 : 1 }] }
+                      { transform: [{ scale: digit ? 1.05 : 1 }] }
                     ]}
                   >
                     <TextInput
@@ -243,7 +210,7 @@ export default function VerifyScreen() {
               <Text style={styles.resendText}>Didn't receive the code? </Text>
               {resendTimer > 0 ? (
                 <View style={styles.timerContainer}>
-                  <Ionicons name="time-outline" size={16} color={Colors.textSecondary} />
+                  <Ionicons name="time-outline" size={16} color={NB.muted} />
                   <Text style={styles.timerText}>Resend in {resendTimer}s</Text>
                 </View>
               ) : (
@@ -261,7 +228,7 @@ export default function VerifyScreen() {
                 styles.errorContainer,
                 { transform: [{ translateY: slideAnim }] }
               ]}>
-                <Ionicons name="alert-circle" size={16} color={Colors.error} />
+                <Ionicons name="alert-circle" size={16} color={NB.danger} />
                 <Text style={styles.errorText}>{error}</Text>
               </Animated.View>
             )}
@@ -283,7 +250,7 @@ export default function VerifyScreen() {
                 <Text style={styles.verifyButtonText}>
                   {isLoading ? 'Verifying...' : 'Verify Phone Number'}
                 </Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.surface} />
+                <Ionicons name="arrow-forward" size={20} color={NB.surface} />
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -296,7 +263,7 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
   },
   keyboardView: {
     flex: 1,
@@ -310,21 +277,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 20,
+    marginBottom: 20,
   },
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: NB.surface,
+    borderWidth: 2,
+    borderColor: NB.border,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: NB.border,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   placeholder: {
     width: 44,
@@ -336,7 +310,7 @@ const styles = StyleSheet.create({
   },
   iconSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   iconContainer: {
     position: 'relative',
@@ -344,75 +318,80 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.surface,
+    width: 100,
+    height: 100,
+    backgroundColor: NB.surface,
+    borderWidth: 3,
+    borderColor: NB.border,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Colors.surface,
-  },
-  iconGlow: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    zIndex: -1,
+    shadowColor: NB.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   textSection: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 40,
   },
   subtitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 12,
+    fontSize: 24,
+    fontWeight: '800',
+    color: NB.border,
+    marginBottom: 8,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   description: {
-    fontSize: 16,
-    color: Colors.textSecondary,
+    fontSize: 15,
+    color: NB.muted,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
     paddingHorizontal: 20,
+    fontWeight: '600',
   },
   otpSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   otpLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 24,
+    fontSize: 14,
+    fontWeight: '800',
+    color: NB.border,
+    marginBottom: 20,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 20,
+    gap: 16,
   },
   otpInputWrapper: {
     width: 56,
     height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: NB.surface,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: NB.border,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   otpInputFilled: {
-    backgroundColor: Colors.surface,
-    borderColor: Colors.surface,
+    borderColor: NB.primary,
+    shadowColor: NB.primary,
   },
   otpInput: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.primary,
+    color: NB.primary,
     textAlign: 'center',
     width: '100%',
     height: '100%',
@@ -422,18 +401,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
     flexWrap: 'wrap',
   },
   resendText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: NB.muted,
+    fontWeight: '600',
   },
   resendLink: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-    textDecorationLine: 'underline',
+    fontWeight: '800',
+    color: NB.primary,
   },
   timerContainer: {
     flexDirection: 'row',
@@ -443,22 +422,23 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: NB.muted,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 12,
+    backgroundColor: NB.surface,
+    borderRadius: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderWidth: 2,
+    borderColor: NB.danger,
+    width: '100%',
   },
   errorText: {
     fontSize: 14,
-    color: Colors.error,
+    color: NB.danger,
     marginLeft: 8,
     flex: 1,
     fontWeight: '500',
@@ -467,21 +447,31 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   verifyButton: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    paddingVertical: 18,
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
+    paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: NB.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   verifyButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: NB.muted,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   verifyButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: Colors.primary,
+    fontWeight: '800',
+    color: NB.surface,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

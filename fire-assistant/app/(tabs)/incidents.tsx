@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -12,22 +11,23 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../../constants/theme';
 import { AnimatedScreen } from '../../components/AnimatedScreen';
 import { useAuthStore } from '../../store/authStore';
 import { FireReport, useFireReportsStore } from '../../store/fireReportsStore';
 
 const statusColors = {
-  pending: { bg: '#FEF3C7', border: '#F59E0B', text: '#D97706' },
-  'in-progress': { bg: '#DBEAFE', border: '#3B82F6', text: '#1D4ED8' },
-  resolved: { bg: '#D1FAE5', border: '#10B981', text: '#059669' },
-  cancelled: { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626' },
-  canceled: { bg: '#FEE2E2', border: '#EF4444', text: '#DC2626' }, // Alternative spelling
+  pending: { bg: Colors.warningAlpha, border: Colors.warning, text: Colors.brown },
+  'in-progress': { bg: Colors.accentAlpha, border: Colors.accent, text: Colors.accent },
+  resolved: { bg: Colors.successAlpha, border: Colors.success, text: Colors.success },
+  cancelled: { bg: Colors.primaryAlpha, border: Colors.primary, text: Colors.primary },
+  canceled: { bg: Colors.primaryAlpha, border: Colors.primary, text: Colors.primary },
 };
 
 const priorityColors = {
-  low: { bg: '#F3F4F6', text: '#6B7280' },
-  medium: { bg: '#FEF3C7', text: '#D97706' },
-  high: { bg: '#FEE2E2', text: '#DC2626' },
+  low: { bg: Colors.surfaceVariant, text: Colors.tertiary },
+  medium: { bg: Colors.warningAlpha, text: Colors.brown },
+  high: { bg: Colors.primaryAlpha, text: Colors.primary },
 };
 
 // Helper function to safely get status colors with fallback
@@ -158,7 +158,7 @@ export default function IncidentsScreen() {
             <Ionicons 
               name={refreshing ? "hourglass" : "refresh"} 
               size={20} 
-              color={refreshing ? "#9CA3AF" : "#D32F2F"} 
+              color={refreshing ? "#A09080" : "#C41230"} 
             />
           </TouchableOpacity>
         </View>
@@ -166,12 +166,12 @@ export default function IncidentsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {isLoading && !refreshing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#D32F2F" />
+            <ActivityIndicator size="large" color="#C41230" />
             <Text style={styles.loadingText}>Loading incidents...</Text>
           </View>
         ) : reports.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="document-outline" size={64} color="#9CA3AF" />
+            <Ionicons name="document-outline" size={64} color="#A09080" />
             <Text style={styles.emptyTitle}>No Incidents Found</Text>
             <Text style={styles.emptyMessage}>
               No incidents reported at this time.
@@ -188,16 +188,13 @@ export default function IncidentsScreen() {
               >
                 <View style={styles.reportHeader}>
                   <View style={styles.reportIconContainer}>
-                    <LinearGradient
-                      colors={['#D32F2F', '#FF6659']}
-                      style={styles.reportIcon}
-                    >
+                    <View style={styles.reportIcon}>
                       <Ionicons
                         name={getIncidentIcon(report.incidentType)}
                         size={20}
                         color="white"
                       />
-                    </LinearGradient>
+                    </View>
                   </View>
                   <View style={styles.reportInfo}>
                     <Text style={styles.reportTitle}>{report.incidentName}</Text>
@@ -246,11 +243,11 @@ export default function IncidentsScreen() {
                   {report.description || 'No additional description provided.'}
                 </Text>
                 <View style={styles.reportLocation}>
-                  <Ionicons name="location" size={14} color="#6B7280" />
+                  <Ionicons name="location" size={14} color="#78716C" />
                   <Text style={styles.locationText}>{report.location?.locationName || 'Unknown location'}</Text>
                 </View>
                 <View style={styles.reportStation}>
-                  <Ionicons name="business" size={14} color="#6B7280" />
+                  <Ionicons name="business" size={14} color="#78716C" />
                   <Text style={styles.stationText}>{report.station?.name || 'Unknown Station'}</Text>
                 </View>
               </TouchableOpacity>
@@ -264,165 +261,67 @@ export default function IncidentsScreen() {
   );
 }
 
+const NB = { border: '#1A1A1A', primary: '#C41230', bg: '#FFF8EF', surface: '#FFFFFF', muted: '#78716C' };
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
+
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
+  safeArea: { flex: 1, backgroundColor: NB.bg },
+  container: { flex: 1, backgroundColor: NB.bg },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    paddingVertical: 16,
+    backgroundColor: NB.surface,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: NB.border, textTransform: 'uppercase', letterSpacing: 0.5 },
   refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40,
+    backgroundColor: NB.primary,
+    borderWidth: 2, borderColor: NB.border,
+    justifyContent: 'center', alignItems: 'center',
+    ...nbShadow,
   },
-  refreshButtonDisabled: {
-    backgroundColor: '#F3F4F6',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+  refreshButtonDisabled: { backgroundColor: '#F5EDE3' },
+  content: { flex: 1, padding: 16 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
+  loadingText: { marginTop: 12, fontSize: 15, color: NB.muted, fontWeight: '600' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: NB.border, marginTop: 16, marginBottom: 8, textTransform: 'uppercase' },
+  emptyMessage: { fontSize: 15, color: NB.muted, textAlign: 'center', lineHeight: 22 },
   reportCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: NB.surface,
+    borderRadius: 0,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: NB.border,
+    ...nbShadow,
   },
-  reportHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  reportIconContainer: {
-    marginRight: 12,
-  },
+  reportHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
+  reportIconContainer: { marginRight: 12 },
   reportIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40,
+    backgroundColor: NB.primary,
+    borderWidth: 2, borderColor: NB.border,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: NB.border, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2,
   },
-  reportInfo: {
-    flex: 1,
-  },
-  reportTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  reportType: {
-    fontSize: 14,
-    color: '#D32F2F',
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  reportDate: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  reportStatus: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  statusBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  priorityBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  reportDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  reportLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  reportStation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  stationText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
+  reportInfo: { flex: 1 },
+  reportTitle: { fontSize: 15, fontWeight: '800', color: NB.border, marginBottom: 3 },
+  reportType: { fontSize: 11, color: NB.primary, fontWeight: '800', marginBottom: 2, letterSpacing: 1, textTransform: 'uppercase' },
+  reportDate: { fontSize: 11, color: NB.muted, fontWeight: '600' },
+  reportStatus: { alignItems: 'flex-end', gap: 6 },
+  statusBadge: { borderRadius: 0, paddingHorizontal: 7, paddingVertical: 4, borderWidth: 2 },
+  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  priorityBadge: { borderRadius: 0, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 2, borderColor: NB.border },
+  priorityText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  reportDescription: { fontSize: 13, color: NB.muted, lineHeight: 19, marginBottom: 10 },
+  reportLocation: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  locationText: { fontSize: 12, color: NB.muted, fontWeight: '500' },
+  reportStation: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  stationText: { fontSize: 12, color: NB.muted, fontWeight: '500' },
 }); 

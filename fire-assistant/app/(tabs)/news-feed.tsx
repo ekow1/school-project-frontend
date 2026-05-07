@@ -17,21 +17,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { AnimatedScreen } from "../../components/AnimatedScreen"
 
+const NB = { border: '#1A1A1A', primary: '#C41230', bg: '#FFF8EF', surface: '#FFFFFF', muted: '#78716C', danger: '#EF4444', accent: '#7C2D12', success: '#10B981', warning: '#E8A020' };
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
+
 const TABS = ["All", "Incidents", "Safety", "Others"]
 const SCREEN_WIDTH = Dimensions.get("window").width
-
-const Colors = {
-  primary: "#e02a1f",
-  primaryLight: "#FF6659",
-  secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
-  surface: "#FFFFFF",
-  border: "#E2E8F0",
-  success: "#10B981",
-  warning: "#F59E0B",
-  accent: "#8B5CF6",
-}
 
 const MOCK_NEWS = [
   {
@@ -95,26 +85,26 @@ const MOCK_NEWS = [
 const getCategoryColor = (category: string) => {
   switch (category) {
     case "Incidents":
-      return Colors.primary
+      return NB.primary
     case "Safety":
-      return Colors.success
+      return NB.success
     case "Others":
-      return Colors.accent
+      return NB.accent
     default:
-      return Colors.tertiary
+      return NB.muted
   }
 }
 
 const getPriorityIndicator = (priority: string) => {
   switch (priority) {
     case "high":
-      return { color: Colors.primary, icon: "flame" }
+      return { color: NB.primary, icon: "flame" }
     case "medium":
-      return { color: Colors.warning, icon: "warning" }
+      return { color: NB.warning, icon: "warning" }
     case "low":
-      return { color: Colors.success, icon: "information-circle" }
+      return { color: NB.success, icon: "information-circle" }
     default:
-      return { color: Colors.tertiary, icon: "radio" }
+      return { color: NB.muted, icon: "radio" }
   }
 }
 
@@ -142,7 +132,7 @@ function NewsList({ filter }: { filter: string }) {
                 </View>
 
                 <View style={styles.metaInfo}>
-                  <Ionicons name="time-outline" size={12} color={Colors.tertiary} />
+                  <Ionicons name="time-outline" size={12} color={NB.muted} />
                   <Text style={styles.timestampText}>{news.timestamp}</Text>
                 </View>
               </View>
@@ -154,7 +144,7 @@ function NewsList({ filter }: { filter: string }) {
                   <Image source={{ uri: news.image }} style={styles.newsImage} />
                   <LinearGradient colors={["transparent", "rgba(0,0,0,0.3)"]} style={styles.imageOverlay} />
                   <View style={styles.priorityBadge}>
-                    <Ionicons name={priorityInfo.icon as any} size={12} color="#fff" />
+                    <Ionicons name={priorityInfo.icon as any} size={12} color={priorityInfo.color} />
                   </View>
                 </View>
 
@@ -170,12 +160,12 @@ function NewsList({ filter }: { filter: string }) {
                   {/* Footer */}
                   <View style={styles.cardFooter}>
                     <View style={styles.sourceContainer}>
-                      <Ionicons name="radio-outline" size={14} color={Colors.tertiary} />
+                      <Ionicons name="radio-outline" size={14} color={NB.muted} />
                       <Text style={styles.sourceText}>{news.source}</Text>
                     </View>
 
                     <View style={styles.readTimeContainer}>
-                      <Ionicons name="book-outline" size={12} color={Colors.tertiary} />
+                      <Ionicons name="book-outline" size={12} color={NB.muted} />
                       <Text style={styles.readTimeText}>{news.readTime}</Text>
                     </View>
                   </View>
@@ -188,7 +178,7 @@ function NewsList({ filter }: { filter: string }) {
 
       {filtered.length === 0 && (
         <View style={styles.emptyState}>
-          <Ionicons name="newspaper-outline" size={48} color={Colors.tertiary} />
+          <Ionicons name="newspaper-outline" size={48} color={NB.muted} />
           <Text style={styles.emptyStateText}>No news in this category</Text>
           <Text style={styles.emptyStateSubtext}>Check back later for updates</Text>
         </View>
@@ -213,13 +203,15 @@ export default function NewsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar barStyle="dark-content" backgroundColor={NB.bg} />
       <AnimatedScreen direction="up" delay={100}>
         <View style={styles.container}>
         {/* Enhanced Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Fire News & Updates</Text>
-          <Text style={styles.headerSubtitle}>Stay informed with the latest fire safety news</Text>
+        <View style={styles.headerBlock}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Fire News & Updates</Text>
+            <Text style={styles.headerSubtitle}>Stay informed with the latest fire safety news</Text>
+          </View>
         </View>
 
         {/* Improved Tab Bar */}
@@ -258,81 +250,79 @@ export default function NewsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: NB.bg,
   },
 
   // Header Styles
+  headerBlock: {
+    backgroundColor: NB.surface,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 24,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingBottom: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Colors.secondary,
+    fontSize: 22,
+    fontWeight: "800",
+    color: NB.border,
     marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: Colors.tertiary,
-    fontWeight: "500",
+    fontSize: 12,
+    color: NB.muted,
+    fontWeight: "600",
   },
 
   // Enhanced Tab Bar
   topBar: {
-    backgroundColor: Colors.surface,
+    backgroundColor: NB.surface,
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    position: "relative",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: 12,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
   },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    padding: 4,
+    gap: 8,
   },
   tab: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginHorizontal: 2,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.bg,
   },
   activeTab: {
-    backgroundColor: Colors.surface,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: NB.primary,
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   tabText: {
-    fontSize: 14,
-    color: Colors.tertiary,
-    fontWeight: "600",
+    fontSize: 12,
+    color: NB.muted,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   activeTabText: {
-    color: Colors.primary,
-    fontWeight: "700",
+    color: "#fff",
+    fontWeight: "800",
   },
   tabIndicator: {
-    position: "absolute",
-    bottom: 0,
-    height: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-    marginHorizontal: 16,
+    display: "none",
   },
 
   // News List
@@ -343,12 +333,12 @@ const styles = StyleSheet.create({
 
   // Enhanced News Card
   newsCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderWidth: 2,
+    borderColor: NB.border,
     overflow: "hidden",
     position: "relative",
+    ...nbShadow,
   },
 
   priorityStrip: {
@@ -356,13 +346,13 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 4,
+    width: 5,
     zIndex: 1,
   },
 
   cardContent: {
-    padding: 20,
-    paddingLeft: 24, // Account for priority strip
+    padding: 14,
+    paddingLeft: 18,
   },
 
   // Card Header
@@ -370,7 +360,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   categoryContainer: {
     flexDirection: "row",
@@ -379,12 +369,13 @@ const styles = StyleSheet.create({
   categoryDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: NB.border,
+    marginRight: 6,
   },
   categoryText: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -394,29 +385,30 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   timestampText: {
-    fontSize: 12,
-    color: Colors.tertiary,
-    fontWeight: "500",
+    fontSize: 11,
+    color: NB.muted,
+    fontWeight: "600",
   },
 
   // Content Section
   contentSection: {
     flexDirection: "row",
-    gap: 16,
+    gap: 12,
   },
 
   // Image Container
   imageContainer: {
     position: "relative",
-    width: 120,
-    height: 120,
-    borderRadius: 16,
+    width: 100,
+    height: 100,
+    borderWidth: 2,
+    borderColor: NB.border,
     overflow: "hidden",
   },
   newsImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: Colors.border,
+    backgroundColor: NB.bg,
   },
   imageOverlay: {
     position: "absolute",
@@ -427,12 +419,13 @@ const styles = StyleSheet.create({
   },
   priorityBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -443,17 +436,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   newsTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.secondary,
-    lineHeight: 24,
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "800",
+    color: NB.border,
+    lineHeight: 20,
+    marginBottom: 6,
   },
   newsSummary: {
-    fontSize: 14,
-    color: Colors.tertiary,
-    lineHeight: 20,
-    marginBottom: 12,
+    fontSize: 12,
+    color: NB.muted,
+    lineHeight: 18,
+    marginBottom: 8,
   },
 
   // Card Footer
@@ -461,16 +454,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderTopWidth: 2,
+    borderTopColor: NB.border,
+    paddingTop: 8,
+    marginTop: "auto",
   },
   sourceContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   sourceText: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: "600",
+    fontSize: 11,
+    color: NB.primary,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   readTimeContainer: {
     flexDirection: "row",
@@ -478,9 +477,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   readTimeText: {
-    fontSize: 12,
-    color: Colors.tertiary,
-    fontWeight: "500",
+    fontSize: 11,
+    color: NB.muted,
+    fontWeight: "600",
   },
 
   // Empty State
@@ -491,14 +490,15 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 18,
-    fontWeight: "600",
-    color: Colors.secondary,
+    fontWeight: "800",
+    color: NB.border,
     marginTop: 16,
     marginBottom: 8,
+    textTransform: "uppercase",
   },
   emptyStateSubtext: {
-    fontSize: 14,
-    color: Colors.tertiary,
+    fontSize: 13,
+    color: NB.muted,
     textAlign: "center",
   },
 }) 

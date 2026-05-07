@@ -21,18 +21,20 @@ import { useAuthStore } from "../store/authStore"
 const { width, height } = Dimensions.get("window")
 
 const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+  primary: "#C41230",
+  primaryLight: "#E85B4A",
+  primaryDark: "#8B0D21",
   danger: "#EF4444",
-  accent: "#8B5CF6",
+  accent: "#7C2D12",
   success: "#10B981",
-  warning: "#F59E0B",
-  tertiary: "#757575",
+  warning: "#E8A020",
+  tertiary: "#78716C",
   secondary: "#1A1A1A",
   surface: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
+  surfaceVariant: "#F5EDE3",
+  border: "#D4C4B5",
+  background: "#FFF8EF",
+  brown: "#7C2D12",
   shadow: "rgba(0, 0, 0, 0.1)",
 }
 
@@ -213,26 +215,16 @@ const IncidentTypeCard = ({
   }
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View style={{ width: '31%', transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
-        style={[styles.incidentTypeCard, { backgroundColor: type.bgColor }, isSelected && styles.selectedIncidentType]}
+        style={[styles.incidentTypeCard, isSelected && styles.selectedIncidentType]}
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.9}
+        activeOpacity={1}
       >
-        <View style={[styles.incidentTypeIcon, { backgroundColor: type.color + "20" }]}>
-          <DynamicIcon iconFamily={type.iconFamily} name={type.icon} size={22} color={type.color} />
-        </View>
-        <Text style={[styles.incidentTypeLabel, { color: type.color }]}>{type.label}</Text>
-        <Text style={styles.incidentTypeDescription} numberOfLines={2}>
-          {type.description}
-        </Text>
-        {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Ionicons name="checkmark-circle" size={24} color={type.color} />
-          </View>
-        )}
+        <DynamicIcon iconFamily={type.iconFamily} name={type.icon} size={32} color={isSelected ? Colors.surface : Colors.secondary} />
+        <Text style={[styles.incidentTypeLabel, isSelected && { color: Colors.surface }]}>{type.label}</Text>
       </TouchableOpacity>
     </Animated.View>
   )
@@ -508,18 +500,15 @@ export default function IncidentReportModal({
               ))}
               {/* Others Card - inline with other emergency types, beside Hazmat */}
               <TouchableOpacity
-              style={[styles.incidentTypeCard, styles.othersCard]}
+              style={[styles.incidentTypeCard, styles.othersCard, { width: '31%' }]}
               onPress={handleOthersPress}
               activeOpacity={0.9}
             >
-              <View style={[styles.incidentTypeIcon, { backgroundColor: Colors.primary + "20" }]}>
-                <Ionicons name="add-circle" size={22} color={Colors.primary} />
-              </View>
-              <Text style={[styles.incidentTypeLabel, { color: Colors.primary }]}>Others</Text>
-              <Text style={styles.incidentTypeDescription} numberOfLines={2}>
-                Other emergency type
-              </Text>
+              <Ionicons name="add-circle" size={32} color={Colors.secondary} />
+              <Text style={styles.incidentTypeLabel}>Others</Text>
             </TouchableOpacity>
+            {/* Dummy element to preserve 3-column alignment on last row with space-between */}
+            <View style={{ width: '31%' }} />
             </View>
           </Animated.View>
 
@@ -618,15 +607,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalContainer: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: Colors.background,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.secondary,
     maxHeight: height * 0.85,
     paddingBottom: Platform.OS === "ios" ? 34 : 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: -4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 24,
   },
   modalHandle: {
@@ -650,13 +641,14 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 8,
   },
   headerTextContainer: {
@@ -676,22 +668,29 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     backgroundColor: Colors.surfaceVariant,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   emergencyCallContainer: {
     marginHorizontal: 24,
     marginBottom: 24,
   },
   emergencyCallButton: {
-    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     overflow: "hidden",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 12,
   },
   emergencyCallGradient: {
@@ -703,11 +702,12 @@ const styles = StyleSheet.create({
   callIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    borderWidth: 2,
+    borderColor: Colors.surface,
   },
   emergencyCallText: {
     flex: 1,
@@ -752,45 +752,37 @@ const styles = StyleSheet.create({
   incidentTypesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    rowGap: 16,
     justifyContent: "space-between",
   },
   incidentTypeCard: {
-    width: (width - 80) / 3,
-    borderRadius: 16,
-    padding: 12,
+    width: "100%",
+    aspectRatio: 1,
+    padding: 8,
     borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative",
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 3,
   },
   selectedIncidentType: {
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    transform: [{ scale: 1.02 }],
-  },
-  incidentTypeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-    alignSelf: "center",
+    backgroundColor: Colors.primary,
+    borderColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    transform: [{ translateX: 2 }, { translateY: 2 }],
+    elevation: 1,
   },
   incidentTypeLabel: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 4,
+    color: Colors.secondary,
   },
   incidentTypeDescription: {
     fontSize: 11,
@@ -804,21 +796,27 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   locationInfo: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.surfaceVariant,
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     paddingHorizontal: 20,
     paddingVertical: 16,
     marginHorizontal: 24,
     marginBottom: 24,
     gap: 12,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   locationText: {
     fontSize: 15,
@@ -831,10 +829,16 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: Colors.surfaceVariant,
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   cancelButtonText: {
     fontSize: 18,
@@ -842,7 +846,7 @@ const styles = StyleSheet.create({
     color: Colors.tertiary,
   },
   othersCard: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: Colors.surface,
   },
   othersFormOverlay: {
     position: "absolute",
@@ -863,16 +867,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   othersFormContainer: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    backgroundColor: Colors.background,
     marginHorizontal: 24,
     maxHeight: height * 0.6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 16,
     width: width - 48,
   },
@@ -901,13 +904,17 @@ const styles = StyleSheet.create({
   },
   othersFormInput: {
     backgroundColor: Colors.surfaceVariant,
-    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     color: Colors.secondary,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   othersFormTextArea: {
     minHeight: 100,
@@ -917,7 +924,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEE2E2",
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 12,
     marginBottom: 12,
     gap: 8,
@@ -932,7 +940,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEE2E2",
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 12,
     marginBottom: 20,
     gap: 8,
@@ -945,10 +954,16 @@ const styles = StyleSheet.create({
   },
   othersSubmitButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   othersSubmitButtonDisabled: {
     backgroundColor: Colors.tertiary,

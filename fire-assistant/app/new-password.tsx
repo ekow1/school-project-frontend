@@ -80,7 +80,7 @@ export default function NewPasswordScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#D32F2F" />
+        <StatusBar barStyle="light-content" backgroundColor="Colors.primary" />
         <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.content}>
             {/* Icon */}
@@ -191,11 +191,11 @@ export default function NewPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D32F2F',
+    backgroundColor: 'Colors.primary',
   },
   keyboardView: {
     flex: 1,
-    backgroundColor: '#D32F2F',
+    backgroundColor: 'Colors.primary',
   },
   content: {
     flex: 1,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   buttonText: {
-    color: '#D32F2F',
+    color: 'Colors.primary',
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 0.5,

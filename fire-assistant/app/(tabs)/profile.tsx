@@ -2,7 +2,6 @@
 
 import { Ionicons } from "@expo/vector-icons"
 import * as ImagePicker from 'expo-image-picker'
-import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, Image, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
@@ -13,18 +12,18 @@ import { useAuthStore } from "../../store/authStore"
 import { uploadImageToCloudinary } from "../../utils/cloudinary"
 
 const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+  primary: "#C41230",
+  primaryLight: "#E85B4A",
+  primaryDark: "#8B0D21",
   secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
+  tertiary: "#78716C",
+  background: "#FFF8EF",
   surface: "#FFFFFF",
-  border: "#E2E8F0",
+  border: "#D4C4B5",
   success: "#10B981",
   danger: "#EF4444",
-  warning: "#F59E0B",
-  inputBg: "#F8F9FA",
+  warning: "#E8A020",
+  inputBg: "#FFF8EF",
 }
 
 interface ProfileData {
@@ -78,7 +77,7 @@ export default function ProfileScreen() {
 
   const getFallbackImage = (name: string = "User") => {
     const encodedName = encodeURIComponent(name)
-    const fallbackUrl = `https://ui-avatars.com/api/?name=${encodedName}&background=D32F2F&color=fff&size=200&bold=true`
+    const fallbackUrl = `https://ui-avatars.com/api/?name=${encodedName}&background=C41230&color=fff&size=200&bold=true`
     console.log('Generating fallback image for:', name, '→', fallbackUrl)
     return fallbackUrl
   }
@@ -344,8 +343,8 @@ export default function ProfileScreen() {
       <AnimatedScreen direction="fade" delay={100}>
         <View style={styles.container}>
         
-        {/* Header with Gradient */}
-        <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.headerGradient}>
+        {/* Header */}
+        <View style={styles.headerBlock}>
         <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text style={styles.headerTitle}>My Profile</Text>
@@ -353,7 +352,7 @@ export default function ProfileScreen() {
             </View>
             {!isEditing ? (
               <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editHeaderButton}>
-                <Ionicons name="create-outline" size={20} color="#fff" />
+                <Ionicons name="create-outline" size={20} color={NB.primary} />
                 <Text style={styles.editHeaderText}>Edit</Text>
               </TouchableOpacity>
           ) : (
@@ -388,7 +387,7 @@ export default function ProfileScreen() {
               <Text style={styles.profileBadgeText}>Verified</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           
@@ -703,347 +702,124 @@ export default function ProfileScreen() {
   )
 }
 
+const NB = { border: '#1A1A1A', primary: '#C41230', bg: '#FFF8EF', surface: '#FFFFFF', muted: '#78716C', danger: '#EF4444', success: '#10B981', warning: '#E8A020' };
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
+
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: Colors.tertiary,
-    fontWeight: '500',
-  },
-  headerGradient: {
-    paddingBottom: 32,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
+  safeArea: { flex: 1, backgroundColor: NB.primary },
+  container: { flex: 1, backgroundColor: NB.bg },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: NB.bg },
+  loadingText: { marginTop: 12, fontSize: 15, color: NB.muted, fontWeight: '600' },
+
+  headerBlock: { backgroundColor: NB.primary, borderBottomWidth: 3, borderBottomColor: NB.border },
   header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "500",
-  },
+  headerLeft: { flex: 1 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginTop: 2 },
   editHeaderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#fff', borderWidth: 2, borderColor: NB.border,
+    paddingHorizontal: 12, paddingVertical: 7,
+    shadowColor: NB.border, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2,
   },
-  editHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  editHeaderText: { fontSize: 13, fontWeight: '800', color: NB.primary },
   cancelHeaderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: NB.border, borderWidth: 2, borderColor: '#fff',
+    paddingHorizontal: 12, paddingVertical: 7,
   },
-  cancelHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  profileSection: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  imageWrapper: {
-    position: "relative",
-    marginBottom: 16,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: "#fff",
-  },
+  cancelHeaderText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+
+  profileSection: { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 24 },
+  imageWrapper: { position: 'relative', marginBottom: 14 },
+  profileImage: { width: 96, height: 96, borderWidth: 3, borderColor: '#fff' },
   cameraButton: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "#fff",
+    position: 'absolute', bottom: 0, right: 0,
+    width: 30, height: 30, backgroundColor: NB.border,
+    borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center',
   },
-  profileName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 8,
-  },
+  profileName: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 8 },
   profileBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+    paddingHorizontal: 10, paddingVertical: 4,
   },
-  profileBadgeText: {
-    fontSize: 12,
-    color: "#fff",
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-    paddingTop: 24,
-  },
-  section: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
+  profileBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
+
+  content: { flex: 1, paddingTop: 16 },
+  section: { marginBottom: 16, paddingHorizontal: 16 },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: `${Colors.primary}20`,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 14,
+    paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: NB.border,
   },
   sectionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    width: 34, height: 34, backgroundColor: NB.primary,
+    borderWidth: 2, borderColor: NB.border, alignItems: 'center', justifyContent: 'center', marginRight: 10,
+    shadowColor: NB.border, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: Colors.secondary,
-    letterSpacing: 0.3,
-  },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: NB.border, textTransform: 'uppercase', letterSpacing: 0.5 },
+
   fieldGroup: {
-    marginBottom: 24,
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    marginBottom: 12, backgroundColor: NB.surface,
+    borderWidth: 2, borderColor: NB.border, padding: 14,
+    ...nbShadow,
   },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Colors.primary,
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  displayValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  displayText: {
-    fontSize: 16,
-    color: Colors.secondary,
-    fontWeight: "500",
-    flex: 1,
-    lineHeight: 22,
-  },
-  addressText: {
-    lineHeight: 24,
-  },
-  verifiedIcon: {
-    marginLeft: 'auto',
-  },
+  fieldLabel: { fontSize: 10, fontWeight: '800', color: NB.primary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  displayValue: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  displayText: { fontSize: 15, color: NB.border, fontWeight: '600', flex: 1, lineHeight: 21 },
+  addressText: { lineHeight: 22 },
+  verifiedIcon: { marginLeft: 'auto' },
+
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.inputBg,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFF8EF', borderWidth: 2, borderColor: NB.border,
+    paddingHorizontal: 12, paddingVertical: 4,
   },
-  textareaContainer: {
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  inputIconTop: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.secondary,
-    fontWeight: "500",
-    paddingVertical: 12,
-  },
-  textarea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  actionButtonsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
+  textareaContainer: { alignItems: 'flex-start', paddingVertical: 10 },
+  inputIcon: { marginRight: 10 },
+  inputIconTop: { marginRight: 10, marginTop: 2 },
+  input: { flex: 1, fontSize: 15, color: NB.border, fontWeight: '600', paddingVertical: 10 },
+  textarea: { minHeight: 72, textAlignVertical: 'top' },
+
+  actionButtonsContainer: { paddingHorizontal: 16, marginBottom: 20 },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: NB.primary, paddingVertical: 15,
+    borderWidth: 2, borderColor: NB.border,
+    ...nbShadow,
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-  },
+  saveButtonText: { fontSize: 15, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+
   settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.surface,
-    padding: 18,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: NB.surface, padding: 14, marginBottom: 8,
+    borderWidth: 2, borderColor: NB.border,
+    shadowColor: NB.border, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2,
   },
-  settingLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
+  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 36, height: 36, borderWidth: 2, borderColor: NB.border,
+    backgroundColor: NB.bg, alignItems: 'center', justifyContent: 'center',
   },
-  settingText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.secondary,
-    letterSpacing: 0.2,
-  },
-  dangerZone: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 24,
-    marginTop: 8,
-  },
+  settingText: { fontSize: 15, fontWeight: '700', color: NB.border },
+
+  dangerZone: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 20, marginTop: 4 },
   signOutButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    paddingVertical: 16,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: Colors.danger,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: NB.surface, paddingVertical: 14,
+    borderWidth: 2, borderColor: NB.danger,
+    shadowColor: NB.danger, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
   },
-  signOutText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Colors.danger,
-    letterSpacing: 0.3,
-  },
+  signOutText: { fontSize: 13, fontWeight: '800', color: NB.danger, textTransform: 'uppercase', letterSpacing: 0.5 },
   deleteAccountButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.danger,
-    paddingVertical: 16,
-    borderRadius: 14,
-    shadowColor: Colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    backgroundColor: NB.danger, paddingVertical: 14,
+    borderWidth: 2, borderColor: NB.border,
+    ...nbShadow,
   },
-  deleteAccountText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.3,
-  },
-  bottomSpace: {
-    height: 40,
-  },
+  deleteAccountText: { fontSize: 13, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+  bottomSpace: { height: 40 },
 })

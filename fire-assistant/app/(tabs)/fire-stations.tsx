@@ -2,14 +2,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Linking,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomAlert from '../../components/CustomAlert';
@@ -19,23 +19,26 @@ import { useAuthStore } from '../../store/authStore';
 import { FireStationClickData, useFireStationStore } from '../../store/fireStationStore';
 import { fetchNearbyFireStations, FireStation } from '../../utils/fireStationSearch';
 
+const NB = { border: '#1A1A1A', primary: '#C41230', bg: '#FFF8EF', surface: '#FFFFFF', muted: '#78716C', danger: '#EF4444', accent: '#7C2D12', success: '#10B981', warning: '#E8A020' };
+const nbShadow = { shadowColor: NB.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
+
 const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+  primary: "#C41230",
+  primaryLight: "#E85B4A",
+  primaryDark: "#8B0D21",
   secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
+  tertiary: "#78716C",
+  background: "#FFF8EF",
   surface: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
+  surfaceVariant: "#F5EDE3",
+  border: "#D4C4B5",
   success: "#10B981",
-  warning: "#F59E0B",
+  warning: "#E8A020",
   danger: "#EF4444",
-  accent: "#8B5CF6",
+  accent: "#7C2D12",
   shadow: "rgba(0, 0, 0, 0.1)",
-  primaryAlpha: "rgba(211, 47, 47, 0.1)",
-  accentAlpha: "rgba(139, 92, 246, 0.1)",
+  primaryAlpha: "rgba(196, 18, 48, 0.1)",
+  accentAlpha: "rgba(124, 45, 18, 0.1)",
 };
 
 export default function FireStationsScreen() {
@@ -45,13 +48,12 @@ export default function FireStationsScreen() {
   const [fireStations, setFireStations] = useState<FireStation[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{latitude: number, longitude: number, address: string, name: string} | null>(null);
-  const [stationLimit, setStationLimit] = useState(20);
-  const [loadingMore, setLoadingMore] = useState(false);
-  
+  const [selectedLocation, setSelectedLocation] = useState<{ latitude: number, longitude: number, address: string, name: string } | null>(null);
+  const [stationLimit] = useState(20);
+
   // Custom alert state
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
@@ -103,17 +105,17 @@ export default function FireStationsScreen() {
         accuracy: Location.Accuracy.Balanced,
         timeout: 15000,
       });
-      
-      const timeoutPromise = new Promise((_, reject) => 
+
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Location request timeout')), 15000)
       );
-      
+
       const location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
-      
+
       if (!location || !location.coords) {
         throw new Error('Invalid location data received');
       }
-      
+
       setUserLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -141,7 +143,7 @@ export default function FireStationsScreen() {
       if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
         throw new Error('Invalid coordinates');
       }
-      
+
       const stations = await fetchNearbyFireStations(lat, lng, 20000, stationLimit, regionName || null);
       // Ensure we always set an array, even if empty
       setFireStations(Array.isArray(stations) ? stations : []);
@@ -159,41 +161,6 @@ export default function FireStationsScreen() {
       setAlertVisible(true);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadMoreStations = async () => {
-    if (!userLocation && !selectedLocation) return;
-    
-    setLoadingMore(true);
-    try {
-      const newLimit = stationLimit + 20;
-      setStationLimit(newLimit);
-      
-      const lat = selectedLocation?.latitude || userLocation?.latitude;
-      const lng = selectedLocation?.longitude || userLocation?.longitude;
-      
-      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-        throw new Error('Invalid coordinates');
-      }
-      
-      const regionName = selectedLocation ? extractRegionName(selectedLocation.name, selectedLocation.address) : undefined;
-      const stations = await fetchNearbyFireStations(lat, lng, 20000, newLimit, regionName || null);
-      // Ensure we always set an array, even if empty
-      setFireStations(Array.isArray(stations) ? stations : []);
-    } catch (error: any) {
-      console.error('Error loading more fire stations:', error);
-      const errorMessage = error?.message?.includes('network') || error?.message?.includes('fetch')
-        ? 'Network error. Please check your internet connection and try again.'
-        : 'Failed to load more fire stations. Please try again.';
-      setAlertConfig({
-        title: 'Error',
-        message: errorMessage,
-        type: 'error',
-      });
-      setAlertVisible(true);
-    } finally {
-      setLoadingMore(false);
     }
   };
 
@@ -245,19 +212,19 @@ export default function FireStationsScreen() {
     try {
       console.log('Sending fire station click data to backend:', stationData);
       const result = await sendFireStationClick(stationData);
-      
+
       if (result.success) {
         console.log('Fire station click data sent successfully:', result.message);
-        
+
         if (result.alreadyExists) {
           showAlert(
-            'Station Already Exists', 
+            'Station Already Exists',
             `Fire station "${stationData.name}" already exists in the database.`,
             'warning'
           );
         } else {
           showAlert(
-            'Data Added Successfully', 
+            'Data Added Successfully',
             `Fire station "${stationData.name}" has been added to the database successfully!`,
             'success'
           );
@@ -266,7 +233,7 @@ export default function FireStationsScreen() {
     } catch (error) {
       console.error('Error sending fire station click data:', error);
       showAlert(
-        'Error', 
+        'Error',
         'Failed to send fire station data to backend. Please try again.',
         'error'
       );
@@ -277,19 +244,19 @@ export default function FireStationsScreen() {
     try {
       console.log('Sending individual fire station to backend:', stationData);
       const result = await sendFireStationClick(stationData);
-      
+
       if (result.success) {
         console.log('Individual fire station sent successfully:', result.message);
-        
+
         if (result.alreadyExists) {
           showAlert(
-            'Station Already Exists', 
+            'Station Already Exists',
             `Fire station "${stationData.name}" already exists in the database.`,
             'warning'
           );
         } else {
           showAlert(
-            'Data Added Successfully', 
+            'Data Added Successfully',
             `Fire station "${stationData.name}" has been added to the database successfully!`,
             'success'
           );
@@ -298,7 +265,7 @@ export default function FireStationsScreen() {
     } catch (error) {
       console.error('Error sending individual fire station:', error);
       showAlert(
-        'Error', 
+        'Error',
         'Failed to send fire station to backend. Please try again.',
         'error'
       );
@@ -334,7 +301,7 @@ export default function FireStationsScreen() {
           }));
 
           const result = await sendFireStationsBulk(stationsData);
-          
+
           if (result.success) {
             showAlert(
               'Data Added Successfully',
@@ -348,11 +315,11 @@ export default function FireStationsScreen() {
               'error'
             );
           }
-          
+
         } catch (error) {
           console.error('Error in bulk send:', error);
           showAlert(
-            'Error', 
+            'Error',
             'Failed to send fire stations to backend. Please try again.',
             'error'
           );
@@ -370,7 +337,7 @@ export default function FireStationsScreen() {
   const extractRegionName = (locationName: string, address: string): string | undefined => {
     const nameLower = locationName.toLowerCase();
     const addressLower = address.toLowerCase();
-    
+
     // Ghana regions and cities mapping
     const regionMappings: { [key: string]: string[] } = {
       'accra': ['accra', 'greater accra', 'greater accra region', 'east legon', 'west legon', 'oshie', 'labadi', 'tema', 'madina', 'adenta', 'dansoman', 'kantamanto', 'circle', 'kanda', 'airport', 'kotoka'],
@@ -394,17 +361,17 @@ export default function FireStationsScreen() {
 
     // Check both name and address for region matches
     const searchText = `${nameLower} ${addressLower}`;
-    
+
     for (const [region, keywords] of Object.entries(regionMappings)) {
       if (keywords.some(keyword => searchText.includes(keyword))) {
         return region;
       }
     }
-    
+
     return undefined;
   };
 
-  const handleLocationSelect = (location: {latitude: number, longitude: number, address: string, name: string}) => {
+  const handleLocationSelect = (location: { latitude: number, longitude: number, address: string, name: string }) => {
     setSelectedLocation(location);
     setShowLocationSearch(false);
     const regionName = extractRegionName(location.name, location.address);
@@ -462,7 +429,7 @@ export default function FireStationsScreen() {
           <MaterialCommunityIcons name="fire-truck" size={64} color={Colors.tertiary} />
           <Text style={styles.centerTitle}>No Fire Stations Found</Text>
           <Text style={styles.centerSubtitle}>
-            {selectedLocation 
+            {selectedLocation
               ? `No fire stations were found near ${selectedLocation.name}. Try searching for a different location.`
               : 'No fire stations were found in your area. Try refreshing or search for a different location.'
             }
@@ -493,8 +460,8 @@ export default function FireStationsScreen() {
               {fireStations.length} Fire Station{fireStations.length !== 1 ? 's' : ''} Found
             </Text>
             <Text style={styles.resultsSubtitle}>
-              {selectedLocation 
-                ? `Fire stations in ${extractRegionName(selectedLocation.name, selectedLocation.address) || selectedLocation.name}` 
+              {selectedLocation
+                ? `Fire stations in ${extractRegionName(selectedLocation.name, selectedLocation.address) || selectedLocation.name}`
                 : 'Sorted by proximity to your location'
               }
             </Text>
@@ -514,23 +481,6 @@ export default function FireStationsScreen() {
           />
         ))}
 
-        {/* Load More Button */}
-        {fireStations.length >= stationLimit && (
-          <TouchableOpacity 
-            style={styles.loadMoreButton}
-            onPress={loadMoreStations}
-            disabled={loadingMore}
-          >
-            {loadingMore ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <>
-                <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-                <Text style={styles.loadMoreButtonText}>Load More Stations</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
       </ScrollView>
     );
   };
@@ -541,12 +491,12 @@ export default function FireStationsScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerIconContainer}>
-            <MaterialCommunityIcons name="fire-truck" size={28} color={Colors.primary} />
+            <MaterialCommunityIcons name="fire-truck" size={28} color="#fff" />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>Fire Stations</Text>
             <Text style={styles.headerSubtitle}>
-              {fireStations.length > 0 
+              {fireStations.length > 0
                 ? `${fireStations.length} stations found${selectedLocation ? ` in ${extractRegionName(selectedLocation.name, selectedLocation.address) || selectedLocation.name}` : ''}`
                 : selectedLocation ? selectedLocation.name : 'Find nearby emergency services'
               }
@@ -555,24 +505,24 @@ export default function FireStationsScreen() {
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.searchButton} onPress={handleSearchLocation}>
-            <Ionicons name="search" size={20} color={Colors.primary} />
+            <Ionicons name="search" size={20} color={NB.border} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.saveAllButton, isSaving && styles.saveAllButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.saveAllButton, isSaving && styles.saveAllButtonDisabled]}
             onPress={handleSaveAllToBackend}
             disabled={isSaving || fireStations.length === 0}
           >
             {isSaving ? (
-              <ActivityIndicator size="small" color={Colors.surface} />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={16} color={Colors.surface} />
+                <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
                 <Text style={styles.saveAllButtonText}>Save All</Text>
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.refreshButton} onPress={onRefresh} disabled={loading}>
-            <Ionicons name="refresh" size={20} color={Colors.primary} />
+            <Ionicons name="refresh" size={20} color={NB.border} />
           </TouchableOpacity>
         </View>
       </View>
@@ -586,7 +536,7 @@ export default function FireStationsScreen() {
           </Text>
           <Ionicons name="chevron-down" size={16} color={Colors.tertiary} />
         </TouchableOpacity>
-        
+
         {selectedLocation && (
           <TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
             <Ionicons name="locate" size={18} color={Colors.accent} />
@@ -632,9 +582,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
   },
   headerContent: {
     flexDirection: 'row',
@@ -644,23 +594,32 @@ const styles = StyleSheet.create({
   headerIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryAlpha,
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.secondary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: NB.border,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: Colors.tertiary,
+    fontSize: 12,
+    color: NB.muted,
+    fontWeight: '600',
     marginTop: 2,
   },
   headerActions: {
@@ -670,82 +629,111 @@ const styles = StyleSheet.create({
   searchButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryAlpha,
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   refreshButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryAlpha,
+    borderWidth: 2,
+    borderColor: NB.border,
+    backgroundColor: NB.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   saveAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    gap: 4,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    gap: 6,
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   saveAllButtonDisabled: {
-    backgroundColor: Colors.tertiary,
-    shadowOpacity: 0.1,
-    elevation: 1,
+    backgroundColor: NB.bg,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   saveAllButtonText: {
-    color: Colors.surface,
+    color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    backgroundColor: NB.surface,
+    borderBottomWidth: 3,
+    borderBottomColor: NB.border,
     gap: 12,
   },
   searchLocationButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: 12,
+    backgroundColor: NB.bg,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
+    shadowColor: NB.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   searchLocationText: {
     flex: 1,
-    fontSize: 16,
-    color: Colors.secondary,
-    fontWeight: '500',
+    fontSize: 14,
+    color: NB.border,
+    fontWeight: '700',
   },
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.accentAlpha,
-    borderRadius: 12,
+    backgroundColor: NB.accent,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 6,
+    shadowColor: NB.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   currentLocationText: {
-    fontSize: 14,
-    color: Colors.accent,
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   scrollView: {
     flex: 1,
@@ -765,13 +753,16 @@ const styles = StyleSheet.create({
   },
   resultsTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.secondary,
+    fontWeight: '800',
+    color: NB.border,
     marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   resultsSubtitle: {
-    fontSize: 14,
-    color: Colors.tertiary,
+    fontSize: 13,
+    color: NB.muted,
+    fontWeight: '600',
   },
   centerContainer: {
     flex: 1,
@@ -781,29 +772,38 @@ const styles = StyleSheet.create({
   },
   centerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.secondary,
+    fontWeight: '800',
+    color: NB.border,
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
+    textTransform: 'uppercase',
   },
   centerSubtitle: {
-    fontSize: 16,
-    color: Colors.tertiary,
+    fontSize: 14,
+    color: NB.muted,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: NB.primary,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   retryButtonText: {
-    color: Colors.surface,
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   emptyStateActions: {
     flexDirection: 'row',
@@ -811,33 +811,22 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   searchButtonEmpty: {
-    backgroundColor: Colors.accent,
+    backgroundColor: NB.accent,
+    borderWidth: 2,
+    borderColor: NB.border,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    shadowColor: NB.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   searchButtonEmptyText: {
-    color: Colors.surface,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loadMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  loadMoreButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

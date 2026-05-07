@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import { create } from 'zustand'
 import { ENV } from '../config/env'
+import { useNotificationStore } from './notificationStore'
 
 interface User {
   id: string
@@ -15,6 +16,12 @@ interface User {
   ghanaPost?: string
   serviceNumber?: string
   userType?: 'fire_officer' | 'regular'
+  // Additional officer fields
+  rank?: string
+  station?: string
+  unit?: string
+  department?: string
+  status?: string
 }
 
 interface ProfileData {
@@ -34,7 +41,7 @@ interface AuthState {
   error: string | null
   isInitialized: boolean
   hasSeenOnboarding: boolean
-  
+
   // Actions
   register: (data: RegisterData) => Promise<void>
   verifyPhone: (phone: string, otp: string) => Promise<void>
@@ -64,6 +71,29 @@ const TOKEN_KEY = '@auth_token'
 const USER_KEY = '@auth_user'
 const ONBOARDING_KEY = '@has_seen_onboarding'
 
+// Helper function to map officer profile data
+const mapOfficerProfile = (data: any, currentUser: any): any => {
+  return {
+    id: data.id || data._id || currentUser?.id || '',
+    name: data.name || data.fullName || currentUser?.name || '',
+    phone: data.phone || data.contactNumber || currentUser?.phone || '',
+    email: data.email || currentUser?.email || '',
+    address: data.address || data.stationName || currentUser?.address || '',
+    country: data.country || currentUser?.country,
+    dob: data.dob || currentUser?.dob,
+    image: data.image || data.photo || currentUser?.image,
+    ghanaPost: data.ghanaPost || currentUser?.ghanaPost,
+    serviceNumber: data.serviceNumber || data.service_number || currentUser?.serviceNumber,
+    userType: 'fire_officer' as const,
+    // Additional officer fields
+    rank: data.rank?.name || data.rank || currentUser?.rank || '',
+    station: data.station || currentUser?.station || '',
+    unit: data.unit || currentUser?.unit || '',
+    department: data.department || currentUser?.department || '',
+    status: data.status || 'active',
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
@@ -74,10 +104,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   register: async (data: RegisterData) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Registering user:', { ...data, password: '***' })
-      
+
       const response = await axios.post(`${API_BASE_URL}/auth/register`, data, {
         headers: {
           'Content-Type': 'application/json',
@@ -88,11 +118,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Registration successful
       set({ isLoading: false, error: null })
-      
+
     } catch (error) {
       console.error('Register error:', error)
-      const errorMessage = axios.isAxiosError(error) 
-        ? error.response?.data?.message || error.message 
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
         : 'Registration failed'
       set({ isLoading: false, error: errorMessage })
       throw error
@@ -101,11 +131,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   verifyPhone: async (phone: string, otp: string) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Verifying phone:', phone)
-      
-      const response = await axios.post(`${API_BASE_URL}/auth/verify-phone`, 
+
+      const response = await axios.post(`${API_BASE_URL}/auth/verify-phone`,
         { phone, otp },
         {
           headers: {
@@ -118,7 +148,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Phone verification successful
       set({ isLoading: false, error: null })
-      
+
     } catch (error) {
       console.error('Verify phone error:', error)
       const errorMessage = axios.isAxiosError(error)
@@ -131,11 +161,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   forgotPassword: async (phone: string) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Sending forgot password OTP to:', phone)
-      
-      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, 
+
+      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`,
         { phone },
         {
           headers: {
@@ -148,7 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // OTP sent successfully
       set({ isLoading: false, error: null })
-      
+
     } catch (error) {
       console.error('Forgot password error:', error)
       const errorMessage = axios.isAxiosError(error)
@@ -161,11 +191,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   resetPassword: async (phone: string, otp: string, newPassword: string) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Resetting password for:', phone)
-      
-      const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, 
+
+      const response = await axios.post(`${API_BASE_URL}/auth/reset-password`,
         { phone, otp, newPassword },
         {
           headers: {
@@ -178,7 +208,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Password reset successful
       set({ isLoading: false, error: null })
-      
+
     } catch (error) {
       console.error('Reset password error:', error)
       const errorMessage = axios.isAxiosError(error)
@@ -191,11 +221,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (phone: string, password: string) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Logging in user:', phone)
-      
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, 
+
+      const response = await axios.post(`${API_BASE_URL}/auth/login`,
         { phone, password },
         {
           headers: {
@@ -208,25 +238,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Get token from response
       const { token, user } = response.data
-      
+
       if (!token) {
         throw new Error('No token received from server')
       }
-      
+
       // Save token to AsyncStorage
       await AsyncStorage.setItem(TOKEN_KEY, token)
-      
+
       // If user data is provided, save it; otherwise create a minimal user object
       const userData = user || { id: '', name: '', phone, userType: 'regular' as const }
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
-      
-      set({ 
-        user: userData, 
+
+      set({
+        user: userData,
         token,
-        isLoading: false, 
-        error: null 
+        isLoading: false,
+        error: null
       })
-      
+
     } catch (error) {
       console.error('Login error:', error)
       const errorMessage = axios.isAxiosError(error)
@@ -239,11 +269,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   officerLogin: async (serviceNumber: string, password: string) => {
     set({ isLoading: true, error: null })
-    
+
     try {
       console.log('Logging in officer:', serviceNumber)
-      
-      const response = await axios.post(`${API_BASE_URL}/fire/personnel/login`, 
+
+      const response = await axios.post(`${API_BASE_URL}/fire/personnel/login`,
         { serviceNumber, password },
         {
           headers: {
@@ -256,30 +286,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Get token from response
       const { token, user } = response.data
-      
+
       if (!token) {
         throw new Error('No token received from server')
       }
-      
+
       // Save token to AsyncStorage
       await AsyncStorage.setItem(TOKEN_KEY, token)
-      
+
       // Mark user as fire officer and save
-      const userData = user ? { ...user, userType: 'fire_officer' as const } : { 
-        id: '', 
-        name: '', 
-        serviceNumber, 
-        userType: 'fire_officer' as const 
+      const userData = user ? { ...user, userType: 'fire_officer' as const } : {
+        id: '',
+        name: '',
+        serviceNumber,
+        userType: 'fire_officer' as const
       }
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
-      
-      set({ 
-        user: userData, 
+
+      set({
+        user: userData,
         token,
-        isLoading: false, 
-        error: null 
+        isLoading: false,
+        error: null
       })
-      
+
+      // Add login notification
+      const { addNotification } = useNotificationStore.getState()
+      addNotification({
+        title: 'Officer Login Successful',
+        message: `${userData.name || 'Fire Officer'} has logged in successfully.`,
+        type: 'login',
+        priority: 'medium',
+        data: {
+          officerId: userData.id,
+        }
+      })
+
     } catch (error) {
       console.error('Officer login error:', error)
       const errorMessage = axios.isAxiosError(error)
@@ -293,19 +335,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       set({ isLoading: true, error: null })
-      
+
       // Clear AsyncStorage
       await AsyncStorage.removeItem(TOKEN_KEY)
       await AsyncStorage.removeItem(USER_KEY)
-      
+
       // Clear state
-      set({ 
-        user: null, 
-        token: null, 
-        isLoading: false, 
-        error: null 
+      set({
+        user: null,
+        token: null,
+        isLoading: false,
+        error: null
       })
-      
+
       console.log('Logout successful')
     } catch (error) {
       console.error('Logout error:', error)
@@ -321,32 +363,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeAuth: async () => {
     try {
       console.log('Initializing auth...')
-      
+
       // Load token and user from AsyncStorage
       const [token, userJson, hasSeenOnboarding] = await Promise.all([
         AsyncStorage.getItem(TOKEN_KEY),
         AsyncStorage.getItem(USER_KEY),
         AsyncStorage.getItem(ONBOARDING_KEY),
       ])
-      
-      console.log('Loaded from storage:', { 
-        hasToken: !!token, 
+
+      console.log('Loaded from storage:', {
+        hasToken: !!token,
         hasUser: !!userJson,
         hasSeenOnboarding: hasSeenOnboarding === 'true'
       })
-      
+
       if (token && userJson) {
         const user = JSON.parse(userJson)
-        set({ 
-          token, 
+        set({
+          token,
           user,
           hasSeenOnboarding: hasSeenOnboarding === 'true',
-          isInitialized: true 
+          isInitialized: true
         })
       } else {
-        set({ 
+        set({
           hasSeenOnboarding: hasSeenOnboarding === 'true',
-          isInitialized: true 
+          isInitialized: true
         })
       }
     } catch (error) {
@@ -367,33 +409,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   getProfile: async (): Promise<User | null> => {
     const token = get().token
     const currentUser = get().user
-    
+
     if (!token) {
       console.error('No token available')
       return null
     }
 
-    const mapOfficerProfile = (data: any): User => {
-      return {
-        id: data.id || data._id || currentUser?.id || '',
-        name: data.name || data.fullName || currentUser?.name || '',
-        phone: data.phone || data.contactNumber || currentUser?.phone || '',
-        email: data.email || currentUser?.email || '',
-        address: data.address || data.station?.name || currentUser?.address || '',
-        country: data.country || currentUser?.country,
-        dob: data.dob || currentUser?.dob,
-        image: data.image || data.photo || currentUser?.image,
-        ghanaPost: data.ghanaPost || currentUser?.ghanaPost,
-        serviceNumber: data.serviceNumber || data.service_number || currentUser?.serviceNumber,
-        userType: 'fire_officer',
-      }
-    }
-
     try {
       console.log('Fetching profile...')
-      
+
       const isOfficer = currentUser?.userType === 'fire_officer'
-      const url = isOfficer 
+      const url = isOfficer
         ? `${API_BASE_URL}/fire/personnel/me`
         : `${API_BASE_URL}/profile`
 
@@ -405,13 +431,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true,
       })
 
-      const userData: User = isOfficer ? mapOfficerProfile(response.data) : response.data
+      // Log raw response data for debugging
+      console.log('Raw profile response:', response.data)
+
+      // Handle API response structure: { success: true, data: {...} }
+      const responseData = response.data.data || response.data
+
+      const userData: User = isOfficer ? mapOfficerProfile(responseData, currentUser) : responseData
       console.log('Profile fetched:', userData)
-      
+
       // Update user in state and AsyncStorage
       set({ user: userData })
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
-      
+
       return userData
     } catch (error) {
       console.error('Get profile error:', error)
@@ -425,7 +457,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   updateProfile: async (data: Partial<ProfileData>): Promise<User | null> => {
     const token = get().token
-    
+    const currentUser = get().user
+
     if (!token) {
       console.error('No token available')
       return null
@@ -434,8 +467,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       console.log('Updating profile...', data)
-      
-      const response = await axios.patch(`${API_BASE_URL}/profile`, data, {
+
+      const isOfficer = currentUser?.userType === 'fire_officer'
+      const url = isOfficer
+        ? `${API_BASE_URL}/fire/personnel/me`
+        : `${API_BASE_URL}/profile`
+
+      const response = await axios.patch(url, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -443,13 +481,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true,
       })
 
-      const userData: User = response.data
+      const userData: User = isOfficer ? mapOfficerProfile(response.data, currentUser) : response.data
       console.log('Profile updated:', userData)
-      
+
       // Update user in state and AsyncStorage
       set({ user: userData, isLoading: false })
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData))
-      
+
       return userData
     } catch (error) {
       console.error('Update profile error:', error)
@@ -463,7 +501,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   deleteProfile: async (): Promise<void> => {
     const token = get().token
-    
+
     if (!token) {
       console.error('No token available')
       return
@@ -472,7 +510,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       console.log('Deleting profile...')
-      
+
       await axios.delete(`${API_BASE_URL}/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -481,16 +519,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
 
       console.log('Profile deleted successfully')
-      
+
       // Clear all data
       await AsyncStorage.removeItem(TOKEN_KEY)
       await AsyncStorage.removeItem(USER_KEY)
-      
-      set({ 
-        user: null, 
-        token: null, 
-        isLoading: false, 
-        error: null 
+
+      set({
+        user: null,
+        token: null,
+        isLoading: false,
+        error: null
       })
     } catch (error) {
       console.error('Delete profile error:', error)

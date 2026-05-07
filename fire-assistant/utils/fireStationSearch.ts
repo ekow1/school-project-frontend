@@ -28,6 +28,7 @@ export interface FireStation {
   searchStrategy?: string;
   uniqueKey?: string;
   website?: string;
+  isDefaultStation?: boolean;
 }
 
 export interface ServiceArea {
@@ -173,12 +174,12 @@ export const SERVICE_AREAS: ServiceArea[] = [
  * All stations must be in Ghana
  */
 export const fetchNearbyFireStations = async (
-  lat: number, 
-  lng: number, 
+  lat: number,
+  lng: number,
   radius: number = 20000,
   limit: number = 20,
   regionName: string | null = null,
-  maxDistance: number = 20
+  maxDistance: number = 50
 ): Promise<FireStation[]> => {
   try {
     // Validate input coordinates
@@ -186,33 +187,33 @@ export const fetchNearbyFireStations = async (
       console.error('Invalid coordinates provided:', { lat, lng });
       return [];
     }
-    
+
     // Limit radius to 20km
-    const searchRadius = Math.min(radius, 20000);
-    
+    const searchRadius = Math.min(radius, 100000);
+
     // Fetch stations from the service
     // Handle regionName type conversion for JavaScript service
     const serviceRegionName = regionName === null ? null : (regionName || undefined);
     const stations = await fetchStations(lat, lng, searchRadius, limit * 2, serviceRegionName as any) as FireStation[];
-    
+
     // Ensure stations is an array
     if (!Array.isArray(stations)) {
       console.error('Invalid stations data received:', stations);
       return [];
     }
-    
+
     if (stations.length === 0) {
       console.log('No fire stations found');
       return [];
     }
-    
+
     // Filter stations by maximum distance (20km limit)
     const nearbyStations = stations.filter(station => {
       if (!station) return false; // Skip invalid stations
       const distance = station.routeDistance || station.straightLineDistance || Infinity;
       return distance <= maxDistance;
     });
-    
+
     // Sort by proximity score (lower is closer/better)
     // If proximity score is not available, sort by route distance, then straight-line distance
     const sortedStations = nearbyStations.sort((a, b) => {
@@ -220,30 +221,30 @@ export const fetchNearbyFireStations = async (
       if (a.proximityScore !== undefined && b.proximityScore !== undefined) {
         return a.proximityScore - b.proximityScore;
       }
-      
+
       // Second priority: route distance (driving distance)
       const aRouteDist = a.routeDistance || Infinity;
       const bRouteDist = b.routeDistance || Infinity;
       if (aRouteDist !== Infinity || bRouteDist !== Infinity) {
         return aRouteDist - bRouteDist;
       }
-      
+
       // Third priority: straight-line distance
       const aStraightDist = a.straightLineDistance || Infinity;
       const bStraightDist = b.straightLineDistance || Infinity;
       return aStraightDist - bStraightDist;
     });
-    
+
     // Return only the closest stations up to the limit
     const closestStations = sortedStations.slice(0, limit);
-    
+
     console.log(`Found ${closestStations.length} closest fire stations within ${maxDistance}km`);
     if (closestStations.length > 0) {
       const closest = closestStations[0];
       const distance = closest.routeDistanceText || `${closest.straightLineDistance?.toFixed(1)} km`;
       console.log(`Closest station: ${closest.name} (${distance} away)`);
     }
-    
+
     return closestStations;
   } catch (error: any) {
     console.error('Error fetching fire stations:', error);

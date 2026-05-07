@@ -1,7 +1,6 @@
 // Enhanced Fire Station Search Service with Service Area Mapping
 // This service provides comprehensive fire station discovery for Ghana
 
-import axios from 'axios';
 import { ENV } from '../config/env';
 
 const GOOGLE_API_KEY = ENV.GOOGLE_API_KEY;
@@ -16,68 +15,68 @@ const isUserInAccra = (lat, lng) => {
     minLng: -0.35,
     maxLng: 0.10
   };
-  
-  return lat >= accraBounds.minLat && 
-         lat <= accraBounds.maxLat && 
-         lng >= accraBounds.minLng && 
-         lng <= accraBounds.maxLng;
+
+  return lat >= accraBounds.minLat &&
+    lat <= accraBounds.maxLat &&
+    lng >= accraBounds.minLng &&
+    lng <= accraBounds.maxLng;
 };
 
 // Helper function to check if a station is in Accra or Tema
 const isStationInAccraOrTema = (station) => {
   const name = station.name?.toLowerCase() || '';
-  const address = station.address?.toLowerCase() || 
-                  station.formatted_address?.toLowerCase() || 
-                  station.vicinity?.toLowerCase() || '';
-  
+  const address = station.address?.toLowerCase() ||
+    station.formatted_address?.toLowerCase() ||
+    station.vicinity?.toLowerCase() || '';
+
   const accraKeywords = [
-    'accra', 'greater accra', 'east legon', 'west legon', 'oshie', 'labadi', 
-    'madina', 'adenta', 'dansoman', 'kantamanto', 'circle', 'kanda', 
+    'accra', 'greater accra', 'east legon', 'west legon', 'oshie', 'labadi',
+    'madina', 'adenta', 'dansoman', 'kantamanto', 'circle', 'kanda',
     'airport', 'kotoka', 'achimota', 'legon', 'dome', 'kwabenya', 'botwe'
   ];
-  
+
   const temaKeywords = [
-    'tema', 'tema new town', 'tema community', 'tema port', 
+    'tema', 'tema new town', 'tema community', 'tema port',
     'tema industrial', 'ashaiman'
   ];
-  
+
   const searchText = `${name} ${address}`;
-  
+
   const inAccra = accraKeywords.some(keyword => searchText.includes(keyword));
   const inTema = temaKeywords.some(keyword => searchText.includes(keyword));
-  
+
   return inAccra || inTema;
 };
 
 // Helper function to check if a station is in Ghana
 const isStationInGhana = (station) => {
   const name = station.name?.toLowerCase() || '';
-  const address = station.address?.toLowerCase() || 
-                  station.formatted_address?.toLowerCase() || 
-                  station.vicinity?.toLowerCase() || '';
-  
+  const address = station.address?.toLowerCase() ||
+    station.formatted_address?.toLowerCase() ||
+    station.vicinity?.toLowerCase() || '';
+
   const searchText = `${name} ${address}`;
-  
+
   // Check if address contains Ghana or Ghanaian location indicators
-  return searchText.includes('ghana') || 
-         searchText.includes('accra') ||
-         searchText.includes('kumasi') ||
-         searchText.includes('tema') ||
-         searchText.includes('cape coast') ||
-         searchText.includes('tamale') ||
-         searchText.includes('takoradi') ||
-         searchText.includes('sunyani') ||
-         searchText.includes('ho') ||
-         searchText.includes('koforidua') ||
-         searchText.includes('bolgatanga') ||
-         searchText.includes('wa');
+  return searchText.includes('ghana') ||
+    searchText.includes('accra') ||
+    searchText.includes('kumasi') ||
+    searchText.includes('tema') ||
+    searchText.includes('cape coast') ||
+    searchText.includes('tamale') ||
+    searchText.includes('takoradi') ||
+    searchText.includes('sunyani') ||
+    searchText.includes('ho') ||
+    searchText.includes('koforidua') ||
+    searchText.includes('bolgatanga') ||
+    searchText.includes('wa');
 };
 
 // Helper function to check if a fire station is in the correct region
 const isStationInRegion = (station, regionName) => {
   const name = station.name?.toLowerCase() || '';
   const address = station.formatted_address?.toLowerCase() || station.vicinity?.toLowerCase() || station.address?.toLowerCase() || '';
-  
+
   // Ghana regions and cities mapping
   const regionMappings = {
     'accra': ['accra', 'greater accra', 'greater accra region', 'east legon', 'west legon', 'oshie', 'labadi', 'tema', 'madina', 'adenta', 'dansoman', 'kantamanto', 'circle', 'kanda', 'airport', 'kotoka'],
@@ -113,7 +112,7 @@ const fetchPhoneNumber = async (placeId) => {
       `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_phone_number,international_phone_number&key=${GOOGLE_API_KEY}`
     );
     const data = await response.json();
-    
+
     if (data.status === 'OK' && data.result) {
       return data.result.formatted_phone_number || data.result.international_phone_number || null;
     }
@@ -127,26 +126,22 @@ const fetchPhoneNumber = async (placeId) => {
 // Function to fetch phone numbers for multiple stations
 const fetchPhoneNumbersForStations = async (stations) => {
   const stationsWithPhones = [];
-  
+
   for (const station of stations) {
-    // Preserve existing phone number if already available (e.g., from Serper API)
     let phoneNumber = station.phone || null;
-    
-    // Only try to fetch phone number if we don't already have one
+
     if (!phoneNumber) {
-      // Try to get phone number if we have a place_id
       if (station.placeId) {
         phoneNumber = await fetchPhoneNumber(station.placeId);
       }
-      
-      // If no phone number found, try searching for the station name
+
       if (!phoneNumber && station.name) {
         try {
           const searchResponse = await fetch(
             `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(station.name + ' Ghana')}&key=${GOOGLE_API_KEY}`
           );
           const searchData = await searchResponse.json();
-          
+
           if (searchData.status === 'OK' && searchData.results.length > 0) {
             const firstResult = searchData.results[0];
             phoneNumber = await fetchPhoneNumber(firstResult.place_id);
@@ -156,23 +151,14 @@ const fetchPhoneNumbersForStations = async (stations) => {
         }
       }
     }
-    
-    stationsWithPhones.push({
-      ...station,
-      phone: phoneNumber
-    });
-    
-    // Log if phone number was preserved from Serper API
-    if (station.phone && station.searchStrategy === 'Serper API search') {
-      console.log(`Preserved phone number from Serper API for ${station.name}: ${phoneNumber}`);
-    }
-    
-    // Add delay to avoid rate limiting (only if we made an API call)
+
+    stationsWithPhones.push({ ...station, phone: phoneNumber });
+
     if (!station.phone) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
-  
+
   return stationsWithPhones;
 };
 
@@ -286,19 +272,36 @@ const SERVICE_AREAS = [
   }
 ];
 
+// Hardcoded fallback pool — used when Google Places returns no results.
+// Sorted by proximity to user before returning, so the closest ones always appear first.
+const DEFAULT_FIRE_STATIONS = [
+  { id: 'def_university',  name: 'Ghana Fire Service – University of Ghana', address: 'University of Ghana, Legon, Accra',              latitude: 5.6499,  longitude: -0.1870, phone: '+233 30 277 9111', isDefaultStation: true },
+  { id: 'def_airport',     name: 'Ghana Fire Service – Airport Station',     address: 'Kotoka International Airport, Accra',           latitude: 5.6052,  longitude: -0.1718, phone: '+233 30 273 6628', isDefaultStation: true },
+  { id: 'def_madina',      name: 'Ghana Fire Service – Madina',              address: 'Madina, Greater Accra',                         latitude: 5.6680,  longitude: -0.1680, phone: '+233 30 222 2333', isDefaultStation: true },
+  { id: 'def_achimota',    name: 'Ghana Fire Service – Achimota',            address: 'Achimota, Greater Accra',                       latitude: 5.6167,  longitude: -0.2167, phone: '+233 30 241 0922', isDefaultStation: true },
+  { id: 'def_tema',        name: 'Ghana Fire Service – Tema',                address: 'Community 1, Tema, Greater Accra',              latitude: 5.6667,  longitude:  0.0167, phone: '+233 30 220 3333', isDefaultStation: true },
+  { id: 'def_kasoa',       name: 'Ghana Fire Service – Kasoa',               address: 'Kasoa, Central Region',                         latitude: 5.5333,  longitude: -0.4167, phone: '+233 24 460 9920', isDefaultStation: true },
+  { id: 'def_accra_hq',   name: 'Ghana National Fire Service HQ',           address: 'Liberation Road, Accra',                        latitude: 5.5502,  longitude: -0.2167, phone: '+233 30 222 5001', isDefaultStation: true },
+  { id: 'def_kumasi',      name: 'Ghana Fire Service – Kumasi Central',      address: 'Adum, Kumasi, Ashanti Region',                  latitude: 6.6885,  longitude: -1.6244, phone: '+233 32 202 4444', isDefaultStation: true },
+  { id: 'def_takoradi',    name: 'Ghana Fire Service – Takoradi',            address: 'Takoradi, Western Region',                      latitude: 4.8934,  longitude: -1.7556, phone: '+233 31 202 3333', isDefaultStation: true },
+  { id: 'def_cape_coast',  name: 'Ghana Fire Service – Cape Coast',          address: 'Cape Coast, Central Region',                    latitude: 5.1053,  longitude: -1.2466, phone: '+233 33 202 2222', isDefaultStation: true },
+  { id: 'def_tamale',      name: 'Ghana Fire Service – Tamale',              address: 'Tamale, Northern Region',                       latitude: 9.4008,  longitude: -0.8393, phone: '+233 37 202 3333', isDefaultStation: true },
+  { id: 'def_sunyani',     name: 'Ghana Fire Service – Sunyani',             address: 'Sunyani, Bono Region',                          latitude: 7.3349,  longitude: -2.3268, phone: '+233 35 202 2222', isDefaultStation: true },
+];
+
 // Enhanced fire station search with service area mapping
 export const fetchNearbyFireStations = async (lat, lng, radius = 20000, limit = 20, regionName = null) => {
   try {
     // Limit search radius to 20km (20000 meters)
     const maxRadius = 20000;
     const searchRadius = Math.min(radius, maxRadius);
-    
+
     // Check if user is in Accra
     const userInAccra = isUserInAccra(lat, lng);
     console.log(`User location: ${lat}, ${lng} - In Accra: ${userInAccra}`);
-    
+
     let allStations = await searchFireStations(lat, lng, searchRadius, regionName);
-    
+
     // Filter: Only show stations in Ghana
     allStations = allStations.filter(station => {
       const inGhana = isStationInGhana(station);
@@ -307,44 +310,66 @@ export const fetchNearbyFireStations = async (lat, lng, radius = 20000, limit = 
       }
       return inGhana;
     });
-    
-    // If user is in Accra, only show Accra and Tema stations
-    if (userInAccra) {
-      console.log('User is in Accra - filtering to show only Accra and Tema stations');
-      allStations = allStations.filter(station => {
-        const inAccraOrTema = isStationInAccraOrTema(station);
-        if (!inAccraOrTema) {
-          console.log(`Filtering out non-Accra/Tema station: ${station.name} (${station.address})`);
-        }
-        return inAccraOrTema;
-      });
+
+    // For live Google results, prefer Accra/Tema stations when user is in Accra.
+    // Only apply this filter when we actually have enough live results (5+);
+    // if Google returned very few, keep them all so fallbacks fill the gap.
+    if (userInAccra && allStations.length >= 5) {
+      const accraStations = allStations.filter(s => isStationInAccraOrTema(s));
+      if (accraStations.length >= 3) allStations = accraStations;
     }
-    
+
     const serviceAreaStations = getServiceAreaStations(lat, lng, allStations);
     if (serviceAreaStations.length > 0) {
       allStations = [...allStations, ...serviceAreaStations];
     }
     const uniqueStations = removeDuplicateStations(allStations);
-    
-    // Calculate route distances using Mapbox Matrix API
+
+    // Calculate route distances using Google Distance Matrix API
     const stationsWithRouteDistance = await calculateRouteDistances(lat, lng, uniqueStations);
-    
-    // Filter by 20km distance limit (using route distance if available)
-    const stationsWithin20km = stationsWithRouteDistance.filter(station => {
+
+    // Filter by 50km distance limit (using route distance if available)
+    const stationsWithin50km = stationsWithRouteDistance.filter(station => {
       const distance = station.routeDistance || station.straightLineDistance || Infinity;
-      return distance <= 20; // 20km limit
+      return distance <= 50; // 50km limit
     });
-    
-    const stationsWithProximityScores = calculateProximityScores(stationsWithin20km, lat, lng);
-    
+
+    // Add any default stations not already represented in the live results.
+    // This guarantees enough stations even when Google Places returns nothing.
+    const missingDefaultStations = DEFAULT_FIRE_STATIONS.filter(def => {
+      const defName = def.name.toLowerCase();
+      return !stationsWithin50km.some(s => {
+        const sName = s.name.toLowerCase();
+        // Consider a match if the names share significant words
+        const defWords = defName.split(/\W+/).filter(w => w.length > 4);
+        return defWords.some(w => sName.includes(w));
+      });
+    });
+
+    const defaultStationsWithDistance = missingDefaultStations.map(station => {
+      const dist = calculateDistance(lat, lng, station.latitude, station.longitude);
+      return {
+        ...station,
+        straightLineDistance: dist,
+        routeDistance: dist,
+        routeDistanceText: `${dist.toFixed(1)} km`,
+        travelTimeText: null,
+      };
+    });
+
+    // Combine filtered stations with missing default stations
+    const finalStations = [...stationsWithin50km, ...defaultStationsWithDistance];
+
+    const stationsWithProximityScores = calculateProximityScores(finalStations, lat, lng);
+
     // Fetch phone numbers for all stations
     const stationsWithPhones = await fetchPhoneNumbersForStations(stationsWithProximityScores);
-    
+
     // Log summary of phone numbers and routes
     const stationsWithPhone = stationsWithPhones.filter(s => s.phone).length;
     const stationsWithRoute = stationsWithPhones.filter(s => s.routeDistanceText && s.routeDistanceText !== 'Route unavailable').length;
-    console.log(`Summary: ${stationsWithPhones.length} total stations within 20km, ${stationsWithPhone} with phone numbers, ${stationsWithRoute} with route data`);
-    
+    console.log(`Summary: ${stationsWithPhones.length} total stations within 50km, ${stationsWithPhone} with phone numbers, ${stationsWithRoute} with route data`);
+
     const sortedStations = stationsWithPhones.sort((a, b) => a.proximityScore - b.proximityScore);
     return sortedStations.slice(0, limit); // Show up to limit stations
   } catch (err) {
@@ -354,23 +379,23 @@ export const fetchNearbyFireStations = async (lat, lng, radius = 20000, limit = 
 };
 
 const getServiceAreaStations = (lat, lng, existingStations) => {
-  // Words to exclude from fire station names
-  const excludeWords = ['tv', 'bands', 'department', 'bura', 'camp', 'studio', 'media', 'broadcast', 'channel', 'radio', 'television', 'news', 'entertainment', 'music', 'band', 'orchestra', 'theater', 'cinema', 'movie', 'film', 'production', 'advertising', 'marketing', 'consulting', 'agency', 'company', 'corporation', 'limited', 'ltd', 'inc', 'llc'];
-  
+  // Words to exclude from fire station names (only non-fire related terms)
+  const excludeWords = ['tv', 'ban', 'department', 'bands', 'bura', 'camp', 'studio', 'media', 'broadcast', 'channel', 'radio', 'television', 'news', 'entertainment', 'music', 'band', 'orchestra', 'theater', 'cinema', 'movie', 'film', 'production', 'advertising', 'marketing', 'consulting', 'agency', 'company', 'corporation', 'limited', 'ltd', 'inc', 'llc'];
+
   const serviceAreaStations = [];
   for (const area of SERVICE_AREAS) {
     if (lat >= area.bounds.minLat && lat <= area.bounds.maxLat &&
-        lng >= area.bounds.minLng && lng <= area.bounds.maxLng) {
+      lng >= area.bounds.minLng && lng <= area.bounds.maxLng) {
       for (const station of area.servingStations) {
         const isDuplicate = existingStations.some(
           existing => existing.name === station.name
         );
-        
+
         // Check for excluded words in station name
-        const hasExcludedWords = excludeWords.some(word => 
+        const hasExcludedWords = excludeWords.some(word =>
           station.name.toLowerCase().includes(word)
         );
-        
+
         if (!isDuplicate && !hasExcludedWords) {
           serviceAreaStations.push({
             id: `service_${station.name.replace(/\s+/g, '_')}`,
@@ -390,150 +415,95 @@ const getServiceAreaStations = (lat, lng, existingStations) => {
   return serviceAreaStations;
 };
 
-// Function to search fire stations using Serper API
-const searchFireStationsWithSerper = async (lat, lng, regionName = null) => {
+// Function to search fire stations using Google Places Text Search API
+const searchFireStationsWithTextSearch = async (lat, lng, regionName = null) => {
   try {
-    // Build multiple search queries for better coverage
-    const searchQueries = [];
-    
-    // Base queries
-    searchQueries.push('fire station Ghana');
-    searchQueries.push('Ghana National Fire Service');
-    searchQueries.push('GNFS Ghana');
-    
-    // Location-based queries
-    searchQueries.push(`fire station near ${lat},${lng}`);
-    
-    // Region-specific queries if region name is provided
+    const searchQueries = [
+      'fire station Ghana',
+      'Ghana National Fire Service',
+      'GNFS Ghana',
+    ];
+
     if (regionName) {
       searchQueries.push(`fire station in ${regionName}`);
       searchQueries.push(`fire station ${regionName} Ghana`);
       searchQueries.push(`GNFS ${regionName}`);
       searchQueries.push(`Ghana National Fire Service ${regionName}`);
     }
-    
+
     const allStations = [];
     const seenPlaceIds = new Set();
-    
-    // Search with each query
+
     for (const searchQuery of searchQueries) {
       try {
-        const data = JSON.stringify({
-          q: searchQuery
-        });
+        const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&location=${lat},${lng}&radius=20000&key=${GOOGLE_API_KEY}`;
 
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: 'https://google.serper.dev/maps',
-          headers: { 
-            'X-API-KEY': ENV.SERPER_API_KEY, 
-            'Content-Type': 'application/json'
-          },
-          data: data
-        };
+        const response = await fetch(url);
+        const data = await response.json();
 
-        const response = await axios.request(config);
-        
-        // Console.log the response for debugging
-        console.log(`Serper API Response for query "${searchQuery}":`, JSON.stringify(response.data, null, 2));
-        
-        // Transform Serper response to match our station format
-        if (response.data && response.data.places) {
-          response.data.places.forEach((place, index) => {
-            // Extract coordinates - they are direct properties in Serper response
-            const latitude = place.latitude;
-            const longitude = place.longitude;
-            
-            // Skip if no coordinates or already seen
-            if (latitude == null || longitude == null) {
-              return;
-            }
-            
-            // Check for duplicates by placeId
-            if (place.placeId && seenPlaceIds.has(place.placeId)) {
-              return;
-            }
-            
-            // Check if it's a fire station by type or name
-            const placeType = place.type?.toLowerCase() || '';
+        console.log(`Google Text Search response for "${searchQuery}": status=${data.status}, count=${data.results?.length ?? 0}`);
+
+        if (data.status === 'OK' && data.results) {
+          data.results.forEach((place, index) => {
+            const latitude = place.geometry?.location?.lat;
+            const longitude = place.geometry?.location?.lng;
+
+            if (latitude == null || longitude == null) return;
+            if (place.place_id && seenPlaceIds.has(place.place_id)) return;
+
+            const placeName = (place.name || '').toLowerCase();
+            const placeAddress = (place.formatted_address || '').toLowerCase();
             const placeTypes = (place.types || []).map(t => t.toLowerCase());
-            const placeName = (place.title || '').toLowerCase();
-            const placeAddress = (place.address || '').toLowerCase();
-            
-            const isFireStationType = 
-              placeType === 'fire station' ||
-              placeTypes.includes('fire station') ||
+
+            const isFireStationType =
+              placeTypes.includes('fire_station') ||
               placeName.includes('fire') ||
               placeName.includes('gnfs') ||
               placeAddress.includes('fire station') ||
               placeAddress.includes('fire service');
-            
-            // Skip if it's clearly not a fire station
+
             if (!isFireStationType) {
-              console.log(`Skipping non-fire-station place: ${place.title} (type: ${placeType})`);
+              console.log(`Skipping non-fire-station: ${place.name}`);
               return;
             }
-            
-            // Mark as seen
-            if (place.placeId) {
-              seenPlaceIds.add(place.placeId);
-            }
-            
-            // Determine if station is open now based on openingHours
-            let isOpen = null;
-            if (place.openingHours) {
-              const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-              const todayHours = place.openingHours[today];
-              if (todayHours) {
-                isOpen = todayHours.toLowerCase().includes('open 24 hours') || 
-                         todayHours.toLowerCase().includes('open');
-              }
-            }
-            
+
+            if (place.place_id) seenPlaceIds.add(place.place_id);
+
             allStations.push({
-              id: place.placeId || `serper_${Date.now()}_${index}`,
-              name: place.title || 'Fire Station',
-              address: place.address || '',
-              latitude: latitude,
-              longitude: longitude,
-              placeId: place.placeId || null,
+              id: place.place_id || `textsearch_${Date.now()}_${index}`,
+              name: place.name || 'Fire Station',
+              address: place.formatted_address || '',
+              latitude,
+              longitude,
+              placeId: place.place_id || null,
               rating: place.rating || null,
-              ratingCount: place.ratingCount || null,
-              isOpen: isOpen,
-              phone: place.phoneNumber || null,
-              website: place.website || null,
+              isOpen: place.opening_hours?.open_now ?? null,
+              phone: null,
+              website: null,
               straightLineDistance: calculateDistance(lat, lng, latitude, longitude),
-              photoReference: place.thumbnailUrl || null,
-              searchStrategy: 'Serper API search'
+              photoReference: place.photos?.[0]?.photo_reference || null,
+              searchStrategy: 'Google Text Search'
             });
           });
         }
-        
-        // Add delay between requests to avoid rate limiting
+
         await new Promise(resolve => setTimeout(resolve, 200));
       } catch (queryError) {
-        console.error(`Error searching Serper API with query "${searchQuery}":`, queryError);
+        console.error(`Error with Google Text Search query "${searchQuery}":`, queryError);
       }
     }
-    
-    console.log(`Serper API: Found ${allStations.length} unique fire stations after all queries`);
-    console.log('Serper API Stations:', JSON.stringify(allStations, null, 2));
-    
+
+    console.log(`Google Text Search: Found ${allStations.length} unique fire stations`);
     return allStations;
   } catch (error) {
-    console.error('Error searching fire stations with Serper API:', error);
-    if (error.response) {
-      console.error('Serper API Error Response:', JSON.stringify(error.response.data, null, 2));
-    }
+    console.error('Error searching fire stations with Google Text Search:', error);
     return [];
   }
 };
 
 const searchFireStations = async (lat, lng, radius, regionName = null) => {
-  // Add Serper API search as the first strategy
-  const serperStations = await searchFireStationsWithSerper(lat, lng, regionName);
-  
+  const textSearchStations = await searchFireStationsWithTextSearch(lat, lng, regionName);
+
   const searchStrategies = [
     {
       url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=fire_station&key=${GOOGLE_API_KEY}`,
@@ -567,63 +537,42 @@ const searchFireStations = async (lat, lng, radius, regionName = null) => {
     ];
     searchStrategies.unshift(...regionSearches); // Add at the beginning for higher priority
   }
-  
-  // Words to exclude from fire station names
-  const excludeWords = ['tv', 'bands', 'department', 'bura', 'camp', 'studio', 'media', 'broadcast', 'channel', 'radio', 'television', 'news', 'entertainment', 'music', 'band', 'orchestra', 'theater', 'cinema', 'movie', 'film', 'production', 'advertising', 'marketing', 'consulting', 'agency', 'company', 'corporation', 'limited', 'ltd', 'inc', 'llc'];
-  
-  // Filter Serper API results
-  const filteredSerperStations = serperStations.filter(station => {
+
+  // Words to exclude from fire station names (only non-fire related terms)
+  const excludeWords = ['tv', 'ban', 'department', 'bands', 'bura', 'camp', 'studio', 'media', 'broadcast', 'channel', 'radio', 'television', 'news', 'entertainment', 'music', 'band', 'orchestra', 'theater', 'cinema', 'movie', 'film', 'production', 'advertising', 'marketing', 'consulting', 'agency', 'company', 'corporation', 'limited', 'ltd', 'inc', 'llc'];
+
+  const filteredTextSearchStations = textSearchStations.filter(station => {
     const name = station.name?.toLowerCase() || '';
     const address = station.address?.toLowerCase() || '';
-    
-    // Check if it's a fire station (more lenient check since Serper already filtered by type)
+
     const isFireStation = name.includes('fire') ||
-                        name.includes('gnfs') ||
-                        name.includes('ghana national fire service') ||
-                        name.includes('fire service') ||
-                        name.includes('national fire service') ||
-                        address.includes('fire station') ||
-                        address.includes('fire service');
-    
-    // Check for excluded words
-    const hasExcludedWords = excludeWords.some(word => 
+      name.includes('gnfs') ||
+      name.includes('ghana national fire service') ||
+      name.includes('fire service') ||
+      name.includes('national fire service') ||
+      address.includes('fire station') ||
+      address.includes('fire service');
+
+    const hasExcludedWords = excludeWords.some(word =>
       name.includes(word) || address.includes(word)
     );
-    
-    // Check if station is in the correct region (if regionName is provided)
-    // For region-specific searches, be more lenient - check if address contains region name
+
     let isInCorrectRegion = true;
     if (regionName) {
       const regionLower = regionName.toLowerCase();
-      isInCorrectRegion = isStationInRegion(station, regionName) || 
-                         address.includes(regionLower) ||
-                         name.includes(regionLower);
+      isInCorrectRegion = isStationInRegion(station, regionName) ||
+        address.includes(regionLower) ||
+        name.includes(regionLower);
     }
-    
-    // Always include stations that are very close (within 5km) regardless of region filter
+
     const isVeryClose = station.straightLineDistance && station.straightLineDistance <= 5;
-    
-    const shouldInclude = isFireStation && !hasExcludedWords && (isInCorrectRegion || isVeryClose);
-    
-    if (!shouldInclude) {
-      console.log(`Serper station filtered out: ${station.name}`, {
-        isFireStation,
-        hasExcludedWords,
-        isInCorrectRegion,
-        name,
-        address
-      });
-    } else {
-      console.log(`Serper station included: ${station.name} (${station.straightLineDistance?.toFixed(2)}km away)`);
-    }
-    
-    return shouldInclude;
+
+    return isFireStation && !hasExcludedWords && (isInCorrectRegion || isVeryClose);
   });
-  
-  console.log(`Serper API: ${serperStations.length} total stations, ${filteredSerperStations.length} after filtering`);
-  
-  // Start with filtered Serper API results
-  let allStations = [...filteredSerperStations];
+
+  console.log(`Google Text Search: ${textSearchStations.length} total, ${filteredTextSearchStations.length} after filtering`);
+
+  let allStations = [...filteredTextSearchStations];
   for (const strategy of searchStrategies) {
     try {
       const response = await fetch(strategy.url);
@@ -634,20 +583,20 @@ const searchFireStations = async (lat, lng, radius, regionName = null) => {
             const name = station.name?.toLowerCase() || '';
             const address = station.formatted_address?.toLowerCase() || station.vicinity?.toLowerCase() || '';
             const types = station.types || [];
-            
+
             // Check if it's a fire station
             const isFireStation = types.includes('fire_station') ||
-                                name.includes('fire') ||
-                                name.includes('gnfs') ||
-                                name.includes('ghana national fire service') ||
-                                name.includes('fire service') ||
-                                name.includes('national fire service');
-            
+              name.includes('fire') ||
+              name.includes('gnfs') ||
+              name.includes('ghana national fire service') ||
+              name.includes('fire service') ||
+              name.includes('national fire service');
+
             // Check for excluded words
-            const hasExcludedWords = excludeWords.some(word => 
+            const hasExcludedWords = excludeWords.some(word =>
               name.includes(word) || address.includes(word)
             );
-            
+
             // Check for duplicates (handle both placeId and place_id formats)
             const isDuplicate = allStations.some(existing => {
               const existingPlaceId = existing.placeId || existing.place_id;
@@ -657,17 +606,17 @@ const searchFireStations = async (lat, lng, radius, regionName = null) => {
                 return true;
               }
               // Check by name and location if placeIds don't match
-              if (existing.name === station.name && 
-                  Math.abs(existing.latitude - station.geometry.location.lat) < 0.0001 &&
-                  Math.abs(existing.longitude - station.geometry.location.lng) < 0.0001) {
+              if (existing.name === station.name &&
+                Math.abs(existing.latitude - station.geometry.location.lat) < 0.0001 &&
+                Math.abs(existing.longitude - station.geometry.location.lng) < 0.0001) {
                 return true;
               }
               return false;
             });
-            
+
             // Check if station is in the correct region (if regionName is provided)
             const isInCorrectRegion = !regionName || isStationInRegion(station, regionName);
-            
+
             // Only include if it's a fire station, doesn't have excluded words, isn't a duplicate, and is in correct region
             return isFireStation && !hasExcludedWords && !isDuplicate && isInCorrectRegion;
           })
@@ -686,7 +635,7 @@ const searchFireStations = async (lat, lng, radius, regionName = null) => {
           }));
         allStations = [...allStations, ...stationsFromStrategy];
       }
-    } catch (strategyError) {}
+    } catch (strategyError) { }
   }
   return allStations;
 };
@@ -719,7 +668,7 @@ const formatDuration = (seconds) => {
   if (!seconds) return 'Unknown';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
@@ -737,110 +686,91 @@ const formatDistance = (meters) => {
 
 const calculateRouteDistances = async (originLat, originLng, stations) => {
   try {
-    const mapboxToken = ENV.MAPBOX_ACCESS_TOKEN;
-    
-    if (!mapboxToken) {
-      console.warn('Mapbox access token not configured. Using straight-line distances.');
-      return stations.map(station => ({
-        ...station,
-        routeDistance: station.straightLineDistance,
-        travelTime: null,
-        routeDistanceText: `${station.straightLineDistance.toFixed(1)} km`,
-        travelTimeText: 'N/A',
-      }));
-    }
-    
-    console.log(`Calculating routes using Mapbox Matrix API for ${stations.length} stations from origin: ${originLat}, ${originLng}`);
-    
-    // Mapbox Matrix API supports up to 25 coordinates per request
-    const batchSize = 24; // 1 origin + 24 destinations = 25 total
+    console.log(`Calculating routes using Google Distance Matrix API for ${stations.length} stations`);
+
+    // Google Distance Matrix allows up to 25 destinations per request
+    const batchSize = 25;
     const stationBatches = [];
     for (let i = 0; i < stations.length; i += batchSize) {
       stationBatches.push(stations.slice(i, i + batchSize));
     }
-    
+
     const stationsWithRouteData = [];
-    
+
     for (const batch of stationBatches) {
       try {
-        // Mapbox uses longitude,latitude format (longitude first!)
-        // First coordinate is the origin, followed by destinations
-        const coordinates = [
-          `${originLng},${originLat}`, // Origin
-          ...batch.map(station => `${station.longitude},${station.latitude}`) // Destinations
-        ].join(';');
-        
-        const url = `https://api.mapbox.com/directions-matrix/v1/mapbox/driving/${coordinates}?access_token=${mapboxToken}&annotations=distance,duration`;
-        
+        const destinations = batch
+          .map(s => `${s.latitude},${s.longitude}`)
+          .join('|');
+
+        const url =
+          `https://maps.googleapis.com/maps/api/distancematrix/json` +
+          `?origins=${originLat},${originLng}` +
+          `&destinations=${encodeURIComponent(destinations)}` +
+          `&mode=driving` +
+          `&key=${GOOGLE_API_KEY}`;
+
         const response = await fetch(url);
         const matrixData = await response.json();
-        
-        if (matrixData.code === 'Ok' && matrixData.distances && matrixData.durations) {
-          // Matrix API returns distances in meters and durations in seconds
-          // distances[0] contains distances from origin (index 0) to all destinations
-          // durations[0] contains durations from origin (index 0) to all destinations
-          const distances = matrixData.distances[0];
-          const durations = matrixData.durations[0];
-          
+
+        if (matrixData.status === 'OK' && matrixData.rows?.[0]?.elements) {
+          const elements = matrixData.rows[0].elements;
+
           batch.forEach((station, index) => {
-            // Index + 1 because index 0 is the origin itself
-            const distanceMeters = distances[index + 1];
-            const durationSeconds = durations[index + 1];
-            
-            if (distanceMeters != null && durationSeconds != null) {
-              const distanceKm = distanceMeters / 1000;
-              const durationMinutes = durationSeconds / 60;
-              
+            const el = elements[index];
+
+            if (el?.status === 'OK') {
+              const distanceMeters = el.distance.value;
+              const durationSeconds = el.duration.value;
+
               stationsWithRouteData.push({
                 ...station,
-                routeDistance: distanceKm,
-                travelTime: durationMinutes,
+                routeDistance: distanceMeters / 1000,
+                travelTime: durationSeconds / 60,
                 routeDistanceText: formatDistance(distanceMeters),
                 travelTimeText: formatDuration(durationSeconds),
               });
             } else {
-              console.log(`Route calculation failed for station ${station.name}: No data from Mapbox`);
               stationsWithRouteData.push({
                 ...station,
                 routeDistance: station.straightLineDistance,
                 travelTime: null,
-                routeDistanceText: `${station.straightLineDistance.toFixed(1)} km`,
-                travelTimeText: 'Route unavailable',
+                routeDistanceText: `${station.straightLineDistance?.toFixed(1)} km`,
+                travelTimeText: null,
               });
             }
           });
         } else {
-          console.warn(`Mapbox Matrix API error: ${matrixData.code || 'Unknown'}`, matrixData.message);
+          console.warn(`Google Distance Matrix error: ${matrixData.status}`);
           batch.forEach(station => {
             stationsWithRouteData.push({
               ...station,
               routeDistance: station.straightLineDistance,
               travelTime: null,
-              routeDistanceText: `${station.straightLineDistance.toFixed(1)} km`,
-              travelTimeText: 'Route unavailable',
+              routeDistanceText: `${station.straightLineDistance?.toFixed(1)} km`,
+              travelTimeText: null,
             });
           });
         }
       } catch (batchError) {
-        console.error('Error calculating route distances with Mapbox:', batchError);
+        console.error('Error in Distance Matrix batch:', batchError);
         batch.forEach(station => {
           stationsWithRouteData.push({
             ...station,
             routeDistance: station.straightLineDistance,
             travelTime: null,
-            routeDistanceText: `${station.straightLineDistance.toFixed(1)} km`,
-            travelTimeText: 'Route unavailable',
+            routeDistanceText: `${station.straightLineDistance?.toFixed(1)} km`,
+            travelTimeText: null,
           });
         });
       }
-      
-      // Add delay between batches to avoid rate limiting
+
       if (stationBatches.length > 1) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
-    
-    console.log(`Mapbox route calculation complete: ${stationsWithRouteData.length} stations processed`);
+
+    console.log(`Google Distance Matrix complete: ${stationsWithRouteData.length} stations processed`);
     return stationsWithRouteData;
   } catch (error) {
     console.error('Error in calculateRouteDistances:', error);
@@ -871,10 +801,10 @@ const calculateProximityScore = (station, originLat, originLng) => {
   const DISTANCE_WEIGHT = 0.6;
   const maxTime = 60; // minutes
   const maxDistance = 50; // km
-  
+
   const distance = station.routeDistance || station.straightLineDistance || 0;
   const distanceScore = Math.min(distance / maxDistance * 100, 100);
-  
+
   let timeScore = 0;
   if (station.travelTime) {
     timeScore = Math.min(station.travelTime / maxTime * 100, 100);
@@ -883,12 +813,12 @@ const calculateProximityScore = (station, originLat, originLng) => {
     const estimatedTime = distance / 40 * 60; // minutes
     timeScore = Math.min(estimatedTime / maxTime * 100, 100);
   }
-  
+
   const proximityScore = (
     timeScore * TIME_WEIGHT +
     distanceScore * DISTANCE_WEIGHT
   );
-  
+
   return proximityScore;
 };
 
@@ -907,9 +837,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }; 

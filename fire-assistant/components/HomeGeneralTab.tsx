@@ -1,12 +1,12 @@
 "use client"
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
-import { LinearGradient } from "expo-linear-gradient"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
 import { memo, useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   KeyboardAvoidingView,
@@ -22,6 +22,7 @@ import {
   View
 } from "react-native"
 import MapView, { Callout, Marker, Polygon } from "react-native-maps"
+import { useAlert } from "../context/AlertContext"
 import { useLocation } from "../context/LocationContext"
 import { useAuthStore } from "../store/authStore"
 import { FireReport, useFireReportsStore } from "../store/fireReportsStore"
@@ -34,7 +35,7 @@ import { Header } from "./Header"
 import IncidentReportModal from "./IncidentReportModal"
 import { LocationSearch } from "./LocationSearch"
 import NewsCard from "./NewsCard"
-import WeatherCard from "./WeatherCard"
+import WeatherCard, { WeatherData } from "./WeatherCard"
 
 // Add missing types
 interface NewsItem {
@@ -72,193 +73,27 @@ interface FireStation {
 const { width, height } = Dimensions.get("window")
 
 const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+  primary: "#C41230",
+  primaryLight: "#E85B4A",
+  primaryDark: "#8B0D21",
   secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
+  tertiary: "#78716C",
+  background: "#FFF8EF",
   surface: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
+  surfaceVariant: "#F5EDE3",
+  border: "#D4C4B5",
   success: "#10B981",
-  warning: "#F59E0B",
+  warning: "#E8A020",
   danger: "#EF4444",
-  accent: "#8B5CF6",
+  accent: "#7C2D12",
   shadow: "rgba(0, 0, 0, 0.1)",
-  primaryAlpha: "rgba(211, 47, 47, 0.1)",
+  primaryAlpha: "rgba(196, 18, 48, 0.1)",
   successAlpha: "rgba(16, 185, 129, 0.1)",
-  warningAlpha: "rgba(245, 158, 11, 0.1)",
-  accentAlpha: "rgba(139, 92, 246, 0.1)",
+  warningAlpha: "rgba(232, 160, 32, 0.1)",
+  accentAlpha: "rgba(124, 45, 18, 0.1)",
 }
 
-const mockLocation = {
-  city: "Accra",
-  area: "Osu",
-  lat: 5.556,
-  lng: -0.1969,
-}
 
-const mockFireStations = [
-  { name: "Osu Fire Station", distance: 1.2, phone: "+233 30 277 9111", responseTime: "3-5 min" },
-  { name: "Ridge Fire Station", distance: 2.8, phone: "+233 30 222 2333", responseTime: "8-12 min" },
-  { name: "Labadi Fire Station", distance: 4.5, phone: "+233 30 277 4555", responseTime: "15-20 min" },
-]
-
-const mockTips = [
-  "Install smoke detectors on every floor and test them monthly. Replace batteries annually and replace detectors every 10 years.",
-  
-  "Keep fire extinguishers accessible and learn the PASS method: Pull, Aim, Squeeze, and Sweep. Check expiration dates regularly.",
-  
-  "Plan and practice a fire escape route with your family twice a year. Identify two exits per room and a meeting place outside.",
-  
-  "Never leave cooking unattended, especially when frying or grilling. Most home fires start in the kitchen.",
-  
-  "Keep flammable materials at least 3 feet away from heat sources like stoves, heaters, and fireplaces.",
-  
-  "Replace damaged electrical cords immediately. Never use cords that are frayed, cracked, or show signs of damage.",
-  
-  "Don't overload electrical outlets or extension cords. Use power strips with circuit breakers for multiple devices.",
-  
-  "Install carbon monoxide detectors in sleeping areas and on every level of your home. Test them monthly.",
-  
-  "Keep matches and lighters locked away and out of children's reach. Teach children that fire is not a toy.",
-  
-  "Clean lint traps in your dryer after each use. Clean the vent pipe annually to prevent fires.",
-  
-  "Never use extension cords with space heaters or air conditioners. Plug them directly into wall outlets.",
-  
-  "Keep a fire blanket in your kitchen for grease fires. Fire blankets smother flames by cutting off oxygen.",
-  
-  "Test smoke alarms monthly by pressing the test button. Clean them regularly and replace every 10 years.",
-  
-  "Have a family meeting place outside your home, like a neighbor's house or mailbox. Practice getting there during drills.",
-  
-  "Never smoke in bed or when drowsy. Always use deep ashtrays and completely extinguish cigarettes.",
-  
-  "Keep fire escape routes clear of clutter. Ensure windows can be opened easily for emergency exit.",
-  
-  "Close bedroom doors at night to slow the spread of fire and smoke. This provides valuable escape time.",
-  
-  "Store gasoline and flammable liquids outside in approved containers, away from heat sources.",
-  
-  "Keep a kitchen fire extinguisher and ensure everyone knows how to use it. Kitchens are where most fires start.",
-  
-  "Never throw water on a grease fire. Use baking soda, a lid, or fire blanket instead. Turn off the heat source.",
-  
-  "Keep space heaters 3 feet away from flammable materials. Turn them off when leaving the room or sleeping.",
-  
-  "Don't leave candles burning unattended. Extinguish them before leaving the room and keep them away from flammables.",
-  
-  "Install fire-resistant roofing materials if possible. This helps prevent fires from spreading to your roof.",
-  
-  "Have your chimney cleaned and inspected annually by a professional. Creosote buildup is highly flammable.",
-  
-  "Don't store flammable items near water heaters or furnaces. Maintain 3 feet of clearance around these appliances.",
-  
-  "Create a fire safety plan and practice it twice a year. Include escape routes, meeting place, and emergency contacts.",
-  
-  "Teach children never to play with matches or lighters. Supervise them around any fire sources.",
-  
-  "Keep fire department emergency numbers posted visibly throughout your home. Teach children how to call for help.",
-  
-  "Never run electrical cords under rugs or furniture. This can cause overheating and fires.",
-  
-  "Keep fire escape ladders on upper floors if needed. Practice using them and store them near windows.",
-  
-  "Check smoke detector batteries every six months. A good reminder is when changing clocks for daylight saving.",
-  
-  "Don't use candles during power outages. Use flashlights or battery-powered lanterns instead.",
-  
-  "Keep barbecue grills at least 10 feet from your home and never use them indoors or on porches.",
-  
-  "Never leave a fire in the fireplace unattended. Extinguish it completely before bed or leaving.",
-  
-  "Keep an ABC-rated fire extinguisher in your home. These handle ordinary combustibles, liquids, and electrical fires.",
-  
-  "Install sprinkler systems if possible, especially in basements. They can significantly reduce fire damage.",
-  
-  "Don't use gasoline to start fires. Use proper fire starters or kindling for fireplaces and grills.",
-  
-  "Keep your garage clear of flammable materials and clutter. Never store propane tanks in attached garages.",
-  
-  "Have your heating system inspected annually before winter. Clean or replace filters regularly.",
-  
-  "Never use an oven to heat your home. This can cause fires or carbon monoxide poisoning.",
-  
-  "Keep flammable holiday decorations away from heat sources. Water live trees and check lights for damage.",
-  
-  "Install arc-fault circuit interrupters (AFCIs) in your home. They detect dangerous electrical conditions.",
-  
-  "Turn off portable heaters when leaving the room or going to sleep. Never leave them unattended.",
-  
-  "Keep your address clearly visible for emergency responders. Use large, reflective numbers visible day and night.",
-  
-  "Store important documents in a fireproof safe. Keep digital backups in cloud storage as well.",
-  
-  "Never use water on electrical fires. Use a Class C extinguisher or shut off power at the circuit breaker.",
-  
-  "Keep working flashlights in each bedroom. Power outages often accompany fires, making flashlights essential.",
-  
-  "Don't pile trash or debris near your home. Keep at least 30 feet of defensible space around your property.",
-  
-  "Ensure all windows can open easily for escape. Never nail or bolt windows shut.",
-  
-  "Keep garden hoses accessible for outdoor fires. Check them for leaks before use.",
-  
-  "Install smoke detectors with 10-year batteries for less maintenance. Test them monthly.",
-  
-  "Never use extension cords as permanent wiring. Have additional outlets installed by a licensed electrician.",
-  
-  "Keep barbecue ashes in a metal container until completely cold. Wait 48 hours before disposing.",
-  
-  "Don't block heating vents or radiators. Maintain 12 inches of clearance for safety and efficiency.",
-  
-  "Check electrical appliances for frayed cords before use. Replace damaged appliances immediately.",
-  
-  "Keep a first aid kit accessible for fire injuries. Learn basic first aid for burns.",
-  
-  "Never re-enter a burning building. Your life is more valuable than any possession.",
-  
-  "Update your fire safety plan after home renovations. Practice the updated plan with all family members.",
-  
-  "Teach everyone to crawl low under smoke. The cleanest air is near the floor during a fire.",
-  
-  "Install door alarms for children's rooms if needed. Ensure children understand what alarms mean.",
-  
-  "Keep your roof and gutters clear of debris. Trim tree branches hanging over your roof.",
-  
-  "Don't store flammable materials in attics or basements near electrical equipment or heat sources.",
-  
-  "Test smoke alarms when changing clocks for daylight saving time. This ensures you check them twice yearly.",
-]
-
-const mockNews = [
-  {
-    title: "Fire outbreak contained at Makola Market",
-    summary: "A swift response from the fire service helped contain a blaze at Makola Market. No casualties reported.",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
-    source: "Ghana News",
-    timestamp: "2h ago",
-    url: "https://news.example.com/fire-makola",
-    category: "Emergency",
-  },
-  {
-    title: "Fire safety week: Tips for every household",
-    summary:
-      "The National Fire Service shares essential tips to keep your home and family safe during fire safety week.",
-    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    source: "Daily Graphic",
-    timestamp: "5h ago",
-    url: "https://news.example.com/fire-safety-week",
-    category: "Safety",
-  },
-]
-
-const mockReports = [
-  { title: "Kitchen fire at home", date: "2024-06-10 14:32", status: "resolved", priority: "high" },
-  { title: "Smoke detected in apartment", date: "2024-06-09 09:15", status: "pending", priority: "medium" },
-]
 
 const statusColors = {
   pending: { bg: Colors.warningAlpha, text: Colors.warning, border: Colors.warning + "30" },
@@ -277,20 +112,6 @@ const getStatusColors = (status: string) => {
   }
 }
 
-// Seeded random number generator for consistent daily tips
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000
-  return x - Math.floor(x)
-}
-
-const getDailyTip = () => {
-  const today = new Date()
-  // Create a unique seed for each day: YYYY-MM-DD
-  const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
-  // Generate a random index based on the day seed
-  const randomIndex = Math.floor(seededRandom(daySeed) * mockTips.length)
-  return mockTips[randomIndex]
-}
 
 const customMapStyleLight = [
   {
@@ -388,93 +209,12 @@ const customMapStyleDark = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#181818" }] },
 ]
 
-// Enhanced Loading Component
-const EnhancedLoadingScreen = ({
-  message = "Detecting location…",
-  subMessage = "Please wait while we find your location",
-}) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current
-  const fadeAnim = useRef(new Animated.Value(0)).current
-  const slideAnim = useRef(new Animated.Value(30)).current
-
-  useEffect(() => {
-    // Gentle pulse animation for location pin
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start()
-
-    // Smooth fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start()
-
-    // Gentle slide up animation
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 800,
-      useNativeDriver: true,
-    }).start()
-  }, [])
-
-  return (
-    <View style={styles.elegantLoadingContainer}>
-      <LinearGradient 
-        colors={['#F8FAFC', '#F1F5F9']} 
-        style={styles.elegantLoadingGradient}
-      >
-        <Animated.View 
-          style={[
-            styles.elegantLoadingContent, 
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {/* Single Location Pin with Elegant Animation */}
-          <Animated.View 
-            style={[
-              styles.elegantLocationPin,
-              { transform: [{ scale: pulseAnim }] }
-            ]}
-          >
-            <LinearGradient 
-              colors={[Colors.primary, Colors.primaryLight]} 
-              style={styles.elegantPinGradient}
-            >
-              <Ionicons name="location" size={32} color="#fff" />
-            </LinearGradient>
-          </Animated.View>
-
-          {/* Clean Text Content */}
-          <View style={styles.elegantTextContainer}>
-            <Text style={styles.elegantLoadingTitle}>{message}</Text>
-            <Text style={styles.elegantLoadingSubtitle}>{subMessage}</Text>
-          </View>
-        </Animated.View>
-      </LinearGradient>
-    </View>
-  )
-}
 
 // Enhanced Incident Modal
-const EnhancedIncidentModal = ({ visible, onClose, station }: { 
-  visible: boolean; 
-  onClose: () => void; 
-  station: any; 
+const EnhancedIncidentModal = ({ visible, onClose, station }: {
+  visible: boolean;
+  onClose: () => void;
+  station: any;
 }) => {
   const [selectedIncidentType, setSelectedIncidentType] = useState<string | null>(null)
   const [description, setDescription] = useState("")
@@ -486,7 +226,7 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
       label: "Fire Emergency",
       icon: "fire" as const,
       color: Colors.danger,
-      bgColor: "#FEE2E2",
+      bgColor: Colors.primaryAlpha,
       description: "Building fire, wildfire, or smoke",
     },
     {
@@ -494,7 +234,7 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
       label: "Vehicle Accident",
       icon: "car" as const,
       color: Colors.accent,
-      bgColor: "#DBEAFE",
+      bgColor: Colors.accentAlpha,
       description: "Car crash or road accident",
     },
     {
@@ -502,7 +242,7 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
       label: "Medical Emergency",
       icon: "medical-bag" as const,
       color: Colors.success,
-      bgColor: "#D1FAE5",
+      bgColor: Colors.successAlpha,
       description: "Heart attack, injury, or illness",
     },
     {
@@ -518,7 +258,7 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
       label: "Gas Leak",
       icon: "alert" as const,
       color: Colors.warning,
-      bgColor: "#FEF3C7",
+      bgColor: Colors.warningAlpha,
       description: "Gas leak or chemical hazard",
     },
     {
@@ -533,13 +273,7 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
 
   const handleSubmit = async () => {
     if (!selectedIncidentType) {
-      setAlertConfig({
-        visible: true,
-        type: 'error',
-        title: 'Missing Information',
-        message: 'Please select an incident type to continue.',
-        onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
-      })
+      showError('Please select an incident type to continue.', 'Missing Information')
       return
     }
 
@@ -548,18 +282,11 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false)
-      setAlertConfig({
-        visible: true,
-        type: 'success',
-        title: 'Report Submitted',
-        message: 'Your emergency report has been submitted successfully. Emergency services have been notified.',
-        onConfirm: () => {
-          setAlertConfig(prev => ({ ...prev, visible: false }))
-          onClose()
-        },
+      showSuccess('Your emergency report has been submitted successfully. Emergency services have been notified.', 'Report Submitted', () => {
+        onClose()
+        setSelectedIncidentType(null)
+        setDescription("")
       })
-      setSelectedIncidentType(null)
-      setDescription("")
     }, 2000)
   }
 
@@ -572,119 +299,112 @@ const EnhancedIncidentModal = ({ visible, onClose, station }: {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.incidentModalContainer}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleContainer}>
-                <LinearGradient colors={[Colors.danger, Colors.primaryLight]} style={styles.modalIconContainer}>
-                  <MaterialCommunityIcons name="fire-truck" size={24} color={Colors.surface} />
-                </LinearGradient>
-                <View style={styles.modalTitleText}>
-                  <Text style={styles.modalTitle}>Report Emergency</Text>
-                  <Text style={styles.modalSubtitle}>{station ? `At ${station.name}` : "Emergency Report"}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleContainer}>
+              <View style={styles.modalIconContainer}>
+                <MaterialCommunityIcons name="fire-truck" size={24} color={Colors.surface} />
+              </View>
+              <View style={styles.modalTitleText}>
+                <Text style={styles.modalTitle}>Report Emergency</Text>
+                <Text style={styles.modalSubtitle}>{station ? `At ${station.name}` : "Emergency Report"}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={Colors.tertiary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            {/* Emergency Call Button */}
+            <TouchableOpacity style={styles.emergencyCallButton} onPress={handleCallStation} activeOpacity={0.8}>
+              <View style={styles.emergencyCallGradient}>
+                <Ionicons name="call" size={24} color={Colors.surface} />
+                <View style={styles.emergencyCallText}>
+                  <Text style={styles.emergencyCallTitle}>Emergency Call</Text>
+                  <Text style={styles.emergencyCallSubtitle}>{station?.phone || "Call Fire Station"}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={Colors.tertiary} />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
-              {/* Emergency Call Button */}
-              <TouchableOpacity style={styles.emergencyCallButton} onPress={handleCallStation} activeOpacity={0.8}>
-                <LinearGradient colors={[Colors.danger, Colors.primaryDark]} style={styles.emergencyCallGradient}>
-                  <Ionicons name="call" size={24} color={Colors.surface} />
-                  <View style={styles.emergencyCallText}>
-                    <Text style={styles.emergencyCallTitle}>Emergency Call</Text>
-                    <Text style={styles.emergencyCallSubtitle}>{station?.phone || "Call Fire Station"}</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Incident Type Selection */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Select Emergency Type</Text>
-                <View style={styles.incidentTypesGrid}>
-                  {incidentTypes.map((type) => (
-                    <TouchableOpacity
-                      key={type.id}
-                      style={[
-                        styles.incidentTypeCard,
-                        { backgroundColor: type.bgColor },
-                        selectedIncidentType === type.id && styles.selectedIncidentType,
-                      ]}
-                      onPress={() => setSelectedIncidentType(type.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.incidentTypeIcon, { backgroundColor: type.color + "20" }]}>
-                        <MaterialCommunityIcons name={type.icon} size={24} color={type.color} />
+            {/* Incident Type Selection */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Select Emergency Type</Text>
+              <View style={styles.incidentTypesGrid}>
+                {incidentTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type.id}
+                    style={[
+                      styles.incidentTypeCard,
+                      { backgroundColor: type.bgColor },
+                      selectedIncidentType === type.id && styles.selectedIncidentType,
+                    ]}
+                    onPress={() => setSelectedIncidentType(type.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.incidentTypeIcon, { backgroundColor: type.color + "20" }]}>
+                      <MaterialCommunityIcons name={type.icon} size={24} color={type.color} />
+                    </View>
+                    <Text style={[styles.incidentTypeLabel, { color: type.color }]}>{type.label}</Text>
+                    <Text style={styles.incidentTypeDescription}>{type.description}</Text>
+                    {selectedIncidentType === type.id && (
+                      <View style={styles.selectedIndicator}>
+                        <Ionicons name="checkmark-circle" size={20} color={type.color} />
                       </View>
-                      <Text style={[styles.incidentTypeLabel, { color: type.color }]}>{type.label}</Text>
-                      <Text style={styles.incidentTypeDescription}>{type.description}</Text>
-                      {selectedIncidentType === type.id && (
-                        <View style={styles.selectedIndicator}>
-                          <Ionicons name="checkmark-circle" size={20} color={type.color} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              {/* Description Input */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Additional Details (Optional)</Text>
-                <TextInput
-                  style={styles.descriptionInput}
-                  placeholder="Describe the emergency situation..."
-                  placeholderTextColor={Colors.tertiary}
-                  multiline
-                  numberOfLines={4}
-                  value={description}
-                  onChangeText={setDescription}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              {/* Location Info */}
-              {station && (
-                <View style={styles.locationInfoContainer}>
-                  <Ionicons name="location" size={16} color={Colors.accent} />
-                  <Text style={styles.locationInfoText}>Report will be sent to {station.name}</Text>
-                </View>
-              )}
-            </ScrollView>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.submitButton, (!selectedIncidentType || isSubmitting) && styles.submitButtonDisabled]}
-                onPress={handleSubmit}
-                disabled={!selectedIncidentType || isSubmitting}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={
-                    !selectedIncidentType || isSubmitting
-                      ? [Colors.tertiary, Colors.tertiary]
-                      : [Colors.primary, Colors.primaryDark]
-                  }
-                  style={styles.submitButtonGradient}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color={Colors.surface} />
-                  ) : (
-                    <Ionicons name="send" size={20} color={Colors.surface} />
-                  )}
-                  <Text style={styles.submitButtonText}>{isSubmitting ? "Submitting..." : "Submit Report"}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+
+            {/* Description Input */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Additional Details (Optional)</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Describe the emergency situation..."
+                placeholderTextColor={Colors.tertiary}
+                multiline
+                numberOfLines={4}
+                value={description}
+                onChangeText={setDescription}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Location Info */}
+            {station && (
+              <View style={styles.locationInfoContainer}>
+                <Ionicons name="location" size={16} color={Colors.accent} />
+                <Text style={styles.locationInfoText}>Report will be sent to {station.name}</Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Action Buttons */}
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.submitButton, (!selectedIncidentType || isSubmitting) && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={!selectedIncidentType || isSubmitting}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.submitButtonGradient, { backgroundColor: (!selectedIncidentType || isSubmitting) ? Colors.tertiary : Colors.primary }]}>
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color={Colors.surface} />
+                ) : (
+                  <Ionicons name="send" size={20} color={Colors.surface} />
+                )}
+                <Text style={styles.submitButtonText}>{isSubmitting ? "Submitting..." : "Submit Report"}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   )
@@ -734,7 +454,7 @@ function PulsingMarker({ coordinate }: { coordinate: { latitude: number; longitu
 const FireStationMarker = memo(({ station, onPress, onCalloutPress }: any) => (
   <Marker
     coordinate={{ latitude: station.latitude, longitude: station.longitude }}
-    pinColor={station.isServiceAreaStation ? "#8B5CF6" : station.isOpen === false ? "#F59E0B" : "#D32F2F"}
+    pinColor={station.isServiceAreaStation ? "#7C2D12" : station.isOpen === false ? "#E8A020" : "#C41230"}
     onPress={onPress}
     accessibilityLabel={`Fire station: ${station.name}`}
     anchor={{ x: 0.5, y: 0.5 }}
@@ -742,29 +462,30 @@ const FireStationMarker = memo(({ station, onPress, onCalloutPress }: any) => (
     <Ionicons
       name="flame"
       size={28}
-      color={station.isServiceAreaStation ? "#8B5CF6" : station.isOpen === false ? "#F59E0B" : "#D32F2F"}
+      color={station.isServiceAreaStation ? "#7C2D12" : station.isOpen === false ? "#E8A020" : "#C41230"}
     />
     <Callout onPress={onCalloutPress} tooltip>
       <View
         style={{
           maxWidth: 240,
           backgroundColor: "#fff",
-          borderRadius: 14,
           padding: 14,
-          shadowColor: "#000",
-          shadowOpacity: 0.12,
-          shadowRadius: 12,
-          borderWidth: 1,
-          borderColor: "#E2E8F0",
+          shadowColor: "#1A1A1A",
+          shadowOffset: { width: 4, height: 4 },
+          shadowOpacity: 1,
+          shadowRadius: 0,
+          elevation: 4,
+          borderWidth: 2,
+          borderColor: "#1A1A1A",
           alignItems: "flex-start",
         }}
       >
         <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 2 }}>{station.name}</Text>
-        <Text style={{ color: "#6B7280", fontSize: 13, marginBottom: 2 }}>{station.address}</Text>
+        <Text style={{ color: "#78716C", fontSize: 13, marginBottom: 2 }}>{station.address}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
           <Text
             style={{
-              backgroundColor: station.isOpen === false ? "#F59E0B" : "#10B981",
+              backgroundColor: station.isOpen === false ? "#E8A020" : "#10B981",
               color: "#fff",
               borderRadius: 6,
               paddingHorizontal: 8,
@@ -785,7 +506,7 @@ const FireStationMarker = memo(({ station, onPress, onCalloutPress }: any) => (
             accessibilityLabel={`Call ${station.name}`}
             accessibilityHint="Call this fire station"
           >
-            <Ionicons name="call" size={18} color="#D32F2F" />
+            <Ionicons name="call" size={18} color="#C41230" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onCalloutPress}
@@ -798,7 +519,7 @@ const FireStationMarker = memo(({ station, onPress, onCalloutPress }: any) => (
             accessibilityLabel={`Report incident at ${station.name}`}
             accessibilityHint="Report an incident at this station"
           >
-            <Ionicons name="warning" size={18} color="#F59E0B" />
+            <Ionicons name="warning" size={18} color="#E8A020" />
           </TouchableOpacity>
         </View>
         <Text style={{ color: "#2563eb", fontSize: 13, marginTop: 4, textAlign: "right" }}>Tap for directions</Text>
@@ -811,13 +532,180 @@ const MemoPolygon = memo(Polygon)
 
 export default function HomeGeneralTab() {
   const router = useRouter()
-  const dailyTip = getDailyTip()
+  const { showAlert, showError, showSuccess } = useAlert()
   const { location, setLocation, refreshLocation, loading } = useLocation()
   const { user } = useAuthStore()
-  const { 
-    reports: fireReports, 
-    isLoading: reportsLoading, 
-    getAllFireReports 
+  const isFireOfficer = user?.userType === 'fire_officer'
+
+  // Fire safety tips state
+  const [fireSafetyTip, setFireSafetyTip] = useState<{ title: string; content: string }>({
+    title: 'Fire Safety',
+    content: 'Loading safety tips...',
+  })
+  const [tipsLoading, setTipsLoading] = useState(true)
+
+  // Fetch fire safety tips from API
+  useEffect(() => {
+    const fetchFireSafetyTips = async () => {
+      try {
+        setTipsLoading(true)
+        const response = await fetch('https://auth.ekowlabs.space/api/fire-safety-tips')
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data && data.data.length > 0) {
+            // Get a random tip or the first one
+            const tips = data.data
+            const randomIndex = Math.floor(Math.random() * tips.length)
+            const randomTip = tips[randomIndex]
+
+            setFireSafetyTip({
+              title: randomTip.title,
+              content: randomTip.content,
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching fire safety tips:', error)
+        // Fallback to default tip
+        setFireSafetyTip({
+          title: 'Fire Safety',
+          content: 'Install smoke detectors on every floor and test them monthly. Replace batteries annually.',
+        })
+      } finally {
+        setTipsLoading(false)
+      }
+    }
+
+    fetchFireSafetyTips()
+  }, [])
+
+  // Weather state
+  const [weatherData, setWeatherData] = useState<WeatherData>({
+    temperature: 28,
+    humidity: 65,
+    windSpeed: 12,
+    weatherCode: 0,
+    precipitation: 0,
+    isDay: 1,
+  })
+  const [fireRisk, setFireRisk] = useState<"Low" | "Medium" | "High" | "Extreme">("Low")
+  const [weatherLoading, setWeatherLoading] = useState(true)
+
+  // Calculate fire risk based on weather parameters
+  const calculateFireRisk = (temp: number, humidity: number, windSpeed: number, precipitation: number, weatherCode: number): "Low" | "Medium" | "High" | "Extreme" => {
+    // Check for rain - low risk if significant precipitation
+    if (precipitation > 2 || weatherCode >= 51) {
+      return "Low"
+    }
+
+    // High temperature + low humidity = high fire risk
+    let riskScore = 0
+
+    // Temperature factor (0-30 points)
+    if (temp >= 35) riskScore += 30
+    else if (temp >= 30) riskScore += 25
+    else if (temp >= 25) riskScore += 20
+    else if (temp >= 20) riskScore += 10
+    else riskScore += 5
+
+    // Humidity factor (inverted - lower humidity = higher risk)
+    if (humidity <= 20) riskScore += 30
+    else if (humidity <= 40) riskScore += 25
+    else if (humidity <= 60) riskScore += 15
+    else if (humidity <= 80) riskScore += 5
+    else riskScore += 0
+
+    // Wind factor
+    if (windSpeed >= 40) riskScore += 30
+    else if (windSpeed >= 25) riskScore += 25
+    else if (windSpeed >= 15) riskScore += 20
+    else if (windSpeed >= 10) riskScore += 10
+    else riskScore += 5
+
+    // Total score: 0-90
+    if (riskScore >= 70) return "Extreme"
+    if (riskScore >= 50) return "High"
+    if (riskScore >= 30) return "Medium"
+    return "Low"
+  }
+
+  // Fetch weather data from Open-Meteo API
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      try {
+        setWeatherLoading(true)
+
+        // Default to Accra coordinates if no location
+        const lat = location?.latitude ?? 5.6037  // Accra
+        const lon = location?.longitude ?? -0.1870
+
+        const params = {
+          latitude: lat,
+          longitude: lon,
+          current: ["temperature_2m", "relative_humidity_2m", "weather_code", "precipitation", "wind_speed_10m", "is_day"],
+        }
+
+        const queryString = new URLSearchParams({
+          latitude: params.latitude.toString(),
+          longitude: params.longitude.toString(),
+          current: params.current.join(","),
+        }).toString()
+
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?${queryString}`)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.current) {
+            const current = data.current
+            const temperature = current.temperature_2m ?? 28
+            const humidity = current.relative_humidity_2m ?? 65
+            const weatherCode = current.weather_code ?? 0
+            const precipitation = current.precipitation ?? 0
+            const windSpeed = current.wind_speed_10m ?? 12
+            const isDay = current.is_day ?? 1
+
+            const weather: WeatherData = {
+              temperature,
+              humidity,
+              windSpeed,
+              weatherCode,
+              precipitation,
+              isDay,
+            }
+
+            setWeatherData(weather)
+
+            // Calculate fire risk
+            const risk = calculateFireRisk(temperature, humidity, windSpeed, precipitation, weatherCode)
+            setFireRisk(risk)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching weather data:', error)
+        // Fallback values
+        setWeatherData({
+          temperature: 28,
+          humidity: 65,
+          windSpeed: 12,
+          weatherCode: 0,
+          precipitation: 0,
+          isDay: 1,
+        })
+        setFireRisk("Medium")
+      } finally {
+        setWeatherLoading(false)
+      }
+    }
+
+    fetchWeatherData()
+  }, [location])
+
+  const {
+    reports: fireReports,
+    isLoading: reportsLoading,
+    getAllFireReports
   } = useFireReportsStore()
   const [manualLocation, setManualLocation] = useState("")
   const [useManual, setUseManual] = useState(false)
@@ -838,7 +726,7 @@ export default function HomeGeneralTab() {
   const [incidentStation, setIncidentStation] = useState<any | null>(null)
   const [emergencyReportData, setEmergencyReportData] = useState<any | null>(null)
   const [showEmergencyReport, setShowEmergencyReport] = useState(false)
-  
+
   // Alert state
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -866,7 +754,7 @@ export default function HomeGeneralTab() {
     const timer = setTimeout(() => {
       // Only try if LocationContext hasn't set location after 3 seconds
       if (!location) {
-        ;(async () => {
+        ; (async () => {
           try {
             // Check if location services are enabled
             const isEnabled = await Location.hasServicesEnabledAsync();
@@ -878,24 +766,22 @@ export default function HomeGeneralTab() {
             if (status !== "granted") {
               return; // Let LocationContext handle the permission request
             }
-            
+
             // Add timeout for location request (20 seconds)
             const locationPromise = Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced,
-              timeout: 20000,
-              maximumAge: 300000, // Accept cached location up to 5 minutes old
+              accuracy: Location.Accuracy.Balanced
             });
-            
-            const timeoutPromise = new Promise((_, reject) => 
+
+            const timeoutPromise = new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Location request timeout')), 20000)
             );
-            
+
             const loc = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
-            
+
             if (!loc || !loc.coords) {
               throw new Error('Invalid location data received');
             }
-            
+
             let address = "Current Location"
             try {
               const geocode = await Location.reverseGeocodeAsync({
@@ -909,7 +795,7 @@ export default function HomeGeneralTab() {
             } catch (e) {
               console.warn('Failed to reverse geocode:', e);
             }
-            
+
             const detected = {
               latitude: loc.coords.latitude,
               longitude: loc.coords.longitude,
@@ -949,13 +835,13 @@ export default function HomeGeneralTab() {
     ) {
       return // Don't refetch if location hasn't changed
     }
-    
+
     lastFetchedLocation.current = { latitude: location.latitude, longitude: location.longitude }
     setLoadingStations(true)
-    fetchNearbyFireStations(location.latitude, location.longitude)
+    // Fetch up to 5 nearby stations for the home screen
+    fetchNearbyFireStations(location.latitude, location.longitude, 20000, 5)
       .then((stations) => {
-        // Ensure we always set an array, even if empty
-        setFireStations(Array.isArray(stations) ? stations : []);
+        setFireStations(Array.isArray(stations) ? stations.slice(0, 5) : []);
       })
       .catch((error) => {
         console.error('Error fetching fire stations:', error);
@@ -1042,8 +928,8 @@ export default function HomeGeneralTab() {
       `Status: ${report.status}\nPriority: ${report.priority}\nLocation: ${report.location.locationName}\nStation: ${report.station.name}\nReported: ${formatDate(report.reportedAt)}\n\n${report.description || 'No additional description provided.'}`,
       [
         { text: 'OK' },
-        { 
-          text: 'View All Reports', 
+        {
+          text: 'View All Reports',
           onPress: () => router.push('/(tabs)/incidents')
         }
       ]
@@ -1116,7 +1002,6 @@ export default function HomeGeneralTab() {
     Vibration.vibrate(8)
   }
 
-  const currentLocationString = `${mockLocation.city}, ${mockLocation.area}`
   const closestStationId = fireStations.length > 0 ? fireStations[0].id : null
 
   // Removed location detection preloader - app will show content even without location
@@ -1126,346 +1011,358 @@ export default function HomeGeneralTab() {
       {/* Sticky Header Component */}
       <Header onEmergencyCall={() => console.log("Emergency call initiated")} />
 
-    <ScrollView
+      <ScrollView
         style={styles.scrollView}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Location Card */}
-      <View style={styles.locationCard}>
-        <View style={styles.locationHeader}>
-          <View style={styles.locationIconContainer}>
-            <Ionicons name="location" size={24} color={Colors.primary} />
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Location Card */}
+        <View style={styles.locationCard}>
+          <View style={styles.locationHeader}>
+            <View style={styles.locationIconContainer}>
+              <Ionicons name="location" size={24} color={Colors.surface} />
+            </View>
+            <View style={styles.locationInfo}>
+              <Text style={styles.locationTitle}>Current Location</Text>
+              <Text style={styles.locationText}>{manualLocation || location?.address || 'Location not available'}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.locationButton, !location && { opacity: 0.5 }]}
+              onPress={() => setLocationModalVisible(true)}
+              activeOpacity={0.7}
+              accessibilityLabel="Search or edit current location"
+              disabled={!location}
+            >
+              <Ionicons name="search" size={20} color={Colors.primary} />
+            </TouchableOpacity>
           </View>
-          <View style={styles.locationInfo}>
-            <Text style={styles.locationTitle}>Current Location</Text>
-            <Text style={styles.locationText}>{manualLocation || location?.address || 'Location not available'}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.locationButton, !location && { opacity: 0.5 }]}
-            onPress={() => setLocationModalVisible(true)}
-            activeOpacity={0.7}
-            accessibilityLabel="Search or edit current location"
-            disabled={!location}
-          >
-            <Ionicons name="search" size={20} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Clear search history button */}
-        {searchHistory.length > 0 && (
-          <TouchableOpacity
-            style={{
-              alignSelf: "flex-end",
-              marginTop: 4,
-              marginRight: 8,
-              backgroundColor: "#F1F5F9",
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-            onPress={handleClearHistoryAndReset}
-            accessibilityLabel="Clear searched locations"
-          >
-            <Text style={{ color: Colors.primary, fontWeight: "bold", fontSize: 14 }}>Clear Searched Locations</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Location Search Modal */}
-              <LocationSearch
-          visible={locationModalVisible}
-          onClose={() => setLocationModalVisible(false)}
-                onLocationSelect={(loc: any) => {
-                  if (loc) {
-                    handleLocationSelect(loc)
-                    setLocationModalVisible(false)
-                  }
-                }}
-              />
-      </View>
-
-      {/* Only render the map and location-dependent UI if location is set */}
-      {location && (
-        <View style={styles.mapContainer}>
-          {/* Map Theme Toggle */}
-          <TouchableOpacity
-            onPress={toggleMapTheme}
-            style={{ alignSelf: "flex-end", margin: 8, padding: 6, borderRadius: 8, backgroundColor: "#F1F5F9" }}
-            accessibilityLabel="Toggle map theme"
-            accessibilityHint="Switch between light and dark map styles"
-          >
-            <Ionicons name={mapTheme === "light" ? "moon" : "sunny"} size={20} color="#D32F2F" />
-          </TouchableOpacity>
-
-          {/* Search History */}
+          {/* Clear search history button */}
           {searchHistory.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8, marginLeft: 8 }}>
-              {searchHistory.map((h, idx) => (
-                <TouchableOpacity
-                  key={h.address + idx}
-                  style={{
-                    backgroundColor: "#F1F5F9",
-                    borderRadius: 12,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    marginRight: 8,
-                  }}
-                  onPress={() => setLocation({ latitude: h.latitude, longitude: h.longitude, address: h.address })}
-                  accessibilityLabel={`Jump to ${h.address}`}
-                  accessibilityHint="Jump to this previously searched location"
-                >
-                  <Text style={{ color: "#1A1A1A", fontSize: 13 }}>
-                    {h.address.length > 28 ? h.address.slice(0, 28) + "…" : h.address}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TouchableOpacity
+              style={{
+                alignSelf: "flex-end",
+                marginTop: 4,
+                marginRight: 8,
+                backgroundColor: "#F1F5F9",
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+              onPress={handleClearHistoryAndReset}
+              accessibilityLabel="Clear searched locations"
+            >
+              <Text style={{ color: Colors.primary, fontWeight: "bold", fontSize: 14 }}>Clear Searched Locations</Text>
+            </TouchableOpacity>
           )}
 
-          {/* Recenter Button */}
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              bottom: 24,
-              right: 24,
-              backgroundColor: "#fff",
-              borderRadius: 24,
-              padding: 12,
-              shadowColor: "#000",
-              shadowOpacity: 0.12,
-              shadowRadius: 8,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              zIndex: 10,
+          {/* Location Search Modal */}
+          <LocationSearch
+            visible={locationModalVisible}
+            onClose={() => setLocationModalVisible(false)}
+            onLocationSelect={(loc: any) => {
+              if (loc) {
+                handleLocationSelect(loc)
+                setLocationModalVisible(false)
+              }
             }}
-            onPress={recenterMap}
-            accessibilityLabel="Recenter map"
-            accessibilityHint="Move the map to your current location"
-          >
-            <Ionicons name="locate" size={22} color="#D32F2F" />
-          </TouchableOpacity>
+          />
+        </View>
 
-          {/* Map with all super features */}
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            region={{
-              latitude: location?.latitude || mockLocation.lat,
-              longitude: location?.longitude || mockLocation.lng,
-              latitudeDelta: 0.03,
-              longitudeDelta: 0.03,
-            }}
-            showsUserLocation={false}
-            scrollEnabled={true}
-            zoomEnabled={true}
-            pitchEnabled={true}
-            rotateEnabled={true}
-            pointerEvents="auto"
-            customMapStyle={mapTheme === "light" ? customMapStyleLight : customMapStyleDark}
-            accessibilityLabel="Map showing your location and nearby fire stations"
-            minZoomLevel={8}
-            maxZoomLevel={18}
-          >
-            {/* Animated user marker */}
-            <PulsingMarker
-              coordinate={{
-                latitude: location?.latitude || mockLocation.lat,
-                longitude: location?.longitude || mockLocation.lng,
+        {/* Only render the map and location-dependent UI if location is set */}
+        {location && (
+          <View style={styles.mapContainer}>
+            {/* Map Theme Toggle */}
+            <TouchableOpacity
+              onPress={toggleMapTheme}
+              style={{
+                alignSelf: "flex-end",
+                margin: 8,
+                padding: 6,
+                borderWidth: 2,
+                borderColor: Colors.secondary,
+                backgroundColor: Colors.surface,
+                shadowColor: Colors.secondary,
+                shadowOffset: { width: 2, height: 2 },
+                shadowOpacity: 1,
+                shadowRadius: 0,
+                elevation: 2,
               }}
-            />
+              accessibilityLabel="Toggle map theme"
+              accessibilityHint="Switch between light and dark map styles"
+            >
+              <Ionicons name={mapTheme === "light" ? "moon" : "sunny"} size={20} color={Colors.primary} />
+            </TouchableOpacity>
 
-            {/* Service area polygons */}
-            {SERVICE_AREAS.map((area, idx) => (
-              <MemoPolygon
-                key={area.name}
-                coordinates={[
-                  { latitude: area.bounds.minLat, longitude: area.bounds.minLng },
-                  { latitude: area.bounds.minLat, longitude: area.bounds.maxLng },
-                  { latitude: area.bounds.maxLat, longitude: area.bounds.maxLng },
-                  { latitude: area.bounds.maxLat, longitude: area.bounds.minLng },
-                ]}
-                fillColor={
-                  area.servingStations[0]?.name === "Madina Fire Station"
-                    ? "rgba(139,92,246,0.08)"
-                    : "rgba(211,47,47,0.08)"
-                }
-                strokeColor={area.servingStations[0]?.name === "Madina Fire Station" ? "#8B5CF6" : "#D32F2F"}
-                strokeWidth={2}
-              />
-            ))}
+            {/* Search History */}
+            {searchHistory.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8, marginLeft: 8 }}>
+                {searchHistory.map((h, idx) => (
+                  <TouchableOpacity
+                    key={h.address + idx}
+                    style={{
+                      backgroundColor: Colors.surface,
+                      borderWidth: 1,
+                      borderColor: Colors.secondary,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      marginRight: 8,
+                      shadowColor: Colors.secondary,
+                      shadowOffset: { width: 2, height: 2 },
+                      shadowOpacity: 1,
+                      shadowRadius: 0,
+                      elevation: 1,
+                    }}
+                    onPress={() => setLocation({ latitude: h.latitude, longitude: h.longitude, address: h.address })}
+                    accessibilityLabel={`Jump to ${h.address}`}
+                    accessibilityHint="Jump to this previously searched location"
+                  >
+                    <Text style={{ color: "#1A1A1A", fontSize: 13 }}>
+                      {h.address.length > 28 ? h.address.slice(0, 28) + "…" : h.address}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
-            {/* Fire station markers with custom callouts */}
-            {fireStations.map((station, idx) => (
-              <FireStationMarker
-                key={station.id || idx}
-                station={station}
-                onPress={() => {
-                  setSelectedStation(station)
-                  if (Platform.OS === "ios" || Platform.OS === "android") Vibration.vibrate(8)
+            {/* Recenter Button */}
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                bottom: 24,
+                right: 24,
+                backgroundColor: Colors.surface,
+                padding: 12,
+                shadowColor: Colors.secondary,
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 1,
+                shadowRadius: 0,
+                borderWidth: 2,
+                borderColor: Colors.secondary,
+                zIndex: 10,
+                elevation: 4,
+              }}
+              onPress={recenterMap}
+              accessibilityLabel="Recenter map"
+              accessibilityHint="Move the map to your current location"
+            >
+              <Ionicons name="locate" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+
+            {/* Map with all super features */}
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              region={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.03,
+                longitudeDelta: 0.03,
+              }}
+              showsUserLocation={false}
+              scrollEnabled={true}
+              zoomEnabled={true}
+              pitchEnabled={true}
+              rotateEnabled={true}
+              pointerEvents="auto"
+              customMapStyle={mapTheme === "light" ? customMapStyleLight : customMapStyleDark}
+              accessibilityLabel="Map showing your location and nearby fire stations"
+              minZoomLevel={8}
+              maxZoomLevel={18}
+            >
+              {/* Animated user marker */}
+              <PulsingMarker
+                coordinate={{
+                  latitude: location.latitude,
+                  longitude: location.longitude,
                 }}
-                onCalloutPress={() => handleCalloutPress(station)}
               />
-            ))}
-          </MapView>
-        </View>
-      )}
 
-      {/* Fire Stations Card */}
-      <FireStationsCard 
-        fireStations={fireStations}
-        loadingStations={loadingStations}
-        closestStationId={closestStationId}
-        onStationPress={(station: FireStation) => console.log("Station pressed:", station)}
-        onReportIncident={(station: FireStation) => {
-                    setIncidentStation(station)
-                    setIncidentModalVisible(true)
-                  }}
-      />
-
-      {/* Daily Tip Section */}
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleContainer}>
-          <View style={styles.sectionIconContainer}>
-            <Ionicons name="bulb" size={24} color={Colors.accent} />
-          </View>
-          <Text style={styles.sectionTitle}>Safety Tip of the Day</Text>
-        </View>
-      </View>
-
-      {/* Daily Tip Card */}
-      <DailyTipCard 
-        tip={dailyTip}
-      />
-
-      {/* Weather Card */}
-      <WeatherCard 
-        temperature={32}
-        description="High Fire Risk"
-        riskLevel="High"
-        humidity={18}
-        windSpeed={10}
-      />
-
-      {/* Reports Section */}
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleContainer}>
-          <View style={styles.sectionIconContainer}>
-            <Ionicons name="document-text" size={24} color={Colors.accent} />
-          </View>
-          <Text style={styles.sectionTitle}>Recent Emergency Reports</Text>
-        </View>
-        <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push("/(tabs)/incidents")}>
-          <Text style={styles.seeAllText}>View All</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {reportsLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading reports...</Text>
-        </View>
-      ) : getRecentReports().length === 0 ? (
-        <View style={styles.emptyReportsContainer}>
-          <Ionicons name="document-outline" size={48} color={Colors.tertiary} />
-          <Text style={styles.emptyReportsTitle}>No Recent Emergencies</Text>
-          <Text style={styles.emptyReportsMessage}>
-            No emergency incidents reported at this time.
-          </Text>
-        </View>
-      ) : (
-        getRecentReports().map((report) => (
-          <TouchableOpacity
-            key={report._id}
-            style={styles.reportCard}
-            onPress={() => handleReportPress(report)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.reportIconContainer}>
-              <LinearGradient
-                colors={[
-                  getStatusColors(report.status).text + "20",
-                  getStatusColors(report.status).text + "10",
-                ]}
-                style={styles.reportIcon}
-              >
-                <Ionicons
-                  name={getIncidentIcon(report.incidentType)}
-                  size={24}
-                  color={getStatusColors(report.status).text}
+              {/* Service area polygons */}
+              {SERVICE_AREAS.map((area, idx) => (
+                <MemoPolygon
+                  key={area.name}
+                  coordinates={[
+                    { latitude: area.bounds.minLat, longitude: area.bounds.minLng },
+                    { latitude: area.bounds.minLat, longitude: area.bounds.maxLng },
+                    { latitude: area.bounds.maxLat, longitude: area.bounds.maxLng },
+                    { latitude: area.bounds.maxLat, longitude: area.bounds.minLng },
+                  ]}
+                  fillColor={
+                    area.servingStations[0]?.name === "Madina Fire Station"
+                      ? "rgba(139,92,246,0.08)"
+                      : "rgba(211,47,47,0.08)"
+                  }
+                  strokeColor={area.servingStations[0]?.name === "Madina Fire Station" ? "#7C2D12" : "#C41230"}
+                  strokeWidth={2}
                 />
-              </LinearGradient>
+              ))}
+
+              {/* Fire station markers with custom callouts */}
+              {fireStations.map((station, idx) => (
+                <FireStationMarker
+                  key={station.id || idx}
+                  station={station}
+                  onPress={() => {
+                    setSelectedStation(station)
+                    if (Platform.OS === "ios" || Platform.OS === "android") Vibration.vibrate(8)
+                  }}
+                  onCalloutPress={() => handleCalloutPress(station)}
+                />
+              ))}
+            </MapView>
+          </View>
+        )}
+
+        {/* Fire Stations Card - Hide for fire officers */}
+        {!isFireOfficer && (
+          <FireStationsCard
+            fireStations={fireStations}
+            loadingStations={loadingStations}
+            closestStationId={closestStationId}
+            onReportIncident={(station: FireStation) => {
+              setIncidentStation(station)
+              setIncidentModalVisible(true)
+            }}
+          />
+        )}
+
+        {/* Daily Tip Section */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIconContainer}>
+              <Ionicons name="bulb" size={24} color={Colors.surface} />
             </View>
-            <View style={styles.reportContent}>
-              <Text style={styles.reportTitle}>{report.incidentName}</Text>
-              <Text style={styles.reportDate}>{formatReportDate(report.reportedAt)}</Text>
-              <Text style={styles.reportLocation}>{report.location.locationName}</Text>
-              <View style={styles.reportMeta}>
+            <Text style={styles.sectionTitle}>Safety Tip of the Day</Text>
+          </View>
+        </View>
+
+        {/* Daily Tip Card */}
+        <DailyTipCard
+          title={fireSafetyTip.title}
+          content={fireSafetyTip.content}
+        />
+
+        {/* Weather Card */}
+        <WeatherCard
+          weather={weatherData}
+          fireRisk={fireRisk}
+        />
+
+        {/* Reports Section */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIconContainer}>
+              <Ionicons name="document-text" size={24} color={Colors.surface} />
+            </View>
+            <Text style={styles.sectionTitle}>Recent Emergency Reports</Text>
+          </View>
+          <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push("/(tabs)/incidents")}>
+            <Text style={styles.seeAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {reportsLoading ? (
+          <View style={styles.loadingContainerFull}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading reports...</Text>
+          </View>
+        ) : getRecentReports().length === 0 ? (
+          <View style={styles.emptyReportsContainer}>
+            <Ionicons name="document-outline" size={48} color={Colors.tertiary} />
+            <Text style={styles.emptyReportsTitle}>No Recent Emergencies</Text>
+            <Text style={styles.emptyReportsMessage}>
+              No emergency incidents reported at this time.
+            </Text>
+          </View>
+        ) : (
+          getRecentReports().map((report) => (
+            <TouchableOpacity
+              key={report._id}
+              style={styles.reportCard}
+              onPress={() => handleReportPress(report)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.reportIconContainer}>
+                <View style={[styles.reportIcon, { backgroundColor: getStatusColors(report.status).text + "20" }]}>
+                  <Ionicons
+                    name={getIncidentIcon(report.incidentType) as any}
+                    size={24}
+                    color={getStatusColors(report.status).text}
+                  />
+                </View>
+              </View>
+              <View style={styles.reportContent}>
+                <Text style={styles.reportTitle}>{report.incidentName}</Text>
+                <Text style={styles.reportDate}>{formatReportDate(report.reportedAt)}</Text>
+                <Text style={styles.reportLocation}>{report.location.locationName}</Text>
+                <View style={styles.reportMeta}>
+                  <View
+                    style={[
+                      styles.priorityBadge,
+                      {
+                        backgroundColor: report.priority === "high"
+                          ? Colors.danger + "20"
+                          : report.priority === "medium"
+                            ? Colors.warning + "20"
+                            : Colors.tertiary + "20"
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        {
+                          color: report.priority === "high"
+                            ? Colors.danger
+                            : report.priority === "medium"
+                              ? Colors.warning
+                              : Colors.tertiary
+                        }
+                      ]}
+                    >
+                      {report.priority.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.reportActions}>
                 <View
                   style={[
-                    styles.priorityBadge,
-                    { 
-                      backgroundColor: report.priority === "high" 
-                        ? Colors.danger + "20" 
-                        : report.priority === "medium"
-                        ? Colors.warning + "20"
-                        : Colors.tertiary + "20"
+                    styles.statusBadge,
+                    {
+                      backgroundColor: getStatusColors(report.status).bg,
+                      borderColor: getStatusColors(report.status).border,
                     },
                   ]}
                 >
                   <Text
-                    style={[
-                      styles.priorityText, 
-                      { 
-                        color: report.priority === "high" 
-                          ? Colors.danger 
-                          : report.priority === "medium"
-                          ? Colors.warning
-                          : Colors.tertiary
-                      }
-                    ]}
+                    style={[styles.statusText, { color: getStatusColors(report.status).text }]}
                   >
-                    {report.priority.toUpperCase()}
+                    {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('-', ' ')}
                   </Text>
                 </View>
               </View>
-            </View>
-            <View style={styles.reportActions}>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: getStatusColors(report.status).bg,
-                    borderColor: getStatusColors(report.status).border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.statusText, { color: getStatusColors(report.status).text }]}
-                >
-                  {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('-', ' ')}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))
-      )}
+            </TouchableOpacity>
+          ))
+        )}
 
-      {/* News Card */}
-      <NewsCard 
-        news={mockNews}
-        onNewsPress={(news: NewsItem) => Linking.openURL(news.url)}
-      />
+        {/* News Card */}
+        <NewsCard
+          news={[]}
+          onNewsPress={(news: NewsItem) => Linking.openURL(news.url)}
+        />
 
-      {/* Enhanced Incident Modal */}
+        {/* Enhanced Incident Modal */}
         <IncidentReportModal
-        visible={incidentModalVisible}
-        onClose={() => setIncidentModalVisible(false)}
-        station={incidentStation}
+          visible={incidentModalVisible}
+          onClose={() => setIncidentModalVisible(false)}
+          station={incidentStation}
           userLocation={location}
           userProfile={user ? {
             userId: user.id,
@@ -1477,7 +1374,7 @@ export default function HomeGeneralTab() {
           onTypeSelect={(type, reportData) => {
             console.log("Selected incident type:", type)
             console.log("📋 Report Data to be sent to backend:", JSON.stringify(reportData, null, 2))
-            
+
             // Store report data and show emergency alert
             setEmergencyReportData(reportData)
             setIncidentModalVisible(false)
@@ -1496,47 +1393,47 @@ export default function HomeGeneralTab() {
               })
             }
           }}
-      />
-      
-      {/* Emergency Report Alert */}
-      <EmergencyReportAlert
-        visible={showEmergencyReport}
-        reportData={emergencyReportData}
-        userInfo={user ? {
-          name: user.name,
-          phone: user.phone,
-          image: user.image,
-          ghanaPostAddress: user.ghanaPost,
-        } : null}
-        onConfirm={(success, message) => {
-          console.log("✅ Report confirmed! Success:", success, "Message:", message)
-          setShowEmergencyReport(false)
-          setEmergencyReportData(null)
-          
-          // Show success or error confirmation
-          setAlertConfig({
-            visible: true,
-            type: success ? 'success' : 'error',
-            title: success ? 'Report Submitted!' : 'Submission Failed',
-            message: message,
-            onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
-          })
-        }}
-        onCancel={() => {
-          setShowEmergencyReport(false)
-          setEmergencyReportData(null)
-        }}
-      />
-      
-      {/* Custom Alert */}
-      <CustomAlert
-        visible={alertConfig.visible}
-        type={alertConfig.type}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        onConfirm={alertConfig.onConfirm}
-      />
-    </ScrollView>
+        />
+
+        {/* Emergency Report Alert */}
+        <EmergencyReportAlert
+          visible={showEmergencyReport}
+          reportData={emergencyReportData}
+          userInfo={user ? {
+            name: user.name,
+            phone: user.phone,
+            image: user.image,
+            ghanaPostAddress: user.ghanaPost,
+          } : null}
+          onConfirm={(success, message) => {
+            console.log("✅ Report confirmed! Success:", success, "Message:", message)
+            setShowEmergencyReport(false)
+            setEmergencyReportData(null)
+
+            // Show success or error confirmation
+            setAlertConfig({
+              visible: true,
+              type: success ? 'success' : 'error',
+              title: success ? 'Report Submitted!' : 'Submission Failed',
+              message: message,
+              onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+            })
+          }}
+          onCancel={() => {
+            setShowEmergencyReport(false)
+            setEmergencyReportData(null)
+          }}
+        />
+
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={alertConfig.visible}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+        />
+      </ScrollView>
     </View>
   )
 }
@@ -1550,7 +1447,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // Enhanced Loading Styles
-  loadingContainer: {
+  loadingContainerFull: {
     flex: 1,
   },
   loadingGradient: {
@@ -1568,13 +1465,15 @@ const styles = StyleSheet.create({
   loadingIconGradient: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    backgroundColor: Colors.primary,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 8,
   },
   loadingDotsContainer: {
@@ -1641,13 +1540,15 @@ const styles = StyleSheet.create({
   },
   incidentModalContainer: {
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.secondary,
     maxHeight: height * 0.9,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: -4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 16,
   },
   modalContent: {
@@ -1677,12 +1578,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.danger,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   modalTitleText: {
     flex: 1,
@@ -1701,8 +1609,9 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
     backgroundColor: Colors.surfaceVariant,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1711,20 +1620,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emergencyCallButton: {
-    marginVertical: 20,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: Colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginVertical: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
   },
   emergencyCallGradient: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: Colors.danger,
   },
   emergencyCallText: {
     flex: 1,
@@ -1772,18 +1682,18 @@ const styles = StyleSheet.create({
   },
   incidentTypeCard: {
     width: (width - 60) / 2,
-    borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: Colors.border,
     position: "relative",
   },
   selectedIncidentType: {
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.surface,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   incidentTypeIcon: {
@@ -1810,22 +1720,32 @@ const styles = StyleSheet.create({
     right: 8,
   },
   descriptionInput: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 16,
     fontSize: 16,
     color: Colors.secondary,
     minHeight: 100,
     textAlignVertical: "top",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   locationInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.accentAlpha,
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 12,
     marginBottom: 20,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   locationInfoText: {
     fontSize: 14,
@@ -1844,10 +1764,16 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     backgroundColor: Colors.surfaceVariant,
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -1856,17 +1782,24 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 2,
-    borderRadius: 12,
-    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   submitButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   submitButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 15,
     gap: 8,
   },
   submitButtonText: {
@@ -1877,15 +1810,16 @@ const styles = StyleSheet.create({
 
 
   weatherCard: {
-    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
     padding: 24,
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 20,
-    shadowColor: Colors.warning,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 8,
   },
   weatherHeader: {
@@ -1896,14 +1830,15 @@ const styles = StyleSheet.create({
   weatherIconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
     backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   weatherInfo: {
@@ -1948,71 +1883,83 @@ const styles = StyleSheet.create({
   },
   locationCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 14,
     marginHorizontal: 16,
     marginBottom: 16,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   locationHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   locationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryAlpha,
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   locationInfo: {
     flex: 1,
     marginLeft: 12,
   },
   locationTitle: {
-    fontSize: 14,
+    fontSize: 10,
     color: Colors.tertiary,
-    fontWeight: "500",
+    fontWeight: "800",
     marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   locationText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "800",
     color: Colors.secondary,
   },
   locationButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryAlpha,
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   mapContainer: {
-    borderRadius: 28,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 24,
     backgroundColor: "#fff",
+    overflow: "hidden",
   },
   map: {
     width: "100%",
     height: 320,
-    borderRadius: 28,
-    overflow: "hidden",
   },
   mapPlaceholder: {
     height: 120,
@@ -2034,8 +1981,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 20,
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
     marginTop: 8,
   },
   sectionTitleContainer: {
@@ -2043,23 +1990,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceVariant,
+    width: 36,
+    height: 36,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 10,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   seeAllButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   seeAllText: {
     color: Colors.primary,
-    fontWeight: "600",
-    fontSize: 14,
+    fontWeight: "800",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   stationsContainer: {
     paddingHorizontal: 20,
@@ -2067,13 +2031,15 @@ const styles = StyleSheet.create({
   },
   stationCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2.5,
+    borderColor: Colors.border,
     padding: 20,
     width: width * 0.8,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   firstStationCard: {
@@ -2089,14 +2055,18 @@ const styles = StyleSheet.create({
   stationIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.border,
     backgroundColor: Colors.primaryAlpha,
     alignItems: "center",
     justifyContent: "center",
   },
   distanceBadge: {
     backgroundColor: Colors.success,
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
@@ -2129,16 +2099,18 @@ const styles = StyleSheet.create({
   },
   callButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
     gap: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   callButtonDisabled: {
@@ -2162,7 +2134,7 @@ const styles = StyleSheet.create({
   },
   reportIncidentButton: {
     backgroundColor: Colors.surface,
-    borderRadius: 12,
+    borderRadius: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2170,6 +2142,11 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 2,
     borderColor: Colors.danger,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   reportIncidentButtonText: {
     color: Colors.danger,
@@ -2178,14 +2155,19 @@ const styles = StyleSheet.create({
   },
   directionsButton: {
     backgroundColor: Colors.accentAlpha,
-    borderRadius: 12,
+    borderRadius: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
     gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.accent + "30",
+    borderWidth: 2,
+    borderColor: Colors.border,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   directionsButtonText: {
     color: Colors.accent,
@@ -2193,14 +2175,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   dailyTipCard: {
-    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    borderWidth: 2.5,
+    borderColor: Colors.border,
     padding: 24,
     marginHorizontal: 20,
     marginBottom: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   tipHeader: {
@@ -2210,7 +2195,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    borderRadius: 16,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 6,
@@ -2259,7 +2246,9 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
     backgroundColor: Colors.surface,
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
@@ -2311,25 +2300,27 @@ const styles = StyleSheet.create({
   },
   reportCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   reportIconContainer: {
-    marginRight: 16,
+    marginRight: 14,
   },
   reportIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2352,7 +2343,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   priorityBadge: {
-    borderRadius: 8,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
@@ -2365,20 +2358,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
+    borderRadius: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
   },
   statusText: {
-    fontWeight: "700",
-    fontSize: 12,
+    fontWeight: "800",
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   detailsButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.primaryAlpha,
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 4,
@@ -2442,18 +2440,20 @@ const styles = StyleSheet.create({
   elegantLocationPin: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 0,
+    borderWidth: 3,
+    borderColor: Colors.border,
     marginBottom: 40,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 12,
   },
   elegantPinGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 40,
+    borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2481,12 +2481,14 @@ const styles = StyleSheet.create({
   },
   newsCardHorizontal: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2.5,
+    borderColor: Colors.border,
     marginBottom: 16,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
     overflow: "hidden",
     width: width * 0.75,
@@ -2508,13 +2510,15 @@ const styles = StyleSheet.create({
     top: 8,
     right: 16,
     backgroundColor: Colors.primary,
-    borderRadius: 16,
+    borderRadius: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.16,
-    shadowRadius: 6,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     zIndex: 2,
   },
   closestBadgeText: {
@@ -2532,12 +2536,19 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.border,
     paddingHorizontal: 18,
     paddingVertical: 14,
     margin: 6,
     minWidth: 80,
     minHeight: 70,
+    shadowColor: Colors.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   incidentTypeText: {
     marginTop: 6,

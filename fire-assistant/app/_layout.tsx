@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from '../components/ToastNotification';
 import SplashScreen from '../components/ui/splash';
 import { AlertProvider } from '../context/AlertContext';
 import { LocationProvider } from '../context/LocationContext';
@@ -16,7 +17,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [showSplash, setShowSplash] = useState(true);
-  
+
   const { token, hasSeenOnboarding, isInitialized, initializeAuth } = useAuthStore();
 
   // Initialize auth on app start
@@ -41,8 +42,10 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AlertProvider>
         <LocationProvider>
-          <RootNavigator />
-          <StatusBar style="auto" />
+          <ToastProvider>
+            <RootNavigator />
+            <StatusBar style="auto" />
+          </ToastProvider>
         </LocationProvider>
       </AlertProvider>
     </SafeAreaProvider>
@@ -57,7 +60,7 @@ function RootNavigator() {
 
   useEffect(() => {
     if (!isInitialized) return;
-    
+
     // Only perform initial navigation once to avoid flash
     if (!hasNavigated) {
       // Determine initial route based on auth state
@@ -76,9 +79,9 @@ function RootNavigator() {
     const inOnboarding = segments[0] === 'onboarding';
     const inAuthScreens = ['login', 'officer-login', 'register', 'reset', 'verify', 'new-password', 'forgot-password', 'reset-password'].includes(segments[0] as string);
 
-    console.log('Navigation check:', { 
-      hasToken: !!token, 
-      hasSeenOnboarding, 
+    console.log('Navigation check:', {
+      hasToken: !!token,
+      hasSeenOnboarding,
       segments,
       inAuthGroup,
       inOnboarding,

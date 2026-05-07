@@ -104,6 +104,20 @@ fire-assistant/
    - Press `a` for Android emulator
    - Scan QR code with Expo Go app for physical device testing
 
+## 🔐 Demo Credentials
+
+For live demonstration, testing, and evaluation of the application, please use the following official credentials:
+
+### 🧑‍🚒 Officer Account
+* **ID / Username**: `GNFS-1113`
+* **Password**: `latif@123`
+* **Demo Station Action**: Please select or use the **University of Ghana Fire Station** for the demonstration flows.
+
+### 🌐 Admin Portal
+The central command and dispatcher dashboard can be accessed online at:
+* **Primary Link**: [gnfs.ekowlabs.space/station-admin/login](https://gnfs.ekowlabs.space/station-admin/login)
+* **Alternative Link**: [gnfs.ekowlabs.tech/station-admin/login](https://gnfs.ekowlabs.tech/station-admin/login)
+
 ## 📱 App Navigation
 
 ### Authentication Flow
@@ -117,6 +131,63 @@ fire-assistant/
 - **News**: Fire safety news and updates
 - **Notifications**: System alerts and updates
 - **Profile**: User settings and account management
+
+## 🖥 UI Screens
+
+### Splash & Onboarding
+- **Splash Screen**: Fullscreen logo animation against primary red background; transitions to onboarding.
+- **Onboarding**: Swipeable slides with illustrations, brief explanations of key features, "Get Started" button.
+
+### Authentication Screens
+- **Login**: Email/phone and password fields, "Forgot password?" link, primary button, social login icons maybe, light background.
+- **Signup / Register**: Similar layout to login with name field, terms and conditions checkbox, and "Sign Up" button.
+- **Forgot Password**: Input for email/phone, "Send Reset Link" button.
+- **New Password / Reset**: Two password fields with visibility toggle, submit button.
+- **Verify**: Code input fields with resend timer and submit.
+
+### Main Tab Screens
+
+#### Home
+- Top header with location display and search icon.
+- Scrollable content: Quick action cards (Report Incident, Find Station), WeatherCard at top with current conditions.
+- FireStationsCard list showing nearest stations with name, distance, call button.
+- NewsCard preview for latest safety news.
+- Pull-to-refresh and floating action button for reporting.
+
+#### AI Chat
+- Chat bubbles: user messages right-aligned in primary color, assistant messages left in light gray.
+- Text input bar with microphone and send icon.
+- Category chips above input to switch conversation mode.
+- Scrollable conversation with auto-scroll to latest message.
+
+#### Incidents
+- List of past reports: each entry shows type icon, timestamp, status badge.
+- Floating "+" button to open `IncidentReportModal`.
+- Modal with incident type selectors, priority slider, location picker (via `LocationSearch`), description textarea, submit.
+
+#### News Feed
+- Vertical list of `NewsCard` components: image thumbnail, title, source and date.
+- Tap opens full article in webview.
+
+#### Notifications
+- List view with alert icons, short message, timestamp.
+- Swipe actions to dismiss or archive.
+- Clear all button in header.
+
+#### Profile
+- Display of user avatar, name, email.
+- Settings options: Edit profile, change password, notification preferences, logout.
+- Footer with app version.
+
+#### Fire Station Detail (accessible from Home list)
+- Map preview, contact info (phone, address), distance, request directions button.
+- Station service hours and notes.
+
+### Modal & Overlay Components
+- **IncidentReportModal** (described above).
+- **LocationSearch**: Search bar with autocomplete, map view for selecting location.
+- **CustomAlert**: Reusable popup for confirmations and error messages.
+- **ToastNotification**: Temporary toast at top/bottom for status messages.
 
 ## 🔧 Key Components
 

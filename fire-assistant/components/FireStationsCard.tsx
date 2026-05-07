@@ -1,6 +1,6 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from 'expo-router';
-import React from "react";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
+import React from "react"
 import {
   ActivityIndicator,
   Linking,
@@ -9,25 +9,20 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
+} from "react-native"
 
 const Colors = {
-  primary: "#D32F2F",
-  primaryLight: "#FF6659",
-  primaryDark: "#9A0007",
+  primary: "#C41230",
   secondary: "#1A1A1A",
-  tertiary: "#6B7280",
-  background: "#F8FAFC",
+  tertiary: "#78716C",
   surface: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
+  surfaceVariant: "#F5EDE3",
+  border: "#1A1A1A",
   success: "#10B981",
-  warning: "#F59E0B",
   danger: "#EF4444",
-  accent: "#8B5CF6",
-  shadow: "rgba(0, 0, 0, 0.1)",
-  primaryAlpha: "rgba(211, 47, 47, 0.1)",
-  accentAlpha: "rgba(139, 92, 246, 0.1)",
+  accent: "#E8A020",
+  primaryAlpha: "rgba(196, 18, 48, 0.08)",
+  accentAlpha: "rgba(232, 160, 32, 0.08)",
 }
 
 interface FireStation {
@@ -50,6 +45,7 @@ interface FireStation {
   serviceNote?: string
   proximityScore?: number
   proximityRank?: string
+  isDefaultStation?: boolean
 }
 
 interface FireStationsCardProps {
@@ -60,27 +56,43 @@ interface FireStationsCardProps {
   onReportIncident?: (station: FireStation) => void
 }
 
+const getDisplayTime = (station: FireStation): string => {
+  if (
+    station.travelTimeText &&
+    station.travelTimeText !== "Route unavailable" &&
+    station.travelTimeText !== "N/A"
+  ) {
+    return station.travelTimeText
+  }
+  const dist = station.routeDistance || station.straightLineDistance || station.distance
+  if (!dist) return "Est. unknown"
+  const mins = Math.round((dist / 40) * 60)
+  if (mins < 60) return `~${mins} min`
+  const hrs = Math.floor(mins / 60)
+  const rem = mins % 60
+  return rem > 0 ? `~${hrs}h ${rem}m` : `~${hrs}h`
+}
+
+const getDisplayDistance = (station: FireStation): string => {
+  if (station.routeDistanceText) return station.routeDistanceText
+  const dist = station.straightLineDistance || station.distance
+  return dist ? `${dist.toFixed(1)} km` : "—"
+}
+
 export const FireStationsCard: React.FC<FireStationsCardProps> = ({
   fireStations,
   loadingStations,
   closestStationId,
-  onStationPress,
   onReportIncident,
 }) => {
-  const router = useRouter();
-  const handleCallStation = (station: FireStation) => {
-    if (station.phone) {
-      Linking.openURL(`tel:${station.phone}`)
-    }
+  const router = useRouter()
+
+  const handleCall = (station: FireStation) => {
+    if (station.phone) Linking.openURL(`tel:${station.phone}`)
   }
 
   const handleDirections = (station: FireStation) => {
-    const url = `https://maps.google.com/maps?daddr=${station.latitude},${station.longitude}`
-    Linking.openURL(url)
-  }
-
-  const handleViewAllStations = () => {
-    router.push('/(tabs)/fire-stations');
+    Linking.openURL(`https://maps.google.com/maps?daddr=${station.latitude},${station.longitude}`)
   }
 
   return (
@@ -88,95 +100,115 @@ export const FireStationsCard: React.FC<FireStationsCardProps> = ({
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleContainer}>
           <View style={styles.sectionIconContainer}>
-            <MaterialCommunityIcons name="fire-truck" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="fire-truck" size={20} color="#fff" />
           </View>
           <Text style={styles.sectionTitle}>Nearby Fire Stations</Text>
         </View>
-        <TouchableOpacity style={styles.seeAllButton} onPress={handleViewAllStations}>
+        <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push("/(tabs)/fire-stations")}>
           <Text style={styles.seeAllText}>View All</Text>
           <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stationsContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {loadingStations ? (
-          <ActivityIndicator size="small" color={Colors.primary} style={{ margin: 16 }} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>Finding stations...</Text>
+          </View>
         ) : fireStations.length > 0 ? (
-          fireStations.map((station: FireStation, idx) => (
+          fireStations.map((station) => (
             <View
-              style={[styles.stationCard, station.id === closestStationId && styles.closestStationCard]}
               key={station.id || station.name}
+              style={[
+                styles.card,
+                station.id === closestStationId && styles.closestCard,
+              ]}
             >
-              {/* Closest badge at top-right */}
+              {/* Badge */}
               {station.id === closestStationId && (
-                <View style={styles.closestBadge}>
+                <View style={styles.badge}>
                   <Ionicons name="star" size={10} color="#fff" />
-                  <Text style={styles.closestBadgeText}>Closest</Text>
+                  <Text style={styles.badgeText}>Closest</Text>
                 </View>
               )}
 
-              <View style={styles.stationHeader}>
-                <View style={styles.stationIconContainer}>
-                  <MaterialCommunityIcons name="fire-truck" size={28} color={Colors.primary} />
+              {/* Top row: icon + distance */}
+              <View style={styles.cardTop}>
+                <View style={styles.iconCircle}>
+                  <MaterialCommunityIcons name="fire-truck" size={26} color={Colors.primary} />
                 </View>
-                <View style={styles.distanceBadge}>
-                  <Text style={styles.distanceText}>
-                    {station.routeDistanceText || `${station.straightLineDistance?.toFixed(1) || station.distance}km`}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.stationName}>{station.name}</Text>
-              <Text style={styles.stationMetaText}>{station.address}</Text>
-
-              <View style={styles.stationMeta}>
-                <View style={styles.stationMetaItem}>
-                  <Ionicons name="time-outline" size={14} color={Colors.tertiary} />
-                  <Text style={styles.stationMetaText}>{station.travelTimeText || station.responseTime || "N/A"}</Text>
+                <View style={styles.distancePill}>
+                  <Ionicons name="navigate" size={11} color={Colors.accent} />
+                  <Text style={styles.distanceText}>{getDisplayDistance(station)}</Text>
                 </View>
               </View>
 
-              <View style={styles.stationButtonsContainer}>
+              {/* Station info */}
+              <View style={styles.infoBlock}>
+                <Text style={styles.stationName} numberOfLines={2}>
+                  {station.name}
+                </Text>
+                <Text style={styles.stationAddress} numberOfLines={1}>
+                  {station.address}
+                </Text>
+                <View style={styles.timeRow}>
+                  <Ionicons name="time-outline" size={13} color={Colors.tertiary} />
+                  <Text style={styles.timeText}>{getDisplayTime(station)}</Text>
+                </View>
+              </View>
+
+              {/* Actions */}
+              <View style={styles.actions}>
                 <TouchableOpacity
-                  style={styles.reportIncidentButton}
-                  activeOpacity={0.8}
+                  style={styles.btnReport}
                   onPress={() => onReportIncident?.(station)}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="warning-outline" size={16} color={Colors.danger} />
-                  <Text style={styles.reportIncidentButtonText}>Report Incident</Text>
+                  <Ionicons name="warning-outline" size={14} color={Colors.danger} />
+                  <Text style={styles.btnReportText}>Report</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.directionsButton}
+                  style={styles.btnDirections}
                   onPress={() => handleDirections(station)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="navigate-outline" size={16} color={Colors.accent} />
-                  <Text style={styles.directionsButtonText}>Directions</Text>
+                  <Ionicons name="navigate-outline" size={14} color={Colors.accent} />
+                  <Text style={styles.btnDirectionsText}>Directions</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.callButton, !station.phone && styles.callButtonDisabled]}
-                  onPress={() => handleCallStation(station)}
+                  style={[styles.btnCall, !station.phone && styles.btnCallDisabled]}
+                  onPress={() => handleCall(station)}
                   activeOpacity={0.8}
                   disabled={!station.phone}
                 >
-                  <Ionicons name="call" size={16} color={station.phone ? Colors.surface : Colors.tertiary} />
-                  <Text style={[styles.callButtonText, !station.phone && styles.callButtonTextDisabled]}>
+                  <Ionicons name="call" size={14} color={station.phone ? "#fff" : Colors.tertiary} />
+                  <Text style={[styles.btnCallText, !station.phone && styles.btnCallTextDisabled]}>
                     {station.phone ? "Call" : "No Phone"}
                   </Text>
-                  {station.phone && <Text style={styles.callButtonNumber}>{station.phone}</Text>}
                 </TouchableOpacity>
               </View>
             </View>
           ))
         ) : (
-          <Text style={{ color: Colors.tertiary, margin: 16 }}>No fire stations found nearby.</Text>
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="fire-truck" size={32} color={Colors.tertiary} />
+            <Text style={styles.emptyText}>No fire stations found nearby.</Text>
+          </View>
         )}
       </ScrollView>
     </View>
   )
 }
+
+const CARD_WIDTH = 260
+const CARD_HEIGHT = 310
 
 const styles = StyleSheet.create({
   container: {
@@ -187,23 +219,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   sectionTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryAlpha,
+    width: 36,
+    height: 36,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 10,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: Colors.secondary,
   },
@@ -211,169 +250,240 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.primary,
-  },
-  stationsContainer: {
-    paddingHorizontal: 20,
-  },
-  stationCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginRight: 16,
-    width: 280,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    position: "relative",
-  },
-  closestStationCard: {
     borderWidth: 2,
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  closestBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderColor: Colors.secondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    backgroundColor: "#FFFFFF",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  seeAllText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: Colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  // ── Card ────────────────────────────────────────────────
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    padding: 16,
+    marginRight: 14,
+    justifyContent: "space-between",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    position: "relative",
+    overflow: "hidden",
+  },
+  closestCard: {
+    borderColor: Colors.primary,
+    borderWidth: 3,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
+  },
+  badge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    borderRadius: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    zIndex: 1,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  // ── Top row ──────────────────────────────────────────────
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.primaryAlpha,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  distancePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.accent,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    borderRadius: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  distanceText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#fff",
+  },
+  // ── Info block ────────────────────────────────────────────
+  infoBlock: {
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+  stationName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Colors.secondary,
+    marginBottom: 4,
+    lineHeight: 19,
+  },
+  stationAddress: {
+    fontSize: 11,
+    color: Colors.tertiary,
+    marginBottom: 6,
+    fontWeight: "500",
+  },
+  timeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  closestBadgeText: {
-    color: Colors.surface,
-    fontSize: 10,
+  timeText: {
+    fontSize: 11,
+    color: Colors.tertiary,
     fontWeight: "700",
   },
-  stationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
+  // ── Action buttons ────────────────────────────────────────
+  actions: {
+    gap: 5,
+    marginTop: 8,
   },
-  stationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryAlpha,
+  btnReport: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 5,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    borderRadius: 0,
+    paddingVertical: 7,
+    backgroundColor: Colors.surface,
   },
-  distanceBadge: {
-    backgroundColor: Colors.accentAlpha,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  distanceText: {
+  btnReportText: {
+    color: Colors.danger,
+    fontWeight: "800",
     fontSize: 12,
-    fontWeight: "700",
-    color: Colors.accent,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  stationName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.secondary,
-    marginBottom: 8,
-  },
-  stationMetaText: {
-    fontSize: 14,
-    color: Colors.tertiary,
-    
-  },
-  stationMeta: {
-    marginBottom: 16,
-    marginTop: 5,
-    
-   
-  },
-  stationMetaItem: {
+  btnDirections: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: Colors.accent,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    borderRadius: 0,
+    paddingVertical: 7,
   },
-  stationButtonsContainer: {
+  btnDirectionsText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  btnCall: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    borderRadius: 0,
+    paddingVertical: 7,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  btnCallDisabled: {
+    backgroundColor: "#F5EDE3",
+    shadowOpacity: 0,
+    elevation: 0,
+    borderColor: Colors.tertiary,
+  },
+  btnCallText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  btnCallTextDisabled: {
+    color: Colors.tertiary,
+  },
+  // ── Empty / loading ───────────────────────────────────────
+  loadingContainer: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
-  reportIncidentButton: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    gap: 6,
-    borderWidth: 2,
-    borderColor: Colors.danger,
-  },
-  reportIncidentButtonText: {
-    color: Colors.danger,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  directionsButton: {
-    backgroundColor: Colors.accentAlpha,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.accent + "30",
-  },
-  directionsButtonText: {
-    color: Colors.accent,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  callButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    gap: 6,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  callButtonDisabled: {
-    backgroundColor: Colors.border,
-    shadowOpacity: 0.1,
-    elevation: 1,
-  },
-  callButtonText: {
-    color: Colors.surface,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  callButtonTextDisabled: {
+  loadingText: {
+    fontSize: 13,
     color: Colors.tertiary,
   },
-  callButtonNumber: {
-    color: Colors.surface,
-    fontWeight: "600",
-    fontSize: 12,
-    marginLeft: 8,
+  emptyContainer: {
+    width: CARD_WIDTH,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.tertiary,
+    textAlign: "center",
   },
 })
 
-export default FireStationsCard 
+export default FireStationsCard

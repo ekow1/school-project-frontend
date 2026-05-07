@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { ENV } from '../config/env'
+import { useAuthStore } from './authStore'
 
 export interface ChatMessage {
   id: string
@@ -33,7 +34,7 @@ interface ChatState {
   error: string | null
   newMessageIds: Set<string> // Track new messages for typewriter effect
   likeCounts: Map<string, number> // Track like counts per message
-  
+
   // Actions
   setSessions: (sessions: ChatSession[]) => void
   setCurrentSession: (session: ChatSession | null) => void
@@ -43,13 +44,13 @@ interface ChatState {
   setError: (error: string | null) => void
   addNewMessageId: (messageId: string) => void
   clearNewMessageIds: () => void
-  
+
   // API Actions
   fetchSessions: () => Promise<void>
   createSession: (text: string) => Promise<void>
   addMessage: (sessionId: string, text: string) => Promise<void>
   fetchSession: (sessionId: string) => Promise<void>
-  
+
   // UI Actions
   startNewSession: (initialMessage?: string) => void
   openSession: (session: ChatSession) => void
@@ -69,6 +70,20 @@ interface ChatState {
 const API_BASE_URL = ENV.CHAT_API_URL
 const FALLBACK_API_URL = 'http://localhost:8000/api' // Fallback for web/development
 
+// System prompt to enforce strict markdown formatting
+const SYSTEM_PROMPT = `You are a Fire Safety Assistant. Always format responses using strict, clean Markdown.
+
+Formatting rules (mandatory):
+
+- Insert a blank line between paragraphs, headings, lists, and sections
+- Headings must be on their own line (##, ###)
+- Bullet points (-) must each be on separate lines
+- Do not mix italics/bold with headings unnecessarily
+- Use short paragraphs (1-2 lines max)
+- Use lists or tables only when they improve readability
+- Ensure content is mobile-friendly and visually spaced
+- Never allow text to appear jammed together or misaligned`
+
 // Helper function to get the correct API URL based on platform
 const getApiUrl = () => {
   // In React Native, use the IP address; in web, use localhost
@@ -78,27 +93,113 @@ const getApiUrl = () => {
 // Mock responses for development/testing
 const MOCK_RESPONSES = {
   "What are basic fire safety rules?": "Here are the basic fire safety rules:\n\n1. **Install smoke detectors** in every room and test them monthly\n2. **Keep fire extinguishers** accessible and know how to use them\n3. **Never leave cooking unattended** - most fires start in the kitchen\n4. **Keep flammable materials away** from heat sources\n5. **Have an escape plan** and practice it with your family\n6. **Stop, Drop, and Roll** if your clothes catch fire\n7. **Call emergency services** immediately if a fire breaks out\n8. **Keep exits clear** and accessible at all times",
-  
+
   "How do I use a fire extinguisher?": "To use a fire extinguisher, remember the acronym **PASS**:\n\n1. **Pull** the pin to break the tamper seal\n2. **Aim** the nozzle at the base of the fire (not the flames)\n3. **Squeeze** the handle to release the extinguishing agent\n4. **Sweep** from side to side at the base of the fire\n\n**Important**: Only use a fire extinguisher if the fire is small and contained. If the fire is spreading or you feel unsafe, evacuate immediately and call emergency services.",
-  
+
   "What to do in a fire emergency?": "In a fire emergency, follow these steps:\n\n1. **Alert others** and sound the alarm\n2. **Evacuate immediately** - don't stop for belongings\n3. **Stay low** to avoid smoke inhalation\n4. **Use the nearest exit** - never use elevators\n5. **Close doors** behind you to slow the fire\n6. **Go to your meeting place** outside\n7. **Call 911** from a safe location\n8. **Never go back** into a burning building\n\nIf trapped, close doors, seal gaps with wet cloths, and signal for help from a window.",
-  
+
   "How to prevent kitchen fires?": "To prevent kitchen fires:\n\n1. **Never leave cooking unattended** - stay in the kitchen while cooking\n2. **Keep flammable items away** from the stove (towels, paper, curtains)\n3. **Clean grease buildup** regularly from stovetops and ovens\n4. **Use a timer** to remind you when food is cooking\n5. **Keep a lid nearby** to smother small grease fires\n6. **Turn pot handles inward** to prevent accidental spills\n7. **Wear short sleeves** or roll up long sleeves when cooking\n8. **Keep children away** from cooking areas\n9. **Install a fire extinguisher** in or near the kitchen\n10. **Test smoke alarms** monthly"
 }
 
 // Helper function to get mock response
 const getMockResponse = (text: string): string => {
   const lowerText = text.toLowerCase()
-  
+
   // Check for exact matches first
   for (const [key, response] of Object.entries(MOCK_RESPONSES)) {
     if (lowerText.includes(key.toLowerCase())) {
-      return response
+      return formatAIResponse(response)
     }
   }
-  
+
   // Default response for other queries
-  return "I'm here to help with fire safety questions! I can provide information about:\n\n• Basic fire safety rules\n• How to use fire extinguishers\n• Emergency procedures\n• Kitchen fire prevention\n• General fire safety tips\n\nPlease ask me a specific question about fire safety, and I'll do my best to help you stay safe!"
+  return formatAIResponse("I'm here to help with fire safety questions! I can provide information about:\n\n• Basic fire safety rules\n• How to use fire extinguishers\n• Emergency procedures\n• Kitchen fire prevention\n• General fire safety tips\n\nPlease ask me a specific question about fire safety, and I'll do my best to help you stay safe!")
+}
+
+// Helper function to format AI responses into clean, readable Markdown
+const formatAIResponse = (text: string): string => {
+  if (!text) return ''
+
+  // Fix mixed asterisks - convert single asterisks to underscores for italic, fix broken bold
+  let cleaned = text
+    // Fix broken bold: **text* -> **text**
+    .replace(/\*\*([^\*]+?)\*(?!\*)/g, '**$1**')
+    // Fix broken bold: text** -> text**
+    .replace(/([\w\s])\*\*(?!\*)/g, '$1**')
+    // Convert single asterisks at word boundaries to underscores for italic
+    .replace(/\b\*([^\*]+?)\*\b/g, '_$1_')
+    // Convert leading/trailing asterisks in lines
+    .replace(/^\*\s+/gm, '• ')
+    .replace(/^\s*-\s+/gm, '• ')
+
+  // If already has headers, return cleaned version
+  if (cleaned.includes('##')) {
+    return cleaned
+  }
+
+  // Split into lines and process
+  const lines = cleaned.split('\n')
+  const formattedLines: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+
+    // Skip horizontal rules
+    if (line.match(/^[-*_]{3,}$/)) continue
+
+    // Skip empty lines (we'll add spacing later)
+    if (!line) continue
+
+    // Detect numbered lists (e.g., "1.", "2.")
+    if (/^\d+\.\s/.test(line)) {
+      formattedLines.push(line)
+      continue
+    }
+
+    // Detect bullet points
+    if (/^[•\-\*]\s/.test(line)) {
+      formattedLines.push(line)
+      continue
+    }
+
+    // Regular paragraph - add spacing
+    if (formattedLines.length > 0 && !formattedLines[formattedLines.length - 1].startsWith('##')) {
+      formattedLines.push('') // Add spacing before paragraphs
+    }
+    formattedLines.push(line)
+  }
+
+  // Join with proper line breaks
+  return formattedLines.join('\n')
+}
+
+// Alternative: Format raw API response with proper structure
+const formatRawResponse = (text: string): string => {
+  if (!text) return ''
+
+  // Check if already has markdown formatting
+  if (text.includes('##') || text.includes('**') || /^\d+\.\s/.test(text)) {
+    return text
+  }
+
+  // Split into sentences/points
+  const sentences = text
+    .replace(/\.\s+/g, '.\n')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+
+  if (sentences.length === 0) return text
+
+  // First line as a brief intro
+  let formatted = sentences[0] + '\n\n'
+
+  // Remaining as bullet points if multiple
+  if (sentences.length > 1) {
+    formatted += sentences.slice(1).map(s => '• ' + s.replace(/^•\s*/, '')).join('\n')
+  }
+
+  return formatted
 }
 
 // Helper function to generate unique message IDs
@@ -136,14 +237,26 @@ export const useChatStore = create<ChatState>()(
       fetchSessions: async () => {
         try {
           set({ isLoading: true, error: null })
-          console.log('Fetching sessions from:', `${getApiUrl()}/chat`)
-          const response = await fetch(`${getApiUrl()}/chat`)
+
+          // Get userId from auth store
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          console.log('Fetching sessions for userId:', userId)
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat?userId=${userId}`
+            : `${getApiUrl()}/chat`
+
+          console.log('Fetching sessions from:', url)
+          const response = await fetch(url)
           console.log('Response status:', response.status)
           if (!response.ok) throw new Error(`Failed to fetch sessions: ${response.status} ${response.statusText}`)
-          
+
           const data = await response.json()
           console.log('Fetched sessions:', data)
-          
+
           const sessions = data.map((session: any) => ({
             id: session._id,
             title: session.title,
@@ -152,12 +265,12 @@ export const useChatStore = create<ChatState>()(
             messageCount: session.messages?.length || 0,
             category: "general" as const,
           }))
-          
+
           set({ sessions, isLoading: false })
         } catch (error) {
           console.error('Error fetching sessions:', error)
           console.log('Falling back to mock sessions')
-          
+
           // Fallback to mock sessions
           const mockSessions: ChatSession[] = [
             {
@@ -185,10 +298,10 @@ export const useChatStore = create<ChatState>()(
               category: "safety" as const,
             }
           ]
-          
-          set({ 
-            sessions: mockSessions, 
-            isLoading: false, 
+
+          set({
+            sessions: mockSessions,
+            isLoading: false,
             error: null // Clear any previous errors
           })
         }
@@ -197,22 +310,32 @@ export const useChatStore = create<ChatState>()(
       createSession: async (text: string) => {
         try {
           set({ isLoading: true, error: null })
-          console.log('Creating session with text:', text)
+
+          // Get userId from auth store
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          console.log('Creating session with text:', text, 'userId:', userId)
           console.log('API URL:', `${getApiUrl()}/chat`)
+
+          const body = userId
+            ? { text, userId, systemPrompt: SYSTEM_PROMPT }
+            : { text, systemPrompt: SYSTEM_PROMPT }
+
           const response = await fetch(`${getApiUrl()}/chat`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify(body),
           })
-          
+
           console.log('Create session response status:', response.status)
           if (!response.ok) throw new Error(`Failed to create session: ${response.status} ${response.statusText}`)
-          
+
           const data = await response.json()
           console.log('Created session:', data)
-          
+
           const newSession: ChatSession = {
             id: data.sessionId,
             title: data.title,
@@ -221,7 +344,7 @@ export const useChatStore = create<ChatState>()(
             messageCount: data.messages.length,
             category: "general" as const,
           }
-          
+
           // Convert API message format to ChatMessage format with unique IDs
           const messages = data.messages.map((msg: any, index: number) => [
             {
@@ -232,14 +355,14 @@ export const useChatStore = create<ChatState>()(
             },
             {
               id: generateMessageId(msg.id, 'ai', index),
-              text: msg.response,
+              text: formatAIResponse(msg.response),
               isUser: false,
               timestamp: new Date(msg.timestamp),
             }
           ]).flat()
-          
+
           console.log('Converted messages:', messages)
-          
+
           // Mark AI messages as new for typewriter effect
           const newMessageIds = new Set<string>()
           messages.forEach((msg: ChatMessage) => {
@@ -247,11 +370,11 @@ export const useChatStore = create<ChatState>()(
               newMessageIds.add(msg.id)
             }
           })
-          
-          set({ 
-            currentSession: newSession, 
-            messages, 
-            isInSession: true, 
+
+          set({
+            currentSession: newSession,
+            messages,
+            isInSession: true,
             isLoading: false,
             sessions: [newSession, ...get().sessions],
             newMessageIds
@@ -259,7 +382,7 @@ export const useChatStore = create<ChatState>()(
         } catch (error) {
           console.error('Error creating session:', error)
           console.log('Falling back to mock response for:', text)
-          
+
           // Fallback to mock response
           const mockResponse = getMockResponse(text)
           const mockSession: ChatSession = {
@@ -270,28 +393,28 @@ export const useChatStore = create<ChatState>()(
             messageCount: 2,
             category: "general" as const,
           }
-          
+
           const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             text,
             isUser: true,
             timestamp: new Date(),
           }
-          
+
           const aiMessage: ChatMessage = {
             id: `ai-${Date.now()}`,
             text: mockResponse,
             isUser: false,
             timestamp: new Date(),
           }
-          
+
           const messages = [userMessage, aiMessage]
           const newMessageIds = new Set([aiMessage.id])
-          
-          set({ 
-            currentSession: mockSession, 
-            messages, 
-            isInSession: true, 
+
+          set({
+            currentSession: mockSession,
+            messages,
+            isInSession: true,
             isLoading: false,
             sessions: [mockSession, ...get().sessions],
             newMessageIds,
@@ -303,7 +426,7 @@ export const useChatStore = create<ChatState>()(
       addMessage: async (sessionId: string, text: string) => {
         try {
           set({ isLoading: true, error: null })
-          
+
           // Add user message immediately
           const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
@@ -311,31 +434,40 @@ export const useChatStore = create<ChatState>()(
             isUser: true,
             timestamp: new Date(),
           }
-          
+
           set(state => ({
             messages: [...state.messages, userMessage],
             isLoading: false
           }))
-          
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}/message?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}/message`
+
           // Send to API
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}/message`, {
+          const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, systemPrompt: SYSTEM_PROMPT }),
           })
-          
+
           if (!response.ok) throw new Error('Failed to send message')
-          
+
           const data = await response.json()
           console.log('Added message response:', data)
-          
+
           // Update the user message with backend ID and actual DB ID
           const updatedMessages = get().messages.map(msg => {
             if (msg.id === userMessage.id && msg.isUser) {
-              return { 
-                ...msg, 
+              return {
+                ...msg,
                 id: `${data.message.id}-user`, // Use actual DB message ID
                 backendId: data.message._id,
                 likeCount: data.message.likes || 0,
@@ -345,11 +477,11 @@ export const useChatStore = create<ChatState>()(
             }
             return msg
           })
-          
+
           // Add AI response - the API returns the full message object
           const aiMessage: ChatMessage = {
             id: `${data.message.id}-ai`, // Use actual DB message ID
-            text: data.message.response,
+            text: formatAIResponse(data.message.response),
             isUser: false,
             timestamp: new Date(data.message.timestamp),
             backendId: data.message._id, // Store backend ID for API calls
@@ -357,19 +489,19 @@ export const useChatStore = create<ChatState>()(
             dislikeCount: data.message.dislikes || 0,
             userFeedback: data.message.userFeedback || null,
           }
-          
+
           // Mark this AI message as new for typewriter effect
           const currentNewMessageIds = get().newMessageIds
           const newMessageIds = new Set<string>()
           currentNewMessageIds.forEach(id => newMessageIds.add(id))
           newMessageIds.add(aiMessage.id)
-          
+
           set(state => ({
             messages: [...updatedMessages, aiMessage],
             isLoading: false,
             newMessageIds
           }))
-          
+
           // Update session in list
           const updatedSession = {
             ...get().currentSession!,
@@ -377,18 +509,18 @@ export const useChatStore = create<ChatState>()(
             timestamp: new Date(),
             messageCount: get().messages.length + 1,
           }
-          
+
           set(state => ({
             currentSession: updatedSession,
-            sessions: state.sessions.map(s => 
+            sessions: state.sessions.map(s =>
               s.id === sessionId ? updatedSession : s
             )
           }))
-          
+
         } catch (error) {
           console.error('Error adding message:', error)
           console.log('Falling back to mock response for message:', text)
-          
+
           // Fallback to mock response
           const mockResponse = getMockResponse(text)
           const aiMessage: ChatMessage = {
@@ -397,20 +529,20 @@ export const useChatStore = create<ChatState>()(
             isUser: false,
             timestamp: new Date(),
           }
-          
+
           // Mark this AI message as new for typewriter effect
           const currentNewMessageIds = get().newMessageIds
           const newMessageIds = new Set<string>()
           currentNewMessageIds.forEach(id => newMessageIds.add(id))
           newMessageIds.add(aiMessage.id)
-          
+
           set(state => ({
             messages: [...state.messages, aiMessage],
             isLoading: false,
             newMessageIds,
             error: null // Clear any previous errors
           }))
-          
+
           // Update session in list
           const updatedSession = {
             ...get().currentSession!,
@@ -418,10 +550,10 @@ export const useChatStore = create<ChatState>()(
             timestamp: new Date(),
             messageCount: get().messages.length + 1,
           }
-          
+
           set(state => ({
             currentSession: updatedSession,
-            sessions: state.sessions.map(s => 
+            sessions: state.sessions.map(s =>
               s.id === sessionId ? updatedSession : s
             )
           }))
@@ -432,13 +564,24 @@ export const useChatStore = create<ChatState>()(
         try {
           set({ isLoading: true, error: null })
           console.log('Fetching session:', sessionId)
-          
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}`)
-          
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}`
+
+          console.log('Fetching session from:', url)
+
+          const response = await fetch(url)
+
           if (!response.ok) throw new Error('Failed to fetch session')
-          
+
           const data = await response.json()
-          
+
           console.log('=== DATABASE SESSION DATA ===')
           console.log('Raw DB Session:', {
             _id: data._id,
@@ -447,7 +590,7 @@ export const useChatStore = create<ChatState>()(
             timestamp: data.timestamp,
             __v: data.__v
           })
-          
+
           console.log('=== DATABASE MESSAGES ===')
           data.messages.forEach((msg: any, index: number) => {
             console.log(`Message ${index + 1}:`, {
@@ -461,7 +604,7 @@ export const useChatStore = create<ChatState>()(
               userFeedback: msg.userFeedback
             })
           })
-          
+
           const session: ChatSession = {
             id: data._id?.$oid || data._id || data.id,
             title: data.title,
@@ -470,7 +613,7 @@ export const useChatStore = create<ChatState>()(
             messageCount: data.messages.length,
             category: "general" as const,
           }
-          
+
           // Convert API message format to ChatMessage format using actual DB IDs
           const messages = data.messages.map((msg: any, index: number) => [
             {
@@ -494,7 +637,7 @@ export const useChatStore = create<ChatState>()(
               userFeedback: msg.userFeedback || null,
             }
           ]).flat()
-          
+
           console.log('=== CONVERTED SESSION ===')
           console.log('Session:', {
             id: session.id,
@@ -509,12 +652,12 @@ export const useChatStore = create<ChatState>()(
             prompt: msg.isUser ? msg.text : 'N/A',
             response: !msg.isUser ? msg.text.substring(0, 50) + '...' : 'N/A'
           })))
-          
+
           // Clear new message IDs when opening existing session
-          set({ 
-            currentSession: session, 
-            messages, 
-            isInSession: true, 
+          set({
+            currentSession: session,
+            messages,
+            isInSession: true,
             isLoading: false,
             newMessageIds: new Set()
           })
@@ -534,7 +677,7 @@ export const useChatStore = create<ChatState>()(
           category: "general",
         }
         set({ currentSession: newSession, messages: [], isInSession: true, newMessageIds: new Set() })
-        
+
         if (initialMessage) {
           // Create session with initial message
           setTimeout(() => {
@@ -564,29 +707,38 @@ export const useChatStore = create<ChatState>()(
       deleteSession: async (sessionId: string) => {
         try {
           set({ isLoading: true, error: null })
-          
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}`
+
           // Try to delete from API first
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}`, {
+          const response = await fetch(url, {
             method: 'DELETE',
           })
-          
+
           if (!response.ok) {
             console.log('API delete failed, removing locally')
           }
-          
+
           // Remove from local state regardless of API response
           const currentState = get()
           const updatedSessions = currentState.sessions.filter(session => session.id !== sessionId)
-          
+
           // If we're currently viewing the deleted session, go back
           if (currentState.currentSession?.id === sessionId) {
-            set({ 
+            set({
               sessions: updatedSessions,
-              isInSession: false, 
-              currentSession: null, 
-              messages: [], 
+              isInSession: false,
+              currentSession: null,
+              messages: [],
               newMessageIds: new Set(),
-              isLoading: false 
+              isLoading: false
             })
           } else {
             set({ sessions: updatedSessions, isLoading: false })
@@ -596,15 +748,15 @@ export const useChatStore = create<ChatState>()(
           // Still remove locally even if API fails
           const currentState = get()
           const updatedSessions = currentState.sessions.filter(session => session.id !== sessionId)
-          
+
           if (currentState.currentSession?.id === sessionId) {
-            set({ 
+            set({
               sessions: updatedSessions,
-              isInSession: false, 
-              currentSession: null, 
-              messages: [], 
+              isInSession: false,
+              currentSession: null,
+              messages: [],
               newMessageIds: new Set(),
-              isLoading: false 
+              isLoading: false
             })
           } else {
             set({ sessions: updatedSessions, isLoading: false })
@@ -615,24 +767,24 @@ export const useChatStore = create<ChatState>()(
       resendMessage: async (sessionId: string, messageId: string) => {
         try {
           set({ isLoading: true, error: null })
-          
+
           // Find the message to resend
           const messageToResend = get().messages.find(msg => msg.id === messageId)
           if (!messageToResend || !messageToResend.isUser) {
             throw new Error('Message not found or not a user message')
           }
-          
+
           // Remove the old AI response if it exists (the message after the user message)
           const messageIndex = get().messages.findIndex(msg => msg.id === messageId)
           const updatedMessages = [...get().messages]
-          
+
           // Remove AI response that follows this user message
           if (messageIndex + 1 < updatedMessages.length && !updatedMessages[messageIndex + 1].isUser) {
             updatedMessages.splice(messageIndex + 1, 1)
           }
-          
+
           set({ messages: updatedMessages })
-          
+
           // Send the message again
           await get().addMessage(sessionId, messageToResend.text)
         } catch (error) {
@@ -644,8 +796,8 @@ export const useChatStore = create<ChatState>()(
       deleteMessage: (messageId: string) => {
         const currentState = get()
         const updatedMessages = currentState.messages.filter(msg => msg.id !== messageId)
-        
-        set({ 
+
+        set({
           messages: updatedMessages,
           // Update session message count
           currentSession: currentState.currentSession ? {
@@ -658,10 +810,10 @@ export const useChatStore = create<ChatState>()(
 
       editMessage: (messageId: string, newText: string) => {
         const currentState = get()
-        const updatedMessages = currentState.messages.map(msg => 
+        const updatedMessages = currentState.messages.map(msg =>
           msg.id === messageId ? { ...msg, text: newText } : msg
         )
-        
+
         set({ messages: updatedMessages })
       },
 
@@ -669,12 +821,12 @@ export const useChatStore = create<ChatState>()(
         try {
           const currentState = get()
           const message = currentState.messages.find(msg => msg.id === messageId)
-          
+
           if (message) {
             // For React Native, we'll use Clipboard API
             const Clipboard = await import('expo-clipboard')
             await Clipboard.setStringAsync(message.text)
-            
+
             // You could also show a toast notification here
             console.log('Message copied to clipboard')
           }
@@ -687,10 +839,10 @@ export const useChatStore = create<ChatState>()(
         set(state => {
           const newLikeCounts = new Map<string, number>()
           state.likeCounts.forEach((count, id) => newLikeCounts.set(id, count))
-          
+
           const currentCount = newLikeCounts.get(messageId) || 0
           newLikeCounts.set(messageId, currentCount + 1)
-          
+
           return { likeCounts: newLikeCounts }
         })
       },
@@ -699,18 +851,18 @@ export const useChatStore = create<ChatState>()(
       updatePrompt: async (sessionId: string, messageId: string, newPrompt: string) => {
         try {
           set({ isLoading: true, error: null })
-          
+
           console.log('=== UPDATE PROMPT ===')
           console.log('Session ID:', sessionId)
           console.log('Message ID:', messageId)
           console.log('New Prompt:', newPrompt)
-          
+
           // Validate inputs
           if (!sessionId || !messageId || !newPrompt) {
             console.error('Missing required parameters:', { sessionId, messageId, newPrompt })
             throw new Error('Session ID, Message ID, and new prompt are required')
           }
-          
+
           // Test if the base API is reachable
           try {
             const healthCheck = await fetch(`${getApiUrl()}/health`)
@@ -718,21 +870,30 @@ export const useChatStore = create<ChatState>()(
           } catch (error) {
             console.log('API Health Check Failed:', error)
           }
-          
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}/message/${messageId}/prompt`, {
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}/message/${messageId}/prompt?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}/message/${messageId}/prompt`
+
+          const response = await fetch(url, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ newPrompt }),
           })
-          
+
           if (!response.ok) {
             const errorText = await response.text()
             console.error('Error response:', errorText)
             throw new Error(`Failed to update prompt: ${response.status} ${response.statusText} - ${errorText}`)
           }
-          
+
           const data = await response.json()
           console.log('=== API RESPONSE ===')
           console.log('Status:', response.status)
@@ -741,46 +902,46 @@ export const useChatStore = create<ChatState>()(
             prompt: data.message.prompt,
             response: data.message.response.substring(0, 50) + '...'
           })
-          
+
           // Find the AI message that matches the messageId we sent to the API
           const aiMessageIndex = get().messages.findIndex(msg => {
             const msgBackendId = msg.backendId || msg.id
             return msgBackendId === messageId && !msg.isUser
           })
-          
+
           // Find the user message that comes right before this AI message
           const userMessageIndex = aiMessageIndex > 0 ? aiMessageIndex - 1 : -1
-          
+
           console.log('Message Indices:', {
             aiMessageIndex,
             userMessageIndex
           })
-          
+
           // Update both messages
           const updatedMessages = get().messages.map((msg, index) => {
             if (index === aiMessageIndex) {
               console.log('Updating AI message:', msg.id, 'with new response:', data.message.response.substring(0, 50) + '...')
-              return { 
-                ...msg, 
-                text: data.message.response, 
+              return {
+                ...msg,
+                text: data.message.response,
                 timestamp: new Date(data.message.timestamp),
                 backendId: data.message._id // Update backend ID
               }
             } else if (index === userMessageIndex) {
               console.log('Updating user message:', msg.id, 'with new prompt:', data.message.prompt.substring(0, 50) + '...')
-              return { 
-                ...msg, 
-                text: data.message.prompt, 
+              return {
+                ...msg,
+                text: data.message.prompt,
                 timestamp: new Date(data.message.timestamp),
                 backendId: data.message._id // Update backend ID
               }
             }
             return msg
           })
-          
+
           console.log('=== UPDATE COMPLETE ===')
           console.log('Messages updated successfully')
-          
+
           // Update session title if provided
           if (data.updatedSession?.title) {
             const updatedSessions = get().sessions.map(session =>
@@ -790,13 +951,13 @@ export const useChatStore = create<ChatState>()(
             )
             set({ sessions: updatedSessions })
           }
-          
+
           set({ messages: updatedMessages, isLoading: false })
-          
+
         } catch (error) {
           console.error('Error updating prompt:', error)
           const errorMessage = error instanceof Error ? error.message : 'Failed to update prompt'
-          
+
           // If it's a network error or API is not available, just update locally
           if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
             console.log('API not available, updating prompt locally')
@@ -810,22 +971,31 @@ export const useChatStore = create<ChatState>()(
       likeMessage: async (sessionId: string, messageId: string, action: 'like' | 'dislike') => {
         try {
           console.log('Liking message for session:', sessionId, 'message:', messageId, 'action:', action)
-          
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}/message/${messageId}/like`, {
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}/message/${messageId}/like?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}/message/${messageId}/like`
+
+          const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ action }),
           })
-          
+
           if (!response.ok) {
             throw new Error(`Failed to like message: ${response.status} ${response.statusText}`)
           }
-          
+
           const data = await response.json()
           console.log('Like message data:', data)
-          
+
           // Update the message with new like/dislike counts
           const updatedMessages = get().messages.map(msg => {
             const msgBackendId = msg.backendId || msg.id
@@ -837,8 +1007,8 @@ export const useChatStore = create<ChatState>()(
                 newDislikes: data.dislikes,
                 newUserFeedback: data.userFeedback
               })
-              return { 
-                ...msg, 
+              return {
+                ...msg,
                 likeCount: data.likes,
                 dislikeCount: data.dislikes,
                 userFeedback: data.userFeedback
@@ -846,13 +1016,13 @@ export const useChatStore = create<ChatState>()(
             }
             return msg
           })
-          
+
           set({ messages: updatedMessages })
-          
+
         } catch (error) {
           console.error('Error liking message:', error)
           const errorMessage = error instanceof Error ? error.message : 'Failed to like message'
-          
+
           // If it's a network error or API is not available, use local toggle
           if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
             console.log('API not available, using local like toggle')
@@ -866,46 +1036,55 @@ export const useChatStore = create<ChatState>()(
       updateSessionTitle: async (sessionId: string) => {
         try {
           set({ isLoading: true, error: null })
-          
+
           console.log('Updating session title for session:', sessionId)
-          
-          const response = await fetch(`${getApiUrl()}/chat/${sessionId}/title`, {
+
+          // Get userId from auth store for filtering
+          const user = useAuthStore.getState().user
+          const userId = user?.id
+
+          // Build URL with userId query parameter
+          const url = userId
+            ? `${getApiUrl()}/chat/${sessionId}/title?userId=${userId}`
+            : `${getApiUrl()}/chat/${sessionId}/title`
+
+          const response = await fetch(url, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
             },
           })
-          
+
           if (!response.ok) {
             throw new Error(`Failed to update session title: ${response.status} ${response.statusText}`)
           }
-          
+
           const data = await response.json()
           console.log('Update session title data:', data)
-          
+
           // Update the session title
           const updatedSessions = get().sessions.map(session =>
             session.id === sessionId
               ? { ...session, title: data.title }
               : session
           )
-          
+
           // Also update current session if it's the same
           const currentSession = get().currentSession
           if (currentSession && currentSession.id === sessionId) {
-            set({ 
-              sessions: updatedSessions, 
+            set({
+              sessions: updatedSessions,
               currentSession: { ...currentSession, title: data.title },
-              isLoading: false 
+              isLoading: false
             })
           } else {
             set({ sessions: updatedSessions, isLoading: false })
           }
-          
+
         } catch (error) {
           console.error('Error updating session title:', error)
           const errorMessage = error instanceof Error ? error.message : 'Failed to update session title'
-          
+
           // If it's a network error or API is not available, just continue without updating title
           if (errorMessage.includes('404') || errorMessage.includes('Failed to fetch')) {
             console.log('API not available, skipping title update')

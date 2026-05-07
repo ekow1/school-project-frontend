@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import { Colors } from '../constants/theme';
 import { useFireReportsStore } from '../store/fireReportsStore';
 
 interface ReportData {
@@ -282,7 +283,7 @@ const EmergencyReportAlert: React.FC<EmergencyReportAlertProps> = ({
 
             {/* Warning Message */}
             <View style={styles.warningCard}>
-              <Ionicons name="warning" size={20} color="#F59E0B" />
+              <Ionicons name="warning" size={20} color="Colors.warning" />
               <Text style={styles.warningText}>
                 This report will be sent to emergency services. Please ensure all information is accurate.
               </Text>
@@ -332,16 +333,17 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   alertContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: Colors.background,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
     width: '100%',
     maxWidth: 450,
     maxHeight: '90%',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 30,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 20,
   },
   headerGradient: {
@@ -357,7 +359,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'Colors.warningAlpha',
   },
   headerTop: {
     flexDirection: 'row',
@@ -388,14 +390,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 96,
     height: 96,
-    borderRadius: 48,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     marginBottom: 16,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#fff',
   },
   incidentTitle: {
     fontSize: 28,
@@ -429,10 +430,11 @@ const styles = StyleSheet.create({
   sectionIconBg: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: Colors.primaryAlpha,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.secondary,
   },
   sectionTitle: {
     fontSize: 13,
@@ -441,11 +443,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   infoCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: Colors.secondary,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   infoRow: {
     flexDirection: 'row',
@@ -456,7 +462,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6B7280',
+    color: 'Colors.tertiary',
     minWidth: 90,
   },
   infoValue: {
@@ -482,14 +488,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
+    backgroundColor: Colors.warningAlpha,
     padding: 16,
     marginHorizontal: 20,
     marginTop: 8,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   warningText: {
     flex: 1,
@@ -509,26 +519,31 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
     backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#6B7280',
+    color: 'Colors.tertiary',
   },
   confirmButton: {
     flex: 2,
-    borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 4,
   },
   confirmButtonDisabled: {

@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { Colors } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -23,18 +24,6 @@ interface CustomAlertProps {
   confirmText?: string;
   cancelText?: string;
 }
-
-const Colors = {
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  info: '#3B82F6',
-  surface: '#FFFFFF',
-  text: '#1F2937',
-  textSecondary: '#6B7280',
-  border: '#E5E7EB',
-  shadow: 'rgba(0, 0, 0, 0.1)',
-};
 
 export const CustomAlert: React.FC<CustomAlertProps> = ({
   visible,
@@ -58,7 +47,7 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
         };
       case 'error':
         return {
-          color: Colors.error,
+          color: Colors.danger,
           icon: 'close-circle' as const,
           backgroundColor: '#FEF2F2',
         };
@@ -144,7 +133,7 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -153,13 +142,15 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   content: {
-    borderRadius: 16,
+    borderRadius: 0,
+    borderWidth: 3,
+    borderColor: '#1A1A1A',
     padding: 24,
     alignItems: 'center',
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 8,
   },
   iconContainer: {
@@ -167,44 +158,55 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    textTransform: 'uppercase',
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   message: {
-    fontSize: 16,
-    color: Colors.textSecondary,
+    fontSize: 15,
+    color: '#1A1A1A',
     textAlign: 'center',
     lineHeight: 22,
+    fontWeight: '600',
     marginBottom: 24,
   },
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'center',
+    width: '100%',
   },
   button: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 100,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    minWidth: 110,
     alignItems: 'center',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   cancelButton: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: '#FFFFFF',
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.surface,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    textTransform: 'uppercase',
   },
 });
 

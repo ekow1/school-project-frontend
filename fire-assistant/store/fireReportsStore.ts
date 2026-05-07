@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ENV } from '../config/env';
 import { useAuthStore } from './authStore';
+import { useNotificationStore } from './notificationStore';
 
 export interface FireReport {
   _id: string;
@@ -24,7 +25,7 @@ export interface FireReport {
     phone?: string;
   };
   reportedAt: string;
-  status: 'pending' | 'in-progress' | 'resolved' | 'cancelled';
+  status: 'pending' | 'in-progress' | 'resolved' | 'cancelled' | 'dispatched' | 'active' | 'referred' | 'closed' | 'completed';
   priority: 'low' | 'medium' | 'high';
   description?: string;
   assignedTo?: string;
@@ -105,7 +106,7 @@ interface FireReportsState {
   isUpdating: boolean;
   isDeleting: boolean;
   error: string | null;
-  
+
   // Actions
   createFireReport: (reportData: CreateFireReportData) => Promise<FireReportResponse>;
   getAllFireReports: () => Promise<FireReportResponse>;
@@ -145,7 +146,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Create fire report
   createFireReport: async (reportData: CreateFireReportData): Promise<FireReportResponse> => {
     set({ isCreating: true, error: null });
-    
+
     try {
       // Validate userId
       if (!reportData.userId || reportData.userId === 'unknown') {
@@ -156,16 +157,16 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
           throw new Error('Invalid user ID format. Please log in and try again.');
         }
       }
-      
+
       console.log('Creating fire report:', reportData);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts`, {
         method: 'POST',
         headers,
@@ -179,7 +180,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Fire report created successfully:', result);
-      
+
       // Add the new report to the reports array
       if (result.success && result.data) {
         set(state => ({
@@ -191,9 +192,9 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
       } else {
         set({ isCreating: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error creating fire report:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create fire report';
@@ -205,17 +206,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Get all fire reports (incidents)
   getAllFireReports: async (): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
-    
+
     try {
       console.log('Fetching all incidents');
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/incidents`, {
         method: 'GET',
         headers,
@@ -228,7 +229,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Incidents fetched successfully:', result);
-      
+
       if (result.success && result.data) {
         // Transform API response to match FireReport interface
         const transformedReports: FireReport[] = result.data.map((incident: any) => {
@@ -263,14 +264,79 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
             reporterPhone: alert.reporterPhone,
           } as FireReport & { reporterName?: string; reporterPhone?: string };
         });
-        
+
         set({ reports: transformedReports, isLoading: false, error: null });
+
+        // Check for new incidents and trigger notifications
+        const { setNewIncident, setNewTurnoutSlip, addNotification, hasNewIncident, hasNewTurnoutSlip, lastIncidentId, lastTurnoutSlipId } = useNotificationStore.getState();
+        const currentUser = useAuthStore.getState().user;
+
+        // Check for new pending/active incidents
+        const pendingIncidents = transformedReports.filter(r =>
+          r.status === 'pending' || r.status === 'dispatched' || r.status === 'active'
+        );
+
+        if (pendingIncidents.length > 0) {
+          // Get the most recent incident
+          const mostRecent = pendingIncidents.sort((a, b) =>
+            new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+          )[0];
+
+          // Only set new incident if it's different from the last one
+          if (mostRecent._id !== lastIncidentId) {
+            // Set new incident flag
+            setNewIncident(mostRecent._id);
+
+            // Add notification for new incident
+            addNotification({
+              title: 'New Incident Alert',
+              message: `${mostRecent.incidentType} reported at ${mostRecent.location?.locationName || 'Unknown location'}`,
+              type: 'incident',
+              priority: mostRecent.priority === 'high' ? 'high' : 'medium',
+              data: {
+                reportId: mostRecent._id,
+                incidentType: mostRecent.incidentType,
+                location: mostRecent.location?.locationName,
+              }
+            });
+          }
+        }
+
+        // For fire officers, also set turnout slip notification
+        if (currentUser?.userType === 'fire_officer') {
+          const activeTurnouts = transformedReports.filter(r =>
+            r.status === 'dispatched' || r.status === 'active'
+          );
+
+          if (activeTurnouts.length > 0) {
+            const mostRecentTurnout = activeTurnouts.sort((a, b) =>
+              new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+            )[0];
+
+            // Only set new turnout slip if it's different from the last one
+            if (mostRecentTurnout._id !== lastTurnoutSlipId) {
+              setNewTurnoutSlip(mostRecentTurnout._id);
+
+              addNotification({
+                title: 'New Turnout Slip',
+                message: `Turnout slip for ${mostRecentTurnout.incidentName} - ${mostRecentTurnout.incidentType}`,
+                type: 'turnout_slip',
+                priority: 'high',
+                data: {
+                  reportId: mostRecentTurnout._id,
+                  incidentType: mostRecentTurnout.incidentType,
+                  location: mostRecentTurnout.location?.locationName,
+                }
+              });
+            }
+          }
+        }
       } else {
         set({ isLoading: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error fetching incidents:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch incidents';
@@ -282,17 +348,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Get fire report by ID
   getFireReportById: async (id: string): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
-    
+
     try {
       console.log('Fetching fire report by ID:', id);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'GET',
         headers,
@@ -305,15 +371,15 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Fire report fetched successfully:', result);
-      
+
       if (result.success && result.data) {
         set({ currentReport: result.data, isLoading: false, error: null });
       } else {
         set({ isLoading: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error fetching fire report:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch fire report';
@@ -325,17 +391,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Get fire reports by user
   getFireReportsByUser: async (userId: string): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
-    
+
     try {
       console.log('Fetching fire reports by user:', userId);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/user/${userId}`, {
         method: 'GET',
         headers,
@@ -348,15 +414,15 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('User fire reports fetched successfully:', result);
-      
+
       if (result.success && result.data) {
         set({ reports: result.data, isLoading: false, error: null });
       } else {
         set({ isLoading: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error fetching user fire reports:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user fire reports';
@@ -368,17 +434,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Get fire reports by station
   getFireReportsByStation: async (stationId: string): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
-    
+
     try {
       console.log('Fetching fire reports by station:', stationId);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/station/${stationId}`, {
         method: 'GET',
         headers,
@@ -391,15 +457,15 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Station fire reports fetched successfully:', result);
-      
+
       if (result.success && result.data) {
         set({ reports: result.data, isLoading: false, error: null });
       } else {
         set({ isLoading: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error fetching station fire reports:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch station fire reports';
@@ -411,17 +477,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Update fire report
   updateFireReport: async (id: string, updateData: UpdateFireReportData): Promise<FireReportResponse> => {
     set({ isUpdating: true, error: null });
-    
+
     try {
       console.log('Updating fire report:', id, updateData);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'PUT',
         headers,
@@ -435,11 +501,11 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Fire report updated successfully:', result);
-      
+
       if (result.success && result.data) {
         // Update the report in the reports array
         set(state => ({
-          reports: state.reports.map(report => 
+          reports: state.reports.map(report =>
             report._id === id ? result.data : report
           ),
           currentReport: state.currentReport?._id === id ? result.data : state.currentReport,
@@ -449,9 +515,9 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
       } else {
         set({ isUpdating: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error updating fire report:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update fire report';
@@ -463,17 +529,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Delete fire report
   deleteFireReport: async (id: string): Promise<FireReportResponse> => {
     set({ isDeleting: true, error: null });
-    
+
     try {
       console.log('Deleting fire report:', id);
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/${id}`, {
         method: 'DELETE',
         headers,
@@ -486,7 +552,7 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Fire report deleted successfully:', result);
-      
+
       if (result.success) {
         // Remove the report from the reports array
         set(state => ({
@@ -498,9 +564,9 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
       } else {
         set({ isDeleting: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error deleting fire report:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete fire report';
@@ -512,17 +578,17 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
   // Get fire report statistics
   getFireReportStats: async (): Promise<FireReportResponse> => {
     set({ isLoading: true, error: null });
-    
+
     try {
       console.log('Fetching fire report statistics');
-      
+
       const token = useAuthStore.getState().token;
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/emergency/alerts/stats`, {
         method: 'GET',
         headers,
@@ -535,15 +601,15 @@ export const useFireReportsStore = create<FireReportsState>((set, get) => ({
 
       const result = await response.json();
       console.log('Fire report statistics fetched successfully:', result);
-      
+
       if (result.success && result.data) {
         set({ stats: result.data, isLoading: false, error: null });
       } else {
         set({ isLoading: false, error: null });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error fetching fire report statistics:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch fire report statistics';

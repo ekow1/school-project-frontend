@@ -12,19 +12,21 @@ const Colors = {
   primary: "#D32F2F",
   primaryLight: "#FF6659",
   primaryDark: "#9A0007",
-  primaryAlpha: "rgba(211, 47, 47, 0.1)", // Primary color with 10% opacity
+  primaryAlpha: "rgba(211, 47, 47, 0.1)",
   secondary: "#1A1A1A",
   tertiary: "#6B7280",
   background: "#F8FAFC",
   surface: "#FFFFFF",
   surfaceVariant: "#F1F5F9",
-  border: "#E2E8F0",
+  border: "#1A1A1A",
   success: "#10B981",
   warning: "#F59E0B",
   danger: "#EF4444",
   accent: "#8B5CF6",
   shadow: "rgba(0, 0, 0, 0.1)",
 }
+
+const nbShadow = { shadowColor: Colors.border, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
 
 interface NewsItem {
   title: string
@@ -124,11 +126,13 @@ const styles = StyleSheet.create({
   sectionIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     backgroundColor: Colors.primaryAlpha,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    ...nbShadow,
   },
   sectionTitle: {
     fontSize: 20,
@@ -139,24 +143,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "#FFFFFF",
+    shadowColor: Colors.border,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   seeAllText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "900",
     color: Colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   newsHorizontalContainer: {
     paddingHorizontal: 20,
   },
   newsCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.border,
     marginBottom: 16,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...nbShadow,
     overflow: "hidden",
   },
   newsImageContainer: {
@@ -171,9 +184,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     left: 12,
-    borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
   },
   categoryText: {
     color: Colors.surface,

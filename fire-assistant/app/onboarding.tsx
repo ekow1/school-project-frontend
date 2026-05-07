@@ -11,6 +11,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 
 const { width, height } = Dimensions.get('window');
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   cardHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'Colors.surfaceVariant',
     borderRadius: 2,
   },
   cardContent: {
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'Colors.surfaceVariant',
   },
   highlightContainer: {
     flexDirection: 'row',
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'Colors.surfaceVariant',
   },
   activeIndicator: {
     backgroundColor: ORANGE,
